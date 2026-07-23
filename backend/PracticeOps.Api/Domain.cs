@@ -1,8 +1,8 @@
 namespace PracticeOps.Api;
 
-public enum AppointmentStatus { Scheduled, Confirmed, CheckedIn, Completed, Cancelled }
-public enum NoteStatus { Draft, AwaitingSignature, Signed }
-public enum ClaimStatus { Draft, Ready, Submitted, NeedsReview, Paid }
+public enum AppointmentStatus { Scheduled, Confirmed, CheckedIn, InSession, Completed, Cancelled }
+public enum NoteStatus { Draft, InReview, Signed }
+public enum ClaimStatus { Draft, ReadyForSubmission, Submitted, NeedsReview, Paid, Denied }
 
 public sealed class Appointment
 {
@@ -17,9 +17,10 @@ public sealed class Appointment
     {
         var allowed = Status switch
         {
-            AppointmentStatus.Scheduled => next is AppointmentStatus.Confirmed or AppointmentStatus.Cancelled,
+            AppointmentStatus.Scheduled => next is AppointmentStatus.Confirmed or AppointmentStatus.CheckedIn or AppointmentStatus.Cancelled,
             AppointmentStatus.Confirmed => next is AppointmentStatus.CheckedIn or AppointmentStatus.Cancelled,
-            AppointmentStatus.CheckedIn => next is AppointmentStatus.Completed,
+            AppointmentStatus.CheckedIn => next is AppointmentStatus.InSession or AppointmentStatus.Cancelled,
+            AppointmentStatus.InSession => next == AppointmentStatus.Completed,
             _ => false
         };
         if (!allowed) throw new InvalidOperationException($"Appointment cannot move from {Status} to {next}.");
@@ -40,8 +41,8 @@ public sealed class ClinicalNote
     {
         var allowed = Status switch
         {
-            NoteStatus.Draft => next == NoteStatus.AwaitingSignature,
-            NoteStatus.AwaitingSignature => next == NoteStatus.Signed,
+            NoteStatus.Draft => next == NoteStatus.InReview,
+            NoteStatus.InReview => next == NoteStatus.Signed,
             _ => false
         };
         if (!allowed) throw new InvalidOperationException($"Note cannot move from {Status} to {next}.");
@@ -64,10 +65,10 @@ public sealed class Claim
     {
         var allowed = next == ClaimStatus.NeedsReview || Status switch
         {
-            ClaimStatus.Draft => next == ClaimStatus.Ready,
-            ClaimStatus.Ready => next == ClaimStatus.Submitted,
-            ClaimStatus.Submitted => next == ClaimStatus.Paid,
-            ClaimStatus.NeedsReview => next is ClaimStatus.Ready or ClaimStatus.Submitted,
+            ClaimStatus.Draft => next == ClaimStatus.ReadyForSubmission,
+            ClaimStatus.ReadyForSubmission => next == ClaimStatus.Submitted,
+            ClaimStatus.Submitted => next is ClaimStatus.Paid or ClaimStatus.Denied,
+            ClaimStatus.NeedsReview => next is ClaimStatus.ReadyForSubmission or ClaimStatus.Submitted,
             _ => false
         };
         if (!allowed) throw new InvalidOperationException($"Claim cannot move from {Status} to {next}.");

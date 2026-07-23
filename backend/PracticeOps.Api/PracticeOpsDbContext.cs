@@ -45,7 +45,7 @@ public static class FictionalSeed
             Clinician = a.Clinician,
             DueAt = a.StartsAt.AddHours(index == 0 ? 24 : 48)
         }).ToArray();
-        notes[0].TransitionTo(NoteStatus.AwaitingSignature, now);
+        notes[0].TransitionTo(NoteStatus.InReview, now);
 
         var claims = new[]
         {

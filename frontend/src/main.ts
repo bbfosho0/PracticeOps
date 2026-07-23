@@ -64,7 +64,7 @@ export class AppComponent {
     const notes = this.dashboard()?.notes ?? [];
     return [
       { label: 'Ready for billing', value: notes.filter(n => n.status === 'Signed').length },
-      { label: 'Awaiting signature', value: notes.filter(n => n.status === 'AwaitingSignature').length },
+      { label: 'In review', value: notes.filter(n => n.status === 'InReview').length },
       { label: 'Draft notes', value: notes.filter(n => n.status === 'Draft').length }
     ];
   });
