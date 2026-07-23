@@ -1,0 +1,24 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PracticeOps.Api", "backend\PracticeOps.Api\PracticeOps.Api.csproj", "{9A87B442-DB56-4E0E-B140-21CD64C8E318}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PracticeOps.Tests", "backend\PracticeOps.Tests\PracticeOps.Tests.csproj", "{BDF8EA66-BB43-4054-BBB1-37CC50AC9632}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{9A87B442-DB56-4E0E-B140-21CD64C8E318}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9A87B442-DB56-4E0E-B140-21CD64C8E318}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9A87B442-DB56-4E0E-B140-21CD64C8E318}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9A87B442-DB56-4E0E-B140-21CD64C8E318}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BDF8EA66-BB43-4054-BBB1-37CC50AC9632}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BDF8EA66-BB43-4054-BBB1-37CC50AC9632}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BDF8EA66-BB43-4054-BBB1-37CC50AC9632}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BDF8EA66-BB43-4054-BBB1-37CC50AC9632}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
