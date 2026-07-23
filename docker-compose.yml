@@ -1,0 +1,39 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: practiceops
+      POSTGRES_USER: practiceops
+      POSTGRES_PASSWORD: practiceops
+    ports: ["5432:5432"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U practiceops -d practiceops"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    volumes: ["practiceops-postgres:/var/lib/postgresql/data"]
+
+  rabbitmq:
+    image: rabbitmq:4-management-alpine
+    ports: ["5672:5672", "15672:15672"]
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: backend/PracticeOps.Api/Dockerfile
+    environment:
+      ConnectionStrings__PracticeOps: Host=postgres;Port=5432;Database=practiceops;Username=practiceops;Password=practiceops
+      RabbitMq__Host: rabbitmq
+      ASPNETCORE_URLS: http://+:8080
+    ports: ["8080:8080"]
+    depends_on:
+      postgres: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+
+volumes:
+  practiceops-postgres:
