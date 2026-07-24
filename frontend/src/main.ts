@@ -1,3 +1,4 @@
+import 'zone.js';
 import { HttpClient, provideHttpClient } from '@angular/common/http';
 import { Component, computed, inject, signal } from '@angular/core';
 import { bootstrapApplication } from '@angular/platform-browser';

@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -10,6 +11,8 @@ var connectionString = builder.Configuration.GetConnectionString("PracticeOps")
 
 builder.Services.AddDbContext<PracticeOpsDbContext>(options => options.UseNpgsql(connectionString));
 builder.Services.AddProblemDetails();
+builder.Services.Configure<Microsoft.AspNetCore.Http.Json.JsonOptions>(options =>
+    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddHealthChecks().AddDbContextCheck<PracticeOpsDbContext>(tags: ["ready"]);
