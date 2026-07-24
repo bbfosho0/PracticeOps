@@ -21,8 +21,8 @@
         },
         "serve": {
           "builder": "@angular-devkit/build-angular:dev-server",
-          "configurations": { "production": { "buildTarget": "practiceops:build:production" } },
-          "defaultConfiguration": "production"
+          "options": { "buildTarget": "practiceops:build" },
+          "configurations": { "production": { "buildTarget": "practiceops:build:production" } }
         },
         "test": {
           "builder": "@angular-devkit/build-angular:karma",
