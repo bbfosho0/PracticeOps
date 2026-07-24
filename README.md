@@ -64,9 +64,9 @@ docker compose up --build
 
 Services:
 
-- API: `http://localhost:8080`
-- Swagger: `http://localhost:8080/swagger`
-- Readiness: `http://localhost:8080/health/ready`
+- API: `http://localhost:8081`
+- Swagger: `http://localhost:8081/swagger`
+- Readiness: `http://localhost:8081/health/ready`
 - RabbitMQ management: `http://localhost:15672`
 
 ### Start the Angular frontend
