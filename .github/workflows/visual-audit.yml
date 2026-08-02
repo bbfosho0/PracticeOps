@@ -1,0 +1,74 @@
+name: Visual Audit
+
+on:
+  push:
+    branches:
+      - design/clinical-observatory-fidelity-pass
+  pull_request:
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/visual-audit.yml'
+
+jobs:
+  screenshots:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - run: npm ci
+      - run: npm run build
+
+      - name: Serve production build
+        run: |
+          python3 -m http.server 4173 --directory dist/practiceops/browser > /tmp/practiceops-server.log 2>&1 &
+          echo $! > /tmp/practiceops-server.pid
+          for attempt in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:4173/ > /dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/practiceops-server.log
+          exit 1
+
+      - name: Capture desktop and mobile
+        run: |
+          mkdir -p visual-audit
+          google-chrome \
+            --headless=new \
+            --no-sandbox \
+            --disable-gpu \
+            --hide-scrollbars \
+            --force-device-scale-factor=1 \
+            --virtual-time-budget=6000 \
+            --window-size=1600,1000 \
+            --screenshot=visual-audit/overview-desktop.png \
+            http://127.0.0.1:4173/
+          google-chrome \
+            --headless=new \
+            --no-sandbox \
+            --disable-gpu \
+            --hide-scrollbars \
+            --force-device-scale-factor=1 \
+            --virtual-time-budget=6000 \
+            --window-size=390,844 \
+            --screenshot=visual-audit/overview-mobile.png \
+            http://127.0.0.1:4173/
+          test -s visual-audit/overview-desktop.png
+          test -s visual-audit/overview-mobile.png
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: clinical-observatory-visual-audit
+          path: frontend/visual-audit/*.png
+          if-no-files-found: error
+          retention-days: 7
