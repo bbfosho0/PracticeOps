@@ -16,7 +16,7 @@
             "index": "src/index.html",
             "browser": "src/main.ts",
             "tsConfig": "tsconfig.app.json",
-            "styles": ["src/styles.css"]
+            "styles": ["src/styles.css", "src/visual-polish.css"]
           }
         },
         "serve": {
@@ -28,7 +28,7 @@
           "builder": "@angular-devkit/build-angular:karma",
           "options": {
             "tsConfig": "tsconfig.spec.json",
-            "styles": ["src/styles.css"],
+            "styles": ["src/styles.css", "src/visual-polish.css"],
             "browsers": "ChromeHeadless"
           }
         }
