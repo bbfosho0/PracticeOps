@@ -54,20 +54,40 @@
     display: block;
   }
 
-  .workspace-profile {
-    padding-bottom: 16px !important;
+  .settings-grid > .workspace-profile {
+    min-height: 320px !important;
+    padding-bottom: 18px !important;
   }
 
   .workspace-profile .profile-body {
-    gap: 14px;
+    gap: 18px;
   }
 
-  .workspace-profile footer {
-    position: static;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px 16px;
-    margin-top: 20px;
+  .workspace-profile .profile-fields > div {
+    min-height: 24px;
+    align-items: center;
+  }
+
+  .workspace-profile .profile-fields > div:last-child {
+    margin-bottom: 16px;
+  }
+
+  .settings-grid > .workspace-profile footer {
+    position: static !important;
+    left: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+    display: grid !important;
+    grid-template-columns: 1fr;
+    justify-content: stretch;
+    gap: 8px;
+    margin-top: 26px !important;
+    padding-top: 14px;
+    border-top: 1px solid rgba(58, 88, 128, 0.24);
+  }
+
+  .settings-grid > .workspace-profile footer .text-action {
+    justify-self: start;
   }
 
   .audit-metric-strip {
