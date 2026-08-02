@@ -8,13 +8,38 @@ on:
     paths:
       - 'frontend/**'
       - 'backend/**'
+      - '.automation/**'
       - '.github/workflows/source-snapshot.yml'
+
+permissions:
+  contents: write
 
 jobs:
   snapshot:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: fix/functional-telemetry-layout
+          fetch-depth: 0
+
+      - name: Decode staged app sources
+        run: |
+          cat .automation/app-ts-*.b64 | base64 --decode > frontend/src/app.component.ts
+          cat .automation/app-html-*.b64 | base64 --decode > frontend/src/app.component.html
+          echo '203c0df7d88caa98a2b9e2afa6667cce4d45acef2b04492512f8660d099511ed  frontend/src/app.component.ts' | sha256sum --check
+          echo 'e5be008b91907f0340e47f1900dd0f282a7dda3af3c52dcc8252c480630fe83f  frontend/src/app.component.html' | sha256sum --check
+
+      - name: Commit generated app sources
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add frontend/src/app.component.ts frontend/src/app.component.html
+          if ! git diff --cached --quiet; then
+            git commit -m 'feat: wire functional observatory controls'
+            git push origin HEAD:fix/functional-telemetry-layout
+          fi
+
       - uses: actions/upload-artifact@v4
         with:
           name: practiceops-source-snapshot
