@@ -4,6 +4,11 @@ on:
   push:
     branches:
       - fix/functional-telemetry-layout
+  pull_request:
+    paths:
+      - 'frontend/**'
+      - 'backend/**'
+      - '.github/workflows/source-snapshot.yml'
 
 jobs:
   snapshot:
