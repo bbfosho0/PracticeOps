@@ -117,6 +117,19 @@ jobs:
               await writeFile(`visual-audit/${fileName}`, Buffer.from(result.data, 'base64'));
             };
 
+            const selectWorkspace = async (index, expectedTitle, fileName) => {
+              await evaluate(`document.querySelectorAll('.dock-item')[${index}]?.click()`);
+              await sleep(900);
+              const state = await evaluate(`(() => ({
+                title: document.querySelector('h1')?.textContent?.trim(),
+                activeLabel: document.querySelector('.dock-item[aria-current="page"]')?.getAttribute('aria-label'),
+                dataView: document.querySelector('.observatory')?.getAttribute('data-view')
+              }))()`);
+              if (state.title !== expectedTitle) throw new Error(`Expected ${expectedTitle}, received ${state.title}`);
+              await screenshot(fileName);
+              return state;
+            };
+
             await send('Page.enable');
             await send('Runtime.enable');
             await send('Emulation.setDeviceMetricsOverride', { width: 1600, height: 1000, deviceScaleFactor: 1, mobile: false });
@@ -146,13 +159,13 @@ jobs:
             await writeFile('visual-audit/layout.json', JSON.stringify(layout, null, 2));
             await screenshot('overview-desktop.png');
 
-            await evaluate(`document.querySelectorAll('.dock-item')[3]?.click()`);
-            await sleep(900);
-            await screenshot('claims-desktop.png');
-
-            await evaluate(`document.querySelectorAll('.dock-item')[2]?.click()`);
-            await sleep(900);
-            await screenshot('documentation-desktop.png');
+            const interactionStates = [];
+            interactionStates.push(await selectWorkspace(1, 'Temporal runway', 'schedule-desktop.png'));
+            interactionStates.push(await selectWorkspace(2, 'Documentation continuum', 'documentation-desktop.png'));
+            interactionStates.push(await selectWorkspace(3, 'Risk constellation', 'claims-desktop.png'));
+            interactionStates.push(await selectWorkspace(4, 'Event spectrum', 'audit-desktop.png'));
+            interactionStates.push(await selectWorkspace(5, 'Workspace parameters', 'settings-desktop.png'));
+            await writeFile('visual-audit/interactions.json', JSON.stringify(interactionStates, null, 2));
 
             await evaluate(`document.querySelectorAll('.dock-item')[0]?.click()`);
             await send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
@@ -167,10 +180,14 @@ jobs:
           NODE
           node /tmp/practiceops-visual-audit.mjs
           test -s visual-audit/overview-desktop.png
-          test -s visual-audit/claims-desktop.png
+          test -s visual-audit/schedule-desktop.png
           test -s visual-audit/documentation-desktop.png
+          test -s visual-audit/claims-desktop.png
+          test -s visual-audit/audit-desktop.png
+          test -s visual-audit/settings-desktop.png
           test -s visual-audit/overview-mobile.png
           test -s visual-audit/layout.json
+          test -s visual-audit/interactions.json
           test -s visual-audit/console.json
 
       - uses: actions/upload-artifact@v4
