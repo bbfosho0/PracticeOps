@@ -1,0 +1,11 @@
+.git
+.github
+.superdesign
+**/bin
+**/obj
+**/node_modules
+**/dist
+**/.angular
+TestResults
+coverage
+*.log

@@ -1,0 +1,180 @@
+<div class="observatory" [attr.data-view]="activeView()">
+  <div class="atmosphere" aria-hidden="true">
+    <span class="aurora aurora-primary"></span>
+    <span class="aurora aurora-secondary"></span>
+    <span class="horizon"></span>
+    <span class="star-field"></span>
+    <span class="scanline"></span>
+  </div>
+
+  <aside class="command-dock" aria-label="PracticeOps navigation">
+    <a class="brand-orbit" href="#" aria-label="PracticeOps home" (click)="$event.preventDefault(); selectView('overview')"><span class="brand-core"></span></a>
+    <nav>
+      @for (item of nav; track item.id) {
+        <button type="button" class="dock-item" [class.active]="activeView() === item.id" [attr.aria-current]="activeView() === item.id ? 'page' : null" [attr.aria-label]="item.label" (click)="selectView(item.id)">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="item.icon"></path></svg>
+          <span>{{ item.shortLabel }}</span>
+        </button>
+      }
+    </nav>
+    <div class="dock-status" [attr.data-mode]="apiMode()" [attr.title]="apiMode() === 'live' ? 'Connected to API' : 'Synthetic local mode'"><span></span></div>
+  </aside>
+
+  <main class="workspace">
+    <header class="workspace-header">
+      <div class="brand-lockup"><span class="product-name">PracticeOps</span><span class="product-divider"></span><span class="product-context">Clinical Observatory</span></div>
+      <div class="header-copy"><span class="eyebrow">{{ view().eyebrow }}</span><h1>{{ view().title }}</h1><p>{{ view().description }}</p></div>
+      <div class="header-actions">
+        <span class="live-pill" [attr.data-tone]="view().tone"><span class="live-dot"></span>{{ view().liveLabel }}</span>
+        <span class="demo-pill">Synthetic demo</span><span class="avatar" aria-label="Yoshi Gomez">YG</span>
+      </div>
+    </header>
+
+    @if (notice()) {
+      <section class="mode-notice" aria-live="polite"><span class="notice-pulse"></span><span>{{ notice() }}</span><button type="button" (click)="load()">Retry API</button></section>
+    }
+
+    @if (loading()) {
+      <section class="loading-grid" aria-label="Loading operational signals"><div class="skeleton skeleton-wide"></div><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton skeleton-wide"></div></section>
+    } @else {
+      @switch (activeView()) {
+        @case ('overview') {
+          <section class="signal-strip" aria-label="Primary operations metrics">
+            @for (metric of metrics(); track metric.label) {
+              <article class="metric-signal" [attr.data-tone]="metric.tone"><span class="signal-orb"><span></span></span><div class="metric-copy"><span>{{ metric.label }}</span><strong>{{ metric.value | number:'1.0-0' }}{{ metric.suffix }}</strong><small>{{ metric.detail }}</small></div></article>
+            }
+          </section>
+
+          <section class="overview-grid">
+            <article class="glass-panel schedule-preview">
+              <header class="panel-header"><div><span class="panel-kicker">Today’s schedule</span><span class="panel-subtitle">All providers</span></div><button type="button" class="text-action" (click)="selectView('schedule')">View full schedule <span>→</span></button></header>
+              <div class="schedule-list">
+                @for (appointment of dashboard().appointments.slice(0, 7); track appointment.id) {
+                  <div class="schedule-row" [class.highlighted]="$index === 2">
+                    <time>{{ appointment.startsAt | date:'shortTime' }}</time><span class="row-signal" [attr.data-tone]="tone(appointment.status)"></span><span class="mini-avatar" [attr.data-tone]="tone(appointment.status)">{{ initials(appointment.patientDisplayName) }}</span>
+                    <div class="row-primary"><strong>{{ appointment.patientDisplayName }}</strong><small>{{ appointment.service }} · {{ appointment.clinician }}</small></div><span class="status-chip" [attr.data-tone]="tone(appointment.status)">{{ statusLabel(appointment.status) }}</span>
+                  </div>
+                }
+              </div>
+            </article>
+
+            <article class="glass-panel documentation-preview">
+              <header class="panel-header"><div><span class="panel-kicker">Documentation readiness</span><span class="panel-subtitle">{{ dashboard().metrics.unsignedNotes }} unsigned</span></div><button type="button" class="text-action" (click)="selectView('documentation')">View all <span>→</span></button></header>
+              <div class="pipeline compact-pipeline">
+                @for (stage of pipeline(); track stage.label) {
+                  <div class="pipeline-stage" [attr.data-tone]="stage.tone"><span class="stage-label">{{ stage.label }}</span><span class="pipeline-orb">{{ stage.value }}</span></div>
+                  @if (!$last) { <span class="pipeline-link" [attr.data-tone]="stage.tone"></span> }
+                }
+              </div>
+              <div class="energy-track"><span></span></div><div class="readiness-footer"><span>Capture</span><span>In progress</span><span>Review</span><span>Ready to sign</span><span>Signed</span></div>
+            </article>
+
+            <article class="glass-panel risk-preview">
+              <header class="panel-header"><span class="panel-kicker">Claims risk topology</span><button type="button" class="text-action warning" (click)="selectView('claims')">{{ dashboard().metrics.claimsAtRisk }} at risk</button></header>
+              <div class="risk-radar"><span class="radar-ring ring-one"></span><span class="radar-ring ring-two"></span><span class="radar-ring ring-three"></span><span class="radar-axis axis-x"></span><span class="radar-axis axis-y"></span><span class="risk-core"><strong>{{ dashboard().metrics.claimsAtRisk }}</strong><small>At risk</small></span>
+                @for (slice of riskDistribution(); track slice.label) { <span class="risk-node node-{{ $index + 1 }}" [attr.data-tone]="slice.tone"><i></i><b>{{ slice.label }}</b><small>{{ slice.count }}</small></span> }
+              </div>
+            </article>
+
+            <article class="glass-panel activity-preview">
+              <header class="panel-header"><span class="panel-kicker">Recent activity</span><span class="live-label"><i></i> Live</span></header>
+              <div class="activity-list">
+                @for (event of auditEvents().slice(0, 5); track event.id) { <div class="activity-row"><span class="activity-icon" [attr.data-tone]="eventTone(event, $index)"></span><div><strong>{{ event.action }}</strong><small>{{ event.summary }}</small></div><time>{{ event.occurredAt | date:'shortTime' }}</time></div> }
+              </div>
+            </article>
+          </section>
+        }
+
+        @case ('schedule') {
+          <section class="schedule-toolbar glass-panel">
+            <div class="date-control"><button type="button" aria-label="Previous day">‹</button><span>{{ dashboard().appointments[0]?.startsAt | date:'MMMM d, y' }}</span><button type="button" aria-label="Next day">›</button></div>
+            <div class="segmented-control" aria-label="Schedule view"><button type="button" [class.active]="selectedScheduleFilter() === 'day'" (click)="selectScheduleFilter('day')">Day</button><button type="button" [class.active]="selectedScheduleFilter() === 'week'" (click)="selectScheduleFilter('week')">Week</button><button type="button" [class.active]="selectedScheduleFilter() === 'list'" (click)="selectScheduleFilter('list')">List</button></div>
+            <div class="filter-row"><button type="button">All locations <span>⌄</span></button><button type="button">All providers <span>⌄</span></button><button type="button">All visit types <span>⌄</span></button></div>
+          </section>
+
+          <section class="schedule-workspace">
+            <article class="glass-panel runway-panel">
+              <div class="runway-header"><span>Providers</span>@for (time of ['8 AM','9 AM','10 AM','11 AM','12 PM','1 PM','2 PM','3 PM','4 PM','5 PM']; track time) { <span>{{ time }}</span> }</div>
+              <div class="runway-body">
+                <div class="provider-column">@for (provider of providerRows(); track provider) { <div class="provider-row"><span class="provider-orb"></span><div><strong>{{ provider }}</strong><small>{{ provider === 'Lunch break' ? '12:00 - 1:00 PM' : 'Therapy room ' + (($index % 3) + 1) }}</small></div></div> }</div>
+                <div class="time-grid">
+                  @for (line of [1,2,3,4,5,6,7,8,9,10]; track line) { <span class="time-line" [style.left.%]="line * 10"></span> }
+                  <span class="current-time-beam"></span><span class="current-time-label">10:24 AM</span>
+                  @for (block of runwayBlocks(); track block.id) { <button type="button" class="appointment-block" [attr.data-tone]="block.tone" [style.gridRow]="block.row" [style.gridColumn]="block.column" [attr.aria-label]="block.patient + ', ' + block.time + ', ' + statusLabel(block.status)"><time>{{ block.time }}</time><strong>{{ block.patient }}</strong><small>{{ statusLabel(block.status) }}</small></button> }
+                </div>
+              </div>
+            </article>
+
+            <aside class="schedule-side">
+              <article class="glass-panel side-panel clinician-load"><header class="panel-header"><span class="panel-kicker">Clinician load</span></header>@for (clinician of clinicianLoad; track clinician.name) { <div class="load-row"><span>{{ clinician.name }}</span><div class="load-track"><i [style.width.%]="clinician.utilization"></i></div><strong>{{ clinician.utilization }}%</strong></div> }<span class="load-orbit">78%</span></article>
+              <article class="glass-panel side-panel no-show-risk"><header class="panel-header"><span class="panel-kicker">No-show risk</span></header><div class="risk-score"><strong>12%</strong></div><div class="risk-names"><span><b>Benjamin C.</b> 6:00 · High</span><span>Jack B. 10:30 · Medium</span><span>Owen G. 1:30 · Low</span></div></article>
+              <article class="glass-panel side-panel waitlist-panel"><header class="panel-header"><span class="panel-kicker">Waitlist and fill-ins</span></header>@for (item of waitlist; track item.patient) { <div class="waitlist-row"><span>{{ item.patient }} <small>{{ item.requested }}</small></span><strong>{{ item.opening }}</strong></div> }</article>
+              <div class="side-split"><article class="glass-panel micro-panel"><span class="panel-kicker">Reminder queue</span><strong>24 Text&nbsp;&nbsp;6 Email<br>2 Call</strong></article><article class="glass-panel micro-panel"><span class="panel-kicker">Utilization signals</span><strong>Capacity 84%<br>Net available 6.2 hrs</strong></article></div>
+            </aside>
+          </section>
+        }
+
+        @case ('documentation') {
+          <section class="glass-panel continuum-panel"><div class="continuum-energy"></div><div class="pipeline full-pipeline">
+            @for (stage of pipeline(); track stage.label) { <div class="pipeline-stage" [attr.data-tone]="stage.tone"><span class="stage-label">{{ stage.label }}</span><small>{{ stage.description }}</small><span class="pipeline-orb">{{ stage.value }}</span><strong>{{ stage.value }}</strong></div>@if (!$last) { <span class="pipeline-link" [attr.data-tone]="stage.tone"></span> } }
+          </div></section>
+
+          <section class="documentation-grid">
+            <article class="glass-panel note-queue"><header class="panel-header"><span class="panel-kicker">Note queue</span><button type="button" class="text-action">View all</button></header>@for (note of noteQueue(); track note.id) { <div class="note-row"><span class="activity-icon" [attr.data-tone]="note.tone"></span><strong>{{ note.clinician }}</strong><small>{{ note.code }}</small><span class="status-text" [attr.data-tone]="note.tone">{{ note.status }}</span><time>{{ note.age }}</time></div> }<button type="button" class="queue-more">+ 34 more notes in queue</button></article>
+            <article class="glass-panel backlog-panel"><header class="panel-header"><span class="panel-kicker">Clinician backlog</span><button type="button" class="text-action">View all</button></header>@for (clinician of clinicianLoad; track clinician.name) { <div class="backlog-row"><span>{{ clinician.name }}</span><div class="load-track violet"><i [style.width.%]="clinician.utilization"></i></div><strong>{{ round(clinician.utilization / 4) }}</strong></div> }<small class="panel-footnote">Backlog average age: 2h 14m</small></article>
+            <article class="glass-panel bottleneck-panel"><header class="panel-header"><span class="panel-kicker">Signature bottlenecks</span><button type="button" class="text-action">View all</button></header><div class="signature-orbit"><span class="orbit-ring orbit-a"></span><span class="orbit-ring orbit-b"></span><span class="orbit-ring orbit-c"></span><span class="signature-core"><strong>71</strong><small>Awaiting signature</small></span><span class="orbit-caption cap-a">Over 24h&nbsp;&nbsp;34</span><span class="orbit-caption cap-b">12-24h&nbsp;&nbsp;19</span><span class="orbit-caption cap-c">Under 4h&nbsp;&nbsp;7</span></div><small class="panel-footnote">Oldest waiting: 1d 6h</small></article>
+            <article class="glass-panel followup-panel"><header class="panel-header"><span class="panel-kicker">Priority follow-ups</span><button type="button" class="text-action">View all</button></header>@for (item of priorityFollowUps; track item.label) { <div class="followup-row"><span class="activity-icon" [attr.data-tone]="item.tone"></span><div><strong>{{ item.label }}</strong><small>{{ item.detail }}</small></div><b [attr.data-tone]="item.tone">{{ item.count }}</b></div> }</article>
+          </section>
+
+          <section class="glass-panel health-strip"><span class="panel-kicker">Documentation health</span>@for (item of [{value:'92',label:'Quality score',tone:'cyan'},{value:'98%',label:'Complete notes',tone:'cyan'},{value:'7%',label:'Returned rate',tone:'violet'},{value:'1.8h',label:'Average time to signature',tone:'blue'},{value:'96%',label:'Notes with treatment plan',tone:'green'}]; track item.label) { <div class="health-item" [attr.data-tone]="item.tone"><span class="health-orb"></span><strong>{{ item.value }}</strong><small>{{ item.label }}</small></div> }</section>
+        }
+
+        @case ('claims') {
+          <section class="claims-hero-grid">
+            <article class="glass-panel exposure-card"><span class="signal-orb amber"><span></span></span><div><span class="panel-kicker">Claims at risk</span><strong>{{ dashboard().metrics.claimsAtRisk }}</strong><small>{{ dashboard().metrics.claimExposure | currency:'USD':'symbol':'1.0-0' }} exposure</small></div></article>
+            <article class="glass-panel constellation-panel"><div class="constellation-scan"></div><div class="constellation-core"><span class="orbit-ring orbit-a"></span><span class="orbit-ring orbit-b"></span><span class="orbit-ring orbit-c"></span><span class="orbit-ring orbit-d"></span><strong>{{ dashboard().metrics.claimsAtRisk }}</strong><small>At risk</small></div>
+              @for (slice of riskDistribution(); track slice.label) { <div class="constellation-node constellation-{{ $index + 1 }}" [attr.data-tone]="slice.tone"><span></span><strong>{{ slice.label }}</strong><small>{{ slice.count }} claims · {{ compactCurrency(slice.exposure) }}</small></div> }
+              <svg class="constellation-lines" viewBox="0 0 800 260" preserveAspectRatio="none" aria-hidden="true"><path d="M400 130 L130 48"></path><path d="M400 130 L145 185"></path><path d="M400 130 L320 225"></path><path d="M400 130 L680 54"></path><path d="M400 130 L695 185"></path></svg>
+            </article>
+            <article class="glass-panel trend-panel"><span class="panel-kicker">Exposure trend</span><strong>{{ dashboard().metrics.claimExposure | currency:'USD':'symbol':'1.0-0' }}</strong><small>Total exposure<br><b>18% vs last week</b></small><div class="trend-bars">@for (height of [36,25,42,31,50,43,61]; track $index) { <span [style.height.%]="height"></span> }</div></article>
+          </section>
+
+          <section class="claims-insight-grid">
+            <article class="glass-panel distribution-panel"><header class="panel-header"><span class="panel-kicker">Risk distribution</span><button type="button" class="text-action">View all →</button></header><div class="distribution-body"><div class="distribution-orbit"><strong>{{ dashboard().metrics.claimsAtRisk }}</strong><small>Total</small></div><div class="distribution-list">@for (slice of riskDistribution(); track slice.label) { <div><span class="legend-dot" [attr.data-tone]="slice.tone"></span><strong>{{ slice.label }}</strong><small>{{ slice.count }} · {{ compactCurrency(slice.exposure) }}</small></div> }</div></div></article>
+            <article class="glass-panel payer-panel"><header class="panel-header"><span class="panel-kicker">Payer watchlist</span><button type="button" class="text-action">View all →</button></header>@for (payer of payerWatchlist(); track payer.payer) { <div class="payer-row"><strong>{{ payer.payer }}</strong><span [attr.data-tone]="payer.tone">{{ payer.severity }}</span><small>{{ payer.exposure | currency:'USD':'symbol':'1.0-0' }}</small></div> }</article>
+            <article class="glass-panel claim-actions-panel"><header class="panel-header"><span class="panel-kicker">Recent claim actions</span><button type="button" class="text-action">View all →</button></header>@for (item of recentClaimActions(); track item.claim.id) { <div class="claim-action-row"><span class="activity-icon" [attr.data-tone]="item.tone"></span><strong>{{ item.claim.number }} · {{ item.claim.riskReason }}</strong><span [attr.data-tone]="item.tone">{{ item.action }}</span><time>{{ item.time }}</time></div> }</article>
+          </section>
+
+          <article class="glass-panel claims-table-panel"><header class="table-toolbar"><div><span class="panel-kicker">Claims at risk</span><small>{{ dashboard().metrics.claimsAtRisk }} results</small></div><div><button type="button">All risk types⌄</button><button type="button">All payers⌄</button><button type="button">Filters</button><button type="button">Search claims</button></div></header>
+            <div class="data-table claims-table" role="table" aria-label="Claims at risk"><div class="table-row table-head" role="row"><span>Claim #</span><span>Patient</span><span>DOS</span><span>Payer</span><span>Risk type</span><span>Risk reason</span><span>Exposure</span><span>Days</span><span>Status</span><span>Owner</span></div>
+              @for (claim of topClaims(); track claim.id) { <div class="table-row" role="row"><strong>{{ claim.number }}</strong><span>{{ dashboard().appointments[$index]?.patientDisplayName ?? 'Synthetic patient' }}</span><span>{{ dashboard().appointments[$index]?.startsAt | date:'MM/dd/yy' }}</span><span>{{ claim.payer }}</span><span>{{ riskLabel(claim) }}</span><span>{{ claim.riskReason }}</span><b>{{ claim.amount | currency:'USD':'symbol':'1.0-0' }}</b><span>{{ 18 - $index * 3 }}</span><span class="status-text" data-tone="coral">Needs action</span><span>{{ dashboard().appointments[$index]?.clinician ?? 'Claims team' }}</span></div> }
+            </div>
+          </article>
+        }
+
+        @case ('audit') {
+          <section class="audit-metric-strip">@for (metric of auditSummary; track metric.label) { <article class="glass-panel audit-metric" [attr.data-tone]="metric.tone"><span class="signal-orb"><span></span></span><div><small>{{ metric.label }}</small><strong>{{ metric.value }}</strong><b>{{ metric.detail }}</b></div></article> }</section>
+          <section class="audit-primary-grid">
+            <article class="glass-panel spectrum-panel"><header class="panel-header"><span class="panel-kicker">Event spectrum</span><div><span class="live-label"><i></i> Real-time</span><button type="button" class="text-action">Live feed →</button></div></header><div class="spectrum-chart"><span class="spectrum-cursor"></span>@for (height of spectrumBars; track $index) { <span class="spectrum-bar" [attr.data-tone]="$index < 16 ? 'blue' : $index < 32 ? 'violet' : $index < 45 ? 'coral' : $index < 58 ? 'amber' : 'cyan'" [style.height.%]="height"></span> }</div><div class="spectrum-axis"><span>12 PM</span><span>3 PM</span><span>6 PM</span><span>9 PM</span><span>12 AM</span><span>3 AM</span><span>6 AM</span><span>9 AM</span><span>12 PM</span></div></article>
+            <article class="glass-panel event-types-panel"><header class="panel-header"><span class="panel-kicker">Event types</span><button type="button" class="text-action">View all →</button></header><div class="event-types-body"><div class="event-type-list">@for (event of eventTypeMetrics(); track event.label) { <div><span class="legend-dot" [attr.data-tone]="event.tone"></span><strong>{{ event.label }}</strong><small>{{ event.count | number }}&nbsp;&nbsp;{{ event.share }}</small></div> }</div><div class="event-total-orbit"><strong>9,842</strong><small>Total events</small></div></div></article>
+          </section>
+          <section class="audit-card-grid">@for (card of [{title:'Outbox delivery',value:'99.71%',detail:'Delivered',tone:'cyan'},{title:'Flagged events',value:'23',detail:'Needs review',tone:'coral'},{title:'Note signatures',value:'98.6%',detail:'Valid',tone:'green'},{title:'Claim status changes',value:'1,886',detail:'Total',tone:'blue'}]; track card.title) { <article class="glass-panel audit-orbit-card"><header class="panel-header"><span class="panel-kicker">{{ card.title }}</span><button type="button" class="text-action">View all →</button></header><div class="audit-orbit" [attr.data-tone]="card.tone"><strong>{{ card.value }}</strong><small>{{ card.detail }}</small></div><div class="mini-legend"><span><i data-tone="green"></i>Delivered</span><span><i data-tone="amber"></i>Pending</span><span><i data-tone="coral"></i>Failed</span></div></article> }</section>
+          <article class="glass-panel activity-table-panel"><header class="panel-header"><div><span class="panel-kicker">Activity stream</span><span class="live-label"><i></i> Live</span></div></header><div class="data-table audit-table" role="table" aria-label="Audit activity"><div class="table-row table-head" role="row"><span>Time</span><span>Event</span><span>Entity</span><span>Source</span><span>Details</span><span>Status</span><span>Actor</span></div>@for (event of auditEvents(); track event.id) { <div class="table-row" role="row"><strong>{{ event.occurredAt | date:'shortTime' }}</strong><span>{{ event.action }}</span><span>{{ event.id }}</span><span>{{ $index % 2 === 0 ? 'PracticeOps API' : 'Outbox dispatcher' }}</span><span>{{ event.summary }}</span><span class="status-text" data-tone="green">{{ $index % 3 === 0 ? 'Valid' : 'Completed' }}</span><span>{{ event.actor }}</span></div> }</div></article>
+        }
+
+        @case ('settings') {
+          <section class="glass-panel demo-boundary"><span class="signal-orb cyan"><span></span></span><div><strong>This is a synthetic-data demonstration workspace.</strong><small>All patient, provider, and operational data is simulated and not connected to real systems.</small></div><div><b>Demo boundaries active</b><small>Read-only environment</small></div></section>
+          <section class="settings-grid">
+            <article class="glass-panel workspace-profile"><header class="panel-header"><div><span class="panel-kicker">Workspace profile</span><small>Read-only</small></div></header><div class="profile-body"><span class="large-avatar">YG</span><div class="profile-fields"><div><span>Your workspace</span><strong>Synthetic demo</strong></div><div><span>Workspace ID</span><strong>WS-9XT7-2F4Q</strong></div><div><span>Environment</span><strong>Synthetic demonstration</strong></div><div><span>Demo boundaries</span><strong class="healthy">Enabled</strong></div></div></div><footer><small>Managed by PracticeOps</small><button type="button" class="text-action">View boundaries →</button></footer></article>
+            <article class="glass-panel preference-panel"><header class="panel-header"><span class="panel-kicker">Notification preferences</span></header>@for (preference of notificationPreferences; track preference.label) { <div class="preference-row"><span>{{ preference.label }}</span><small>{{ preference.cadence }}</small><i [class.off]="!preference.state"></i></div> }<button type="button" class="text-action align-right">Manage preferences →</button></article>
+            <article class="glass-panel role-panel"><header class="panel-header"><div><span class="panel-kicker">Role and access</span><small>Read-only</small></div></header><div class="role-body"><span class="role-orb">△</span><div><div class="role-title"><small>Your role</small><strong>Clinical Operations Viewer</strong></div><b>Access scope</b>@for (scope of ['Overview and dashboards','Documentation','Claims and risk','Audit logs','Workspace settings']; track scope) { <div class="scope-row"><span>{{ scope }}</span><strong>View</strong></div> }</div></div><button type="button" class="text-action align-right">View role details →</button></article>
+            <article class="glass-panel integrations-panel"><header class="panel-header"><div><span class="panel-kicker">Integrations</span><small>Read-only</small></div></header><div class="integration-layout"><div>@for (integration of integrationHealth; track integration.name) { <div class="integration-row"><span class="activity-icon" [attr.data-tone]="integration.tone"></span><div><strong>{{ integration.name }}</strong><small>{{ integration.detail }}</small></div><b>Healthy <i></i></b></div> }</div><div class="integration-orbit"><span class="orbit-ring orbit-a"></span><span class="orbit-ring orbit-b"></span><span class="orbit-ring orbit-c"></span><span class="integration-core">✓</span><span class="satellite satellite-a"></span><span class="satellite satellite-b"></span></div></div><button type="button" class="text-action align-right">View integration details →</button></article>
+            <article class="glass-panel system-panel"><header class="panel-header"><div><span class="panel-kicker">System information</span><small>Read-only</small></div></header><div class="system-layout"><div class="system-fields"><div><span>Workspace version</span><strong>v2.4.1</strong></div><div><span>UI build</span><strong>2026.08.02-1422</strong></div><div><span>Data refresh</span><strong class="healthy">30 seconds ago</strong></div><div><span>Uptime</span><strong>99.98% (30d)</strong></div></div><div class="system-fields"><div><span>Region</span><strong>us-east-1</strong></div><div><span>Data residency</span><strong>United States</strong></div><div><span>Encryption</span><strong>AES-256 in transit and at rest</strong></div><div><span>Audit retention</span><strong>180 days (read-only)</strong></div></div><div class="system-globe" aria-hidden="true">@for (dot of [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]; track dot) { <span [style.left.%]="15 + ((dot * 17) % 70)" [style.top.%]="18 + ((dot * 29) % 64)"></span> }</div></div><button type="button" class="text-action align-right">View system status →</button></article>
+          </section>
+        }
+      }
+
+      <footer class="system-footer"><div><span class="system-dot"></span><strong>All systems operational</strong></div><div><span>Data freshness</span><strong>{{ apiMode() === 'live' ? 'Live API' : 'Local synthetic data' }}</strong></div><div><span>Practice</span><strong>Mindful Health Partners</strong></div><div><span>Signals monitored</span><strong>{{ activeView() === 'audit' ? '8 / 8' : '3 / 3' }}</strong></div></footer>
+    }
+  </main>
+</div>
