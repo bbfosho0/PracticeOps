@@ -35,23 +35,24 @@ app.MapHealthChecks("/health/ready", new() { Predicate = check => check.Tags.Con
 
 app.MapGet("/api/dashboard", async (PracticeOpsDbContext db, CancellationToken ct) =>
 {
-    var today = DateTimeOffset.UtcNow.Date;
+    var now = DateTimeOffset.UtcNow;
+    var today = new DateTimeOffset(now.UtcDateTime.Date, TimeSpan.Zero);
     var tomorrow = today.AddDays(1);
-    var appointments = await db.Appointments.Where(x => x.StartsAt >= today && x.StartsAt < tomorrow).OrderBy(x => x.StartsAt).ToListAsync(ct);
+    var appointments = await db.Appointments
+        .Where(x => x.StartsAt >= today && x.StartsAt < tomorrow)
+        .OrderBy(x => x.StartsAt)
+        .ToListAsync(ct);
     var notes = await db.ClinicalNotes.OrderBy(x => x.DueAt).ToListAsync(ct);
-    var claims = await db.Claims.Where(x => x.Status == ClaimStatus.NeedsReview).OrderByDescending(x => x.Amount).ToListAsync(ct);
-    var audit = await db.AuditEntries.OrderByDescending(x => x.OccurredAt).Take(8).ToListAsync(ct);
+    var claims = await db.Claims
+        .Where(x => x.Status == ClaimStatus.NeedsReview || x.Status == ClaimStatus.Denied)
+        .OrderByDescending(x => x.Amount)
+        .ToListAsync(ct);
+    var audit = await db.AuditEntries.OrderByDescending(x => x.OccurredAt).Take(20).ToListAsync(ct);
+    var metrics = DashboardMetricsCalculator.Calculate(appointments, notes, claims);
 
     return Results.Ok(new
     {
-        metrics = new
-        {
-            appointmentsToday = appointments.Count,
-            unsignedNotes = notes.Count(x => x.Status != NoteStatus.Signed),
-            claimsAtRisk = claims.Count,
-            claimExposure = claims.Sum(x => x.Amount),
-            teamUtilization = 86
-        },
+        metrics,
         appointments,
         notes,
         claims,
