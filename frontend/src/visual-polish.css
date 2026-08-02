@@ -1,0 +1,766 @@
+/*
+ * Clinical Observatory fidelity layer
+ *
+ * The approved concept renders define the visual ambition. This stylesheet is
+ * intentionally loaded after the component styles so the browser can own the
+ * atmospheric lighting, material depth, and responsive finishing that do not
+ * translate cleanly into static Figma primitives.
+ */
+
+:root {
+  --observatory-ink: #02040a;
+  --observatory-deep: #050914;
+  --observatory-graphite: #091322;
+  --observatory-white: #f7f9ff;
+  --observatory-cyan: #29ddff;
+  --observatory-cobalt: #3674ff;
+  --observatory-violet: #8557ff;
+  --observatory-green: #43e89a;
+  --observatory-amber: #ffb92f;
+  --observatory-coral: #ff647f;
+}
+
+.observatory {
+  --view-accent: var(--observatory-cyan);
+  --view-secondary: var(--observatory-violet);
+  background:
+    radial-gradient(ellipse 85% 46% at 58% -8%, rgba(43, 104, 255, 0.14), transparent 68%),
+    linear-gradient(180deg, #040711 0%, var(--observatory-ink) 72%, #010208 100%);
+}
+
+.observatory[data-view="schedule"] {
+  --view-accent: #2ce1ff;
+  --view-secondary: #3978ff;
+}
+
+.observatory[data-view="documentation"] {
+  --view-accent: #a06dff;
+  --view-secondary: #2de1ff;
+}
+
+.observatory[data-view="claims"] {
+  --view-accent: #ffb42b;
+  --view-secondary: #ff4f9d;
+}
+
+.observatory[data-view="audit"] {
+  --view-accent: #34e29c;
+  --view-secondary: #5f60ff;
+}
+
+.observatory[data-view="settings"] {
+  --view-accent: #31dfbf;
+  --view-secondary: #7d52ff;
+}
+
+.observatory::before {
+  content: "";
+  position: fixed;
+  z-index: 50;
+  inset: 9px;
+  pointer-events: none;
+  border: 1px solid rgba(76, 142, 239, 0.2);
+  border-radius: 30px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.045),
+    inset 0 0 100px rgba(4, 11, 24, 0.22),
+    0 0 80px rgba(0, 0, 0, 0.45);
+}
+
+.observatory::after {
+  content: "";
+  position: fixed;
+  z-index: 49;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.18;
+  mix-blend-mode: soft-light;
+  background-image:
+    radial-gradient(circle at 15% 20%, rgba(255, 255, 255, 0.14) 0 0.45px, transparent 0.7px),
+    radial-gradient(circle at 70% 65%, rgba(255, 255, 255, 0.1) 0 0.4px, transparent 0.65px);
+  background-size: 5px 5px, 7px 7px;
+  mask-image: linear-gradient(to bottom, #000 0%, rgba(0, 0, 0, 0.7) 45%, transparent 100%);
+}
+
+.atmosphere {
+  background:
+    radial-gradient(ellipse 50% 20% at 62% 14%, color-mix(in srgb, var(--view-accent) 11%, transparent), transparent 72%),
+    radial-gradient(ellipse 42% 22% at 38% 9%, color-mix(in srgb, var(--view-secondary) 13%, transparent), transparent 76%);
+}
+
+.aurora-primary {
+  opacity: 0.96;
+  mix-blend-mode: screen;
+  filter: blur(48px) saturate(125%);
+  background:
+    radial-gradient(ellipse at 62% 54%, color-mix(in srgb, var(--view-accent) 40%, transparent), transparent 21%),
+    radial-gradient(ellipse at 56% 49%, rgba(47, 107, 255, 0.48), transparent 47%),
+    radial-gradient(ellipse at 22% 56%, color-mix(in srgb, var(--view-secondary) 51%, transparent), transparent 45%) !important;
+}
+
+.aurora-secondary {
+  opacity: 0.88;
+  mix-blend-mode: screen;
+  filter: blur(66px) saturate(120%);
+  background:
+    radial-gradient(ellipse, color-mix(in srgb, var(--view-secondary) 31%, transparent), transparent 63%) !important;
+}
+
+.horizon {
+  border-top-color: color-mix(in srgb, var(--view-accent) 82%, white 5%) !important;
+  box-shadow:
+    0 -1px 12px color-mix(in srgb, var(--view-accent) 42%, transparent),
+    0 -11px 38px color-mix(in srgb, var(--view-accent) 16%, transparent),
+    inset 0 18px 45px rgba(18, 48, 110, 0.08) !important;
+  opacity: 0.84 !important;
+}
+
+.star-field {
+  opacity: 0.68 !important;
+  filter: drop-shadow(0 0 4px rgba(74, 207, 255, 0.35));
+}
+
+.scanline {
+  opacity: 0.07 !important;
+  mix-blend-mode: screen;
+}
+
+.workspace {
+  max-width: 1820px;
+}
+
+.workspace::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  top: 70px;
+  left: 18%;
+  width: 62%;
+  height: 180px;
+  pointer-events: none;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, color-mix(in srgb, var(--view-accent) 10%, transparent), transparent 68%);
+  filter: blur(30px);
+}
+
+.command-dock {
+  border-color: rgba(69, 140, 229, 0.54) !important;
+  background:
+    linear-gradient(180deg, rgba(11, 23, 42, 0.94), rgba(4, 10, 20, 0.93)),
+    radial-gradient(circle at 50% 0%, rgba(68, 113, 213, 0.16), transparent 35%) !important;
+  box-shadow:
+    0 28px 78px rgba(0, 0, 0, 0.62),
+    0 0 36px rgba(30, 89, 181, 0.1),
+    inset 0 1px rgba(255, 255, 255, 0.07),
+    inset 0 0 28px rgba(41, 98, 181, 0.08) !important;
+}
+
+.command-dock::before {
+  content: "";
+  position: absolute;
+  inset: 8px auto 8px -1px;
+  width: 1px;
+  background: linear-gradient(transparent, color-mix(in srgb, var(--view-accent) 58%, transparent), transparent);
+  box-shadow: 0 0 13px color-mix(in srgb, var(--view-accent) 36%, transparent);
+}
+
+.brand-orbit {
+  position: relative;
+  isolation: isolate;
+  border-color: color-mix(in srgb, var(--view-secondary) 72%, transparent) !important;
+  background:
+    radial-gradient(circle at 36% 30%, rgba(255, 255, 255, 0.16), transparent 18%),
+    radial-gradient(circle, color-mix(in srgb, var(--view-secondary) 31%, transparent), rgba(7, 13, 26, 0.96) 64%) !important;
+  box-shadow:
+    0 0 28px color-mix(in srgb, var(--view-secondary) 38%, transparent),
+    inset 0 0 18px color-mix(in srgb, var(--view-secondary) 16%, transparent) !important;
+}
+
+.brand-orbit::after {
+  content: "";
+  position: absolute;
+  inset: -7px;
+  z-index: -1;
+  border: 1px solid color-mix(in srgb, var(--view-accent) 20%, transparent);
+  border-radius: 50%;
+  opacity: 0.65;
+  animation: observatory-orbit 12s linear infinite;
+}
+
+.dock-item {
+  position: relative;
+  overflow: hidden;
+  transition: color 180ms ease, transform 180ms ease, border-color 180ms ease, background 180ms ease, box-shadow 180ms ease !important;
+}
+
+.dock-item::after {
+  content: "";
+  position: absolute;
+  right: -15px;
+  top: 20%;
+  width: 18px;
+  height: 60%;
+  border-radius: 50%;
+  background: var(--view-accent);
+  filter: blur(11px);
+  opacity: 0;
+  transition: opacity 180ms ease;
+}
+
+.dock-item.active {
+  color: var(--observatory-white) !important;
+  border-color: color-mix(in srgb, var(--view-accent) 72%, transparent) !important;
+  background:
+    linear-gradient(145deg, color-mix(in srgb, var(--view-accent) 22%, rgba(19, 37, 67, 0.92)), color-mix(in srgb, var(--view-secondary) 17%, rgba(13, 23, 45, 0.9))) !important;
+  box-shadow:
+    0 0 24px color-mix(in srgb, var(--view-accent) 18%, transparent),
+    inset 0 0 18px color-mix(in srgb, var(--view-accent) 13%, transparent),
+    inset 0 1px rgba(255, 255, 255, 0.08) !important;
+}
+
+.dock-item.active::after {
+  opacity: 0.7;
+}
+
+.dock-item.active svg {
+  color: var(--view-accent);
+  filter: drop-shadow(0 0 7px color-mix(in srgb, var(--view-accent) 65%, transparent));
+}
+
+.brand-lockup {
+  text-shadow: 0 4px 22px rgba(0, 0, 0, 0.5);
+}
+
+.product-name {
+  letter-spacing: -0.02em;
+}
+
+.product-context {
+  color: #9aa8c0 !important;
+}
+
+.eyebrow {
+  color: color-mix(in srgb, var(--view-accent) 86%, white 8%) !important;
+  text-shadow: 0 0 18px color-mix(in srgb, var(--view-accent) 35%, transparent) !important;
+}
+
+h1 {
+  color: transparent;
+  background: linear-gradient(112deg, #ffffff 0%, #edf2ff 46%, color-mix(in srgb, var(--view-accent) 24%, #dce8ff) 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  text-shadow: none !important;
+  filter: drop-shadow(0 13px 34px rgba(0, 0, 0, 0.48));
+}
+
+.header-copy p {
+  color: #9aa7bd !important;
+  letter-spacing: 0.005em;
+}
+
+.live-pill,
+.demo-pill {
+  border-color: rgba(80, 122, 177, 0.48) !important;
+  background:
+    linear-gradient(180deg, rgba(13, 24, 42, 0.8), rgba(6, 12, 24, 0.78)) !important;
+  box-shadow:
+    inset 0 1px rgba(255, 255, 255, 0.05),
+    0 12px 30px rgba(0, 0, 0, 0.22);
+}
+
+.live-pill {
+  color: #eef8ff !important;
+  border-color: color-mix(in srgb, var(--view-accent) 45%, transparent) !important;
+  box-shadow:
+    inset 0 1px rgba(255, 255, 255, 0.06),
+    0 0 18px color-mix(in srgb, var(--view-accent) 12%, transparent) !important;
+}
+
+.live-dot {
+  background: var(--view-accent) !important;
+  box-shadow: 0 0 12px var(--view-accent), 0 0 24px color-mix(in srgb, var(--view-accent) 30%, transparent) !important;
+}
+
+.avatar {
+  border-color: color-mix(in srgb, var(--view-accent) 82%, white 6%) !important;
+  color: color-mix(in srgb, var(--view-accent) 86%, white 10%) !important;
+  background:
+    radial-gradient(circle at 34% 28%, rgba(255, 255, 255, 0.13), transparent 21%),
+    color-mix(in srgb, var(--view-accent) 8%, rgba(5, 16, 29, 0.96)) !important;
+  box-shadow:
+    0 0 24px color-mix(in srgb, var(--view-accent) 28%, transparent),
+    inset 0 0 14px color-mix(in srgb, var(--view-accent) 12%, transparent) !important;
+}
+
+.glass-panel,
+.signal-strip,
+.schedule-toolbar {
+  border-color: rgba(61, 139, 228, 0.42) !important;
+  background:
+    radial-gradient(ellipse 70% 44% at 45% -10%, color-mix(in srgb, var(--view-accent) 6%, transparent), transparent 70%),
+    linear-gradient(137deg, rgba(13, 24, 42, 0.94), rgba(5, 11, 22, 0.88)) !important;
+  box-shadow:
+    0 22px 54px rgba(0, 0, 0, 0.34),
+    0 0 0 1px rgba(4, 11, 22, 0.72),
+    inset 0 1px rgba(255, 255, 255, 0.055),
+    inset 0 0 32px rgba(43, 103, 184, 0.035) !important;
+}
+
+.glass-panel::before,
+.signal-strip::before {
+  background:
+    linear-gradient(110deg, color-mix(in srgb, var(--view-accent) 6%, transparent), transparent 23%, transparent 76%, color-mix(in srgb, var(--view-secondary) 6%, transparent)),
+    radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.025), transparent 42%) !important;
+}
+
+.glass-panel::after,
+.signal-strip::after,
+.schedule-toolbar::after {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  left: 7%;
+  right: 7%;
+  top: -1px;
+  height: 1px;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--view-accent) 58%, transparent), transparent);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--view-accent) 18%, transparent);
+  opacity: 0.72;
+}
+
+.panel-header,
+.glass-panel > :not(:before):not(:after),
+.signal-strip > :not(:before):not(:after),
+.schedule-toolbar > :not(:before):not(:after) {
+  position: relative;
+  z-index: 2;
+}
+
+.panel-kicker {
+  color: #e5eaff;
+  letter-spacing: 0.085em !important;
+}
+
+.panel-subtitle,
+.panel-header small,
+.panel-footnote {
+  color: #8694aa !important;
+}
+
+.text-action {
+  color: color-mix(in srgb, var(--view-accent) 90%, white 8%) !important;
+  text-shadow: 0 0 12px color-mix(in srgb, var(--view-accent) 22%, transparent);
+}
+
+.signal-strip {
+  overflow: visible !important;
+}
+
+.metric-signal {
+  min-width: 0;
+}
+
+.metric-signal .signal-orb {
+  transform: translateZ(0);
+}
+
+.metric-copy > span {
+  color: #a6b2c7 !important;
+  letter-spacing: 0.06em;
+}
+
+.metric-copy strong {
+  color: #ffffff;
+  text-shadow: 0 6px 24px rgba(0, 0, 0, 0.42);
+}
+
+.signal-orb,
+.pipeline-orb,
+.activity-icon,
+.health-orb,
+.provider-orb,
+.risk-score,
+.load-orbit,
+.risk-donut,
+.event-donut,
+.delivery-ring,
+.flagged-ring,
+.signature-ring,
+.claim-ring {
+  position: relative;
+}
+
+.signal-orb::after,
+.pipeline-orb::after,
+.health-orb::after,
+.provider-orb::after {
+  content: "";
+  position: absolute;
+  inset: 19%;
+  border-radius: inherit;
+  background: radial-gradient(circle at 35% 28%, rgba(255, 255, 255, 0.28), transparent 48%);
+  opacity: 0.7;
+}
+
+.schedule-row,
+.note-row,
+.activity-row,
+.claim-table-row,
+.activity-table-row {
+  border-color: rgba(67, 94, 132, 0.15) !important;
+}
+
+.schedule-row {
+  background:
+    linear-gradient(90deg, rgba(17, 31, 51, 0.72), rgba(11, 21, 37, 0.58)) !important;
+}
+
+.schedule-row.highlighted,
+.schedule-row:hover {
+  border-color: color-mix(in srgb, var(--view-accent) 64%, transparent) !important;
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--view-accent) 12%, rgba(16, 38, 61, 0.88)), rgba(12, 24, 42, 0.82)) !important;
+  box-shadow:
+    0 0 22px color-mix(in srgb, var(--view-accent) 11%, transparent),
+    inset 0 1px rgba(255, 255, 255, 0.035) !important;
+}
+
+.status-chip {
+  background: color-mix(in srgb, var(--tone) 6%, rgba(6, 14, 27, 0.75));
+  box-shadow: inset 0 0 13px color-mix(in srgb, var(--tone) 5%, transparent);
+}
+
+.pipeline-link {
+  height: 2px !important;
+  background: linear-gradient(90deg, var(--tone), var(--observatory-cobalt), var(--observatory-cyan)) !important;
+  box-shadow:
+    0 0 6px var(--tone),
+    0 0 15px color-mix(in srgb, var(--tone) 24%, transparent) !important;
+}
+
+.energy-track {
+  overflow: hidden;
+  background: rgba(22, 43, 71, 0.68) !important;
+  box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.55);
+}
+
+.energy-track span {
+  position: relative;
+  background: linear-gradient(90deg, var(--observatory-violet), var(--observatory-cobalt), var(--observatory-cyan), var(--observatory-green)) !important;
+  box-shadow: 0 0 12px var(--observatory-cyan), 0 0 22px rgba(47, 107, 255, 0.24) !important;
+}
+
+.energy-track span::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  width: 28%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.58), transparent);
+  animation: observatory-sweep 4.8s ease-in-out infinite;
+}
+
+.risk-radar,
+.constellation-panel,
+.spectrum-chart,
+.signature-orbit,
+.integration-orbit {
+  isolation: isolate;
+}
+
+.risk-radar::before,
+.constellation-panel::before,
+.signature-orbit::before,
+.integration-orbit::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 12%;
+  border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--view-accent) 12%, transparent), transparent 68%);
+  filter: blur(12px);
+}
+
+.risk-core,
+.constellation-core,
+.signature-core {
+  box-shadow:
+    0 0 22px color-mix(in srgb, var(--view-accent) 14%, transparent),
+    inset 0 0 18px rgba(255, 176, 32, 0.08);
+}
+
+.runway-panel {
+  background:
+    linear-gradient(180deg, rgba(7, 15, 28, 0.94), rgba(4, 10, 19, 0.91)),
+    radial-gradient(ellipse at 35% 8%, rgba(38, 122, 255, 0.09), transparent 45%) !important;
+}
+
+.current-time-beam {
+  width: 2px !important;
+  background: linear-gradient(to bottom, transparent, var(--observatory-cyan) 8%, var(--observatory-cyan) 92%, transparent) !important;
+  box-shadow:
+    0 0 8px var(--observatory-cyan),
+    0 0 22px var(--observatory-cyan),
+    0 0 46px rgba(41, 221, 255, 0.28) !important;
+}
+
+.current-time-label {
+  border: 1px solid rgba(119, 206, 255, 0.4);
+  background: linear-gradient(180deg, #327cff, #245edf) !important;
+  box-shadow: 0 0 18px rgba(47, 107, 255, 0.42);
+}
+
+.appointment-block {
+  box-shadow:
+    0 8px 16px rgba(0, 0, 0, 0.26),
+    0 0 14px color-mix(in srgb, var(--tone) 10%, transparent),
+    inset 0 1px rgba(255, 255, 255, 0.045) !important;
+}
+
+.continuum-panel {
+  background:
+    radial-gradient(ellipse 58% 70% at 50% 55%, rgba(38, 100, 203, 0.07), transparent 70%),
+    linear-gradient(135deg, rgba(10, 20, 36, 0.94), rgba(4, 10, 20, 0.88)) !important;
+}
+
+.continuum-energy {
+  height: 2px !important;
+  background: linear-gradient(90deg, var(--observatory-cobalt), var(--observatory-violet), var(--observatory-amber), var(--observatory-cyan), var(--observatory-green)) !important;
+  box-shadow:
+    0 0 8px var(--observatory-cyan),
+    0 0 18px rgba(122, 77, 255, 0.33) !important;
+}
+
+.constellation-scan {
+  opacity: 0.9;
+  filter: drop-shadow(0 0 8px rgba(255, 73, 153, 0.35));
+}
+
+.trend-bar {
+  box-shadow: 0 0 12px color-mix(in srgb, var(--observatory-cyan) 20%, transparent);
+}
+
+.trend-bar:last-child {
+  background: linear-gradient(to top, #1d7bd8, var(--observatory-cyan)) !important;
+  box-shadow: 0 0 14px rgba(41, 221, 255, 0.45);
+}
+
+.spectrum-chart {
+  background:
+    radial-gradient(ellipse 70% 65% at 50% 55%, rgba(47, 107, 255, 0.06), transparent 72%),
+    linear-gradient(180deg, rgba(7, 15, 28, 0.86), rgba(4, 9, 18, 0.74));
+}
+
+.spectrum-bar {
+  border-radius: 999px;
+  box-shadow: 0 0 9px currentColor;
+  opacity: 0.9;
+}
+
+.integration-orbit {
+  filter: drop-shadow(0 0 14px rgba(41, 221, 255, 0.16));
+}
+
+.settings-banner {
+  background:
+    radial-gradient(circle at 4% 50%, rgba(41, 221, 255, 0.14), transparent 15%),
+    linear-gradient(90deg, rgba(12, 27, 48, 0.94), rgba(6, 14, 27, 0.86)) !important;
+}
+
+.system-footer {
+  border-color: rgba(55, 132, 224, 0.32) !important;
+  background: linear-gradient(90deg, rgba(8, 19, 34, 0.88), rgba(4, 10, 20, 0.84)) !important;
+  box-shadow:
+    inset 0 1px rgba(255, 255, 255, 0.035),
+    0 12px 32px rgba(0, 0, 0, 0.25);
+}
+
+button:focus-visible,
+a:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--view-accent) 85%, white 10%) !important;
+  outline-offset: 3px;
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--view-accent) 14%, transparent) !important;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .schedule-preview,
+  .documentation-preview,
+  .risk-preview,
+  .activity-preview,
+  .exposure-card,
+  .side-panel,
+  .note-queue,
+  .backlog-panel,
+  .bottleneck-panel,
+  .followup-panel,
+  .distribution-panel,
+  .payer-panel,
+  .actions-panel,
+  .event-types,
+  .metric-card,
+  .settings-card {
+    transition: transform 220ms ease, border-color 220ms ease, box-shadow 220ms ease;
+  }
+
+  .schedule-preview:hover,
+  .documentation-preview:hover,
+  .risk-preview:hover,
+  .activity-preview:hover,
+  .exposure-card:hover,
+  .side-panel:hover,
+  .note-queue:hover,
+  .backlog-panel:hover,
+  .bottleneck-panel:hover,
+  .followup-panel:hover,
+  .distribution-panel:hover,
+  .payer-panel:hover,
+  .actions-panel:hover,
+  .event-types:hover,
+  .metric-card:hover,
+  .settings-card:hover {
+    transform: translateY(-2px);
+    border-color: color-mix(in srgb, var(--view-accent) 56%, transparent) !important;
+    box-shadow:
+      0 28px 66px rgba(0, 0, 0, 0.39),
+      0 0 24px color-mix(in srgb, var(--view-accent) 7%, transparent),
+      inset 0 1px rgba(255, 255, 255, 0.065) !important;
+  }
+}
+
+@keyframes observatory-sweep {
+  0% { transform: translateX(-130%); opacity: 0; }
+  18% { opacity: 1; }
+  72% { opacity: 0.85; }
+  100% { transform: translateX(430%); opacity: 0; }
+}
+
+@keyframes observatory-orbit {
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width: 1180px) {
+  .observatory::before {
+    inset: 6px;
+    border-radius: 24px;
+  }
+
+  .workspace::before {
+    left: 10%;
+    width: 78%;
+  }
+
+  h1 {
+    font-size: clamp(40px, 5vw, 58px);
+  }
+}
+
+@media (max-width: 760px) {
+  .observatory::before {
+    inset: 3px;
+    border-radius: 18px;
+  }
+
+  .observatory::after {
+    opacity: 0.1;
+  }
+
+  .aurora-primary {
+    width: 140vw !important;
+    height: 38vh !important;
+    inset: -12vh -32vw auto -4vw !important;
+    filter: blur(48px) saturate(115%);
+  }
+
+  .aurora-secondary {
+    width: 100vw !important;
+    opacity: 0.66;
+  }
+
+  .horizon {
+    inset: 3vh -28vw auto -12vw !important;
+    width: 150vw;
+  }
+
+  .command-dock {
+    box-shadow:
+      0 -16px 44px rgba(0, 0, 0, 0.58),
+      inset 0 1px rgba(255, 255, 255, 0.06) !important;
+  }
+
+  .command-dock::before {
+    inset: -1px 14px auto;
+    width: auto;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--view-accent) 55%, transparent), transparent);
+  }
+
+  .workspace::before {
+    top: 110px;
+    left: 0;
+    width: 100%;
+    height: 150px;
+  }
+
+  .workspace-header {
+    gap: 10px;
+  }
+
+  .brand-lockup {
+    gap: 9px;
+  }
+
+  .product-context,
+  .product-divider {
+    display: none;
+  }
+
+  h1 {
+    font-size: clamp(38px, 12vw, 54px);
+    line-height: 0.98;
+  }
+
+  .header-copy p {
+    font-size: 12px;
+    line-height: 1.5;
+  }
+
+  .header-actions {
+    gap: 6px;
+  }
+
+  .live-pill,
+  .demo-pill {
+    min-height: 30px;
+    padding: 0 10px;
+    font-size: 8px;
+  }
+
+  .glass-panel,
+  .signal-strip,
+  .schedule-toolbar {
+    box-shadow:
+      0 18px 38px rgba(0, 0, 0, 0.3),
+      inset 0 1px rgba(255, 255, 255, 0.05) !important;
+  }
+
+  .metric-copy strong {
+    font-size: 27px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .brand-orbit::after,
+  .energy-track span::after {
+    animation: none !important;
+  }
+
+  .schedule-preview,
+  .documentation-preview,
+  .risk-preview,
+  .activity-preview,
+  .glass-panel,
+  .dock-item {
+    transition-duration: 0.01ms !important;
+  }
+}
