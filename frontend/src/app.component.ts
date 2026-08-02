@@ -2,6 +2,7 @@ import { CurrencyPipe, DatePipe, DecimalPipe } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import {
+  Appointment,
   AuditEvent,
   Claim,
   Dashboard,
@@ -21,6 +22,15 @@ import {
   riskCategory,
   toneForStatus
 } from './dashboard-model';
+import {
+  actionLabel,
+  actionTone,
+  buildAuditTelemetry,
+  buildClinicianLoad,
+  buildDocumentationTelemetry,
+  buildScheduleTelemetry,
+  reconcileDashboard
+} from './operational-telemetry';
 
 interface NavItem {
   id: ViewId;
@@ -49,11 +59,6 @@ interface RunwayBlock {
   tone: SignalTone;
 }
 
-interface ClinicianLoad {
-  name: string;
-  utilization: number;
-}
-
 interface NoteQueueItem {
   id: string;
   clinician: string;
@@ -63,111 +68,54 @@ interface NoteQueueItem {
   tone: SignalTone;
 }
 
-interface EventTypeMetric {
+interface NotificationPreference {
   label: string;
-  count: number;
-  share: string;
-  tone: SignalTone;
+  cadence: string;
+  state: boolean;
 }
 
 const NAV_ITEMS: NavItem[] = [
-  {
-    id: 'overview',
-    label: 'Overview',
-    shortLabel: 'Overview',
-    icon: 'M4 12a8 8 0 1 0 16 0 8 8 0 1 0-16 0Zm4.5 0a3.5 3.5 0 1 1 7 0 3.5 3.5 0 1 1-7 0Z'
-  },
-  {
-    id: 'schedule',
-    label: 'Schedule',
-    shortLabel: 'Schedule',
-    icon: 'M5 4h14a1 1 0 0 1 1 1v14H4V5a1 1 0 0 1 1-1Zm2-2v4m10-4v4M4 9h16'
-  },
-  {
-    id: 'documentation',
-    label: 'Documentation',
-    shortLabel: 'Docs',
-    icon: 'M7 3h8l3 3v15H6V4a1 1 0 0 1 1-1Zm7 0v4h4M9 11h6M9 15h6M9 19h4'
-  },
-  {
-    id: 'claims',
-    label: 'Claims',
-    shortLabel: 'Claims',
-    icon: 'm12 3 8 9-8 9-8-9 8-9Zm0 5v8m-3-4h6'
-  },
-  {
-    id: 'audit',
-    label: 'Audit',
-    shortLabel: 'Audit',
-    icon: 'M11 4a7 7 0 1 0 5.9 10.8L21 19m-9-11v4l3 2'
-  },
-  {
-    id: 'settings',
-    label: 'Settings',
-    shortLabel: 'Settings',
-    icon: 'M12 8.5A3.5 3.5 0 1 0 12 15.5 3.5 3.5 0 1 0 12 8.5Zm0-5 1.2 2.3 2.6.5 1.8-1.8 1.9 1.9-1.8 1.8.5 2.6 2.3 1.2v2.7l-2.3 1.2-.5 2.6 1.8 1.8-1.9 1.9-1.8-1.8-2.6.5L12 20.5H9.3l-1.2-2.3-2.6-.5-1.8 1.8-1.9-1.9 1.8-1.8-.5-2.6L.8 12V9.3l2.3-1.2.5-2.6-1.8-1.8 1.9-1.9 1.8 1.8 2.6-.5L9.3.8H12Z'
-  }
+  { id: 'overview', label: 'Overview', shortLabel: 'Overview', icon: 'M4 12a8 8 0 1 0 16 0 8 8 0 1 0-16 0Zm4.5 0a3.5 3.5 0 1 1 7 0 3.5 3.5 0 1 1-7 0Z' },
+  { id: 'schedule', label: 'Schedule', shortLabel: 'Schedule', icon: 'M5 4h14a1 1 0 0 1 1 1v14H4V5a1 1 0 0 1 1-1Zm2-2v4m10-4v4M4 9h16' },
+  { id: 'documentation', label: 'Documentation', shortLabel: 'Docs', icon: 'M7 3h8l3 3v15H6V4a1 1 0 0 1 1-1Zm7 0v4h4M9 11h6M9 15h6M9 19h4' },
+  { id: 'claims', label: 'Claims', shortLabel: 'Claims', icon: 'm12 3 8 9-8 9-8-9 8-9Zm0 5v8m-3-4h6' },
+  { id: 'audit', label: 'Audit', shortLabel: 'Audit', icon: 'M11 4a7 7 0 1 0 5.9 10.8L21 19m-9-11v4l3 2' },
+  { id: 'settings', label: 'Settings', shortLabel: 'Settings', icon: 'M12 8.5A3.5 3.5 0 1 0 12 15.5 3.5 3.5 0 1 0 12 8.5Zm0-5 1.2 2.3 2.6.5 1.8-1.8 1.9 1.9-1.8 1.8.5 2.6 2.3 1.2v2.7l-2.3 1.2-.5 2.6 1.8 1.8-1.9 1.9-1.8-1.8-2.6.5L12 20.5H9.3l-1.2-2.3-2.6-.5-1.8 1.8-1.9-1.9 1.8-1.8-.5-2.6L.8 12V9.3l2.3-1.2.5-2.6-1.8-1.8 1.9-1.9 1.8 1.8 2.6-.5L9.3.8H12Z' }
 ];
 
 const VIEW_META: Record<ViewId, ViewMeta> = {
-  overview: {
-    eyebrow: 'Live operations workspace',
-    title: 'Operations observatory',
-    description: 'Real-time visibility across schedule, documentation, claims risk, and operational signals.',
-    liveLabel: 'Live telemetry',
-    tone: 'cyan'
-  },
-  schedule: {
-    eyebrow: 'Live operations workspace',
-    title: 'Temporal runway',
-    description: 'Coordinate appointments, confirmations, clinician capacity, and check-ins in real time.',
-    liveLabel: 'Live capacity',
-    tone: 'cyan'
-  },
-  documentation: {
-    eyebrow: 'Live operations workspace',
-    title: 'Documentation continuum',
-    description: 'Move every note from capture through review to signature and billing readiness.',
-    liveLabel: 'Signature flow',
-    tone: 'violet'
-  },
-  claims: {
-    eyebrow: 'Live operations workspace',
-    title: 'Risk constellation',
-    description: 'Resolve validation, filing, and payer risk before it delays reimbursement.',
-    liveLabel: 'Risk field live',
-    tone: 'amber'
-  },
-  audit: {
-    eyebrow: 'Live operations workspace',
-    title: 'Event spectrum',
-    description: 'Review immutable operational events and system signals across every workflow.',
-    liveLabel: 'Observability live',
-    tone: 'green'
-  },
-  settings: {
-    eyebrow: 'Live operations workspace',
-    title: 'Workspace parameters',
-    description: 'Review demonstration boundaries, preferences, role access, and integration health.',
-    liveLabel: 'Secure demo',
-    tone: 'green'
-  }
+  overview: { eyebrow: 'Live operations workspace', title: 'Operations observatory', description: 'Real-time visibility across schedule, documentation, claims risk, and operational signals.', liveLabel: 'Live telemetry', tone: 'cyan' },
+  schedule: { eyebrow: 'Live operations workspace', title: 'Temporal runway', description: 'Coordinate appointments, confirmations, clinician capacity, and check-ins in real time.', liveLabel: 'Live capacity', tone: 'cyan' },
+  documentation: { eyebrow: 'Live operations workspace', title: 'Documentation continuum', description: 'Move every note from capture through review to signature and billing readiness.', liveLabel: 'Signature flow', tone: 'violet' },
+  claims: { eyebrow: 'Live operations workspace', title: 'Risk constellation', description: 'Resolve validation, filing, and payer risk before it delays reimbursement.', liveLabel: 'Risk field live', tone: 'amber' },
+  audit: { eyebrow: 'Live operations workspace', title: 'Event spectrum', description: 'Review immutable operational events and system signals across every workflow.', liveLabel: 'Observability live', tone: 'green' },
+  settings: { eyebrow: 'Live operations workspace', title: 'Workspace parameters', description: 'Review demonstration boundaries, preferences, role access, and integration health.', liveLabel: 'Secure demo', tone: 'green' }
 };
 
-const CLINICIAN_LOAD: ClinicianLoad[] = [
-  { name: 'Ava C.', utilization: 82 },
-  { name: 'James M.', utilization: 74 },
-  { name: 'Sarah L.', utilization: 91 },
-  { name: 'Daniel W.', utilization: 68 },
-  { name: 'Mia T.', utilization: 77 }
+const INITIAL_PREFERENCES: NotificationPreference[] = [
+  { label: 'System alerts', cadence: 'Real-time', state: true },
+  { label: 'Documentation updates', cadence: 'Digest (Daily)', state: true },
+  { label: 'Claims and risk notifications', cadence: 'Real-time', state: true },
+  { label: 'Schedule changes', cadence: 'Instant', state: true },
+  { label: 'Team activity', cadence: 'Digest (Daily)', state: false }
 ];
 
-const SPECTRUM_HEIGHTS = [
-  42, 54, 64, 48, 72, 76, 59, 44, 68, 79, 61, 50, 70, 64, 47, 55, 78, 82, 65, 52,
-  58, 76, 71, 46, 54, 69, 84, 62, 48, 73, 88, 66, 52, 80, 74, 56, 49, 72, 83, 63,
-  51, 68, 79, 58, 45, 65, 76, 61, 49, 70, 85, 66, 53, 74, 81, 60, 47, 67, 78, 55,
-  44, 64, 73, 57, 49, 69, 82, 62, 51, 71, 77, 59
-];
+function startOfDay(value: Date): Date {
+  const date = new Date(value);
+  date.setHours(0, 0, 0, 0);
+  return date;
+}
+
+function sameLocalDay(value: string, reference: Date): boolean {
+  const date = new Date(value);
+  return date.getFullYear() === reference.getFullYear()
+    && date.getMonth() === reference.getMonth()
+    && date.getDate() === reference.getDate();
+}
+
+function hoursSince(value: string, reference: Date): number {
+  return Math.max(0, (reference.getTime() - new Date(value).getTime()) / 3_600_000);
+}
 
 @Component({
   selector: 'app-root',
@@ -182,148 +130,197 @@ export class AppComponent {
 
   readonly nav = NAV_ITEMS;
   readonly activeView = signal<ViewId>('overview');
-  readonly dashboard = signal<Dashboard>(createDemoDashboard());
+  readonly dashboard = signal<Dashboard>(reconcileDashboard(createDemoDashboard()));
   readonly loading = signal(true);
   readonly apiMode = signal<'connecting' | 'live' | 'demo'>('connecting');
   readonly notice = signal('');
   readonly selectedScheduleFilter = signal<'day' | 'week' | 'list'>('day');
+  readonly selectedScheduleDate = signal<Date>(startOfDay(new Date()));
+  readonly selectedProvider = signal('all');
+  readonly selectedService = signal('all');
+  readonly selectedStatus = signal('all');
+  readonly claimRiskFilter = signal('all');
+  readonly claimPayerFilter = signal('all');
+  readonly claimSearch = signal('');
+  readonly notificationPreferences = signal<NotificationPreference[]>(INITIAL_PREFERENCES.map(item => ({ ...item })));
 
   readonly view = computed(() => VIEW_META[this.activeView()]);
   readonly metrics = computed<MetricSignal[]>(() => buildMetricSignals(this.dashboard()));
   readonly pipeline = computed<PipelineStage[]>(() => buildPipelineStages(this.dashboard()));
   readonly riskDistribution = computed<RiskSlice[]>(() => buildRiskDistribution(this.dashboard()));
-  readonly topClaims = computed(() => this.dashboard().claims.slice(0, 5));
-  readonly auditEvents = computed(() => this.dashboard().audit.slice(0, 8));
-  readonly noteQueue = computed<NoteQueueItem[]>(() =>
-    this.dashboard().notes.slice(0, 6).map((note, index) => ({
-      id: note.id,
-      clinician: note.clinician,
-      code: index % 2 === 0 ? '90837 · Individual therapy' : '90791 · Diagnostic evaluation',
-      status: humanizeStatus(note.status),
-      age: `${3 + index * 4}m`,
-      tone: toneForStatus(note.status)
-    }))
-  );
+  readonly documentationTelemetry = computed(() => buildDocumentationTelemetry(this.dashboard()));
+  readonly auditTelemetry = computed(() => buildAuditTelemetry(this.dashboard()));
+  readonly spectrumBars = computed(() => this.auditTelemetry().spectrum);
+  readonly auditEvents = computed(() => this.dashboard().audit.slice(0, 12));
+  readonly scheduleDateLabel = computed(() => this.selectedScheduleDate());
 
-  readonly clinicianLoad = CLINICIAN_LOAD;
-  readonly spectrumBars = SPECTRUM_HEIGHTS;
+  readonly appointmentsForSelectedDate = computed(() => this.dashboard().appointments.filter(item => sameLocalDay(item.startsAt, this.selectedScheduleDate())));
+  readonly providerOptions = computed(() => [...new Set(this.appointmentsForSelectedDate().map(item => item.clinician))].sort());
+  readonly serviceOptions = computed(() => [...new Set(this.appointmentsForSelectedDate().map(item => item.service))].sort());
+  readonly statusOptions = computed(() => [...new Set(this.appointmentsForSelectedDate().map(item => item.status))].sort());
+  readonly filteredScheduleAppointments = computed(() => this.appointmentsForSelectedDate().filter(item => {
+    const providerMatches = this.selectedProvider() === 'all' || item.clinician === this.selectedProvider();
+    const serviceMatches = this.selectedService() === 'all' || item.service === this.selectedService();
+    const statusMatches = this.selectedStatus() === 'all' || item.status === this.selectedStatus();
+    return providerMatches && serviceMatches && statusMatches;
+  }));
+  readonly filteredScheduleDashboard = computed(() => reconcileDashboard({
+    ...this.dashboard(),
+    appointments: this.filteredScheduleAppointments()
+  }, this.selectedScheduleDate()));
+  readonly scheduleTelemetry = computed(() => buildScheduleTelemetry(this.filteredScheduleDashboard(), this.selectedScheduleDate()));
+  readonly clinicianLoad = computed(() => buildClinicianLoad(this.filteredScheduleDashboard(), this.selectedScheduleDate()));
+  readonly providerRows = computed(() => this.clinicianLoad().map(item => item.name));
+  readonly noShowRiskAppointments = computed(() => this.filteredScheduleAppointments()
+    .filter(item => ['Scheduled', 'NoShow', 'Cancelled'].includes(item.status))
+    .slice(0, 3));
+  readonly weekSummary = computed(() => Array.from({ length: 7 }, (_, index) => {
+    const date = new Date(this.selectedScheduleDate());
+    date.setDate(date.getDate() + index);
+    const appointments = this.dashboard().appointments.filter(item => sameLocalDay(item.startsAt, date));
+    const capacity = new Set(appointments.map(item => item.clinician)).size * 7;
+    return {
+      date,
+      appointments: appointments.length,
+      utilization: capacity === 0 ? 0 : clampPercent(Math.round((appointments.length / capacity) * 100))
+    };
+  }));
 
   readonly runwayBlocks = computed<RunwayBlock[]>(() => {
-    const source = this.dashboard().appointments;
-    const layout = [
-      [1, '2 / span 2'], [1, '4 / span 2'], [1, '7 / span 2'],
-      [2, '2 / span 2'], [2, '5 / span 2'], [2, '8 / span 2'],
-      [3, '3 / span 2'], [3, '5 / span 2'], [3, '8 / span 2'],
-      [4, '2 / span 2'], [4, '4 / span 2'], [4, '7 / span 2'],
-      [5, '3 / span 2'], [5, '5 / span 2'], [5, '8 / span 2'],
-      [6, '2 / span 2'], [6, '4 / span 2'], [6, '7 / span 2']
-    ] as const;
-
-    return layout.map((placement, index) => {
-      const appointment = source[index % source.length];
-      const syntheticStatuses = ['Confirmed', 'InProgress', 'Scheduled', 'NoShow'];
-      const status = appointment?.status ?? syntheticStatuses[index % syntheticStatuses.length];
+    const source = this.filteredScheduleAppointments().slice(0, 18);
+    return source.map((appointment, index) => {
+      const start = new Date(appointment.startsAt);
+      const hourOffset = Math.max(0, Math.min(9, start.getHours() - 8));
+      const span = appointment.service.toLowerCase().includes('assessment') ? 2 : 1;
       return {
-        id: `${appointment?.id ?? 'runway'}-${index}`,
-        patient: appointment?.patientDisplayName ?? 'Synthetic patient',
-        clinician: appointment?.clinician ?? 'Clinical team',
-        service: appointment?.service ?? 'Therapy session',
-        status,
-        time: `${8 + Math.floor(index / 3)}:${index % 2 === 0 ? '00' : '30'}`,
-        row: placement[0],
-        column: placement[1],
-        tone: toneForStatus(status)
+        id: appointment.id,
+        patient: appointment.patientDisplayName,
+        clinician: appointment.clinician,
+        service: appointment.service,
+        status: appointment.status,
+        time: start.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }),
+        row: Math.min(7, (index % Math.max(1, this.providerRows().length)) + 1),
+        column: `${hourOffset + 1} / span ${span}`,
+        tone: toneForStatus(appointment.status)
       };
     });
   });
 
-  readonly providerRows = computed(() => {
-    const clinicians = Array.from(new Set(this.dashboard().appointments.map(item => item.clinician)));
-    return [...clinicians, 'Lunch break', 'Mia Torres', 'Chris Reed', 'Jordan Tate'].slice(0, 7);
-  });
-
-  readonly payerWatchlist = computed(() => {
-    const grouped = new Map<string, number>();
-    for (const claim of this.dashboard().claims) {
-      grouped.set(claim.payer, (grouped.get(claim.payer) ?? 0) + claim.amount);
-    }
-    return [...grouped.entries()]
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 5)
-      .map(([payer, exposure], index) => ({
-        payer,
-        exposure,
-        severity: index < 2 ? 'High' : index < 4 ? 'Medium' : 'Low',
-        tone: index < 2 ? 'coral' : index < 4 ? 'amber' : 'green'
-      }));
-  });
-
-  readonly recentClaimActions = computed(() =>
-    this.dashboard().claims.slice(0, 5).map((claim, index) => ({
-      claim,
-      action: index === 0 ? 'Needs action' : index === 1 ? 'Resolved' : index === 2 ? 'Refiled' : index === 3 ? 'Updated' : 'Overturned',
-      tone: index === 0 ? 'coral' : index === 3 ? 'cyan' : 'green',
-      time: `${10 - Math.floor(index / 2)}:${18 - index * 3}`.replace(':-', ':0')
+  readonly noteQueue = computed<NoteQueueItem[]>(() =>
+    this.dashboard().notes.filter(note => note.status !== 'Signed').slice(0, 7).map((note, index) => ({
+      id: note.id,
+      clinician: note.clinician,
+      code: index % 2 === 0 ? '90837 · Individual therapy' : '90791 · Diagnostic evaluation',
+      status: humanizeStatus(note.status),
+      age: this.ageLabel(hoursSince(note.dueAt, new Date())),
+      tone: toneForStatus(note.status)
     }))
   );
 
-  readonly eventTypeMetrics = computed<EventTypeMetric[]>(() => {
-    const total = Math.max(1, this.dashboard().audit.length);
-    const seeds = [
-      ['Note signed', 2451, 'cyan'],
-      ['Claim created', 2102, 'violet'],
-      ['Claim status change', 1886, 'green'],
-      ['Documentation updated', 1304, 'blue'],
-      ['Outbox delivered', 1129, 'amber'],
-      ['User or role change', 472, 'violet'],
-      ['Integration error', 98, 'coral'],
-      ['Security or access', 87, 'coral']
-    ] as const;
-
-    return seeds.map(([label, count, tone]) => ({
-      label,
-      count,
-      share: `${((count / (9842 + total)) * 100).toFixed(1)}%`,
-      tone
-    }));
+  readonly priorityFollowUps = computed(() => {
+    const telemetry = this.documentationTelemetry();
+    return [
+      { label: 'Draft notes', detail: 'Documentation still in capture', count: telemetry.draft, tone: 'violet' as const },
+      { label: 'Awaiting signature', detail: 'Clinician review is complete', count: telemetry.inReview, tone: 'amber' as const },
+      { label: 'Over 24 hours', detail: 'Past the documentation target', count: telemetry.ageBuckets.overTwentyFourHours, tone: 'coral' as const },
+      { label: 'Due within 24 hours', detail: 'Needs near-term attention', count: telemetry.ageBuckets.fourToTwentyFourHours, tone: 'cyan' as const }
+    ];
   });
 
-  readonly auditSummary = [
-    { label: 'Events today', value: '9,842', detail: '18% vs yesterday', tone: 'cyan' as const },
-    { label: 'Signals / min', value: '68', detail: 'Live throughput', tone: 'violet' as const },
-    { label: 'Error rate', value: '0.42%', detail: '0.12% vs yesterday', tone: 'amber' as const },
-    { label: 'Delivery rate', value: '99.71%', detail: '0.18% vs yesterday', tone: 'green' as const },
-    { label: 'Flagged events', value: '23', detail: '5 vs yesterday', tone: 'coral' as const },
-    { label: 'Lag (p95)', value: '1.2s', detail: '0.3s vs yesterday', tone: 'cyan' as const }
-  ];
+  readonly documentationHealth = computed(() => {
+    const telemetry = this.documentationTelemetry();
+    const onTimeRate = telemetry.unsigned === 0 ? 100 : Math.round(((telemetry.unsigned - telemetry.ageBuckets.overTwentyFourHours) / telemetry.unsigned) * 100);
+    return [
+      { value: `${Math.max(0, 100 - telemetry.returnedRate)}`, label: 'Quality score', tone: 'cyan' as const },
+      { value: `${telemetry.completionRate}%`, label: 'Complete notes', tone: 'green' as const },
+      { value: `${telemetry.returnedRate}%`, label: 'Draft rate', tone: 'violet' as const },
+      { value: `${telemetry.averageAgeHours}h`, label: 'Average unsigned age', tone: 'blue' as const },
+      { value: `${onTimeRate}%`, label: 'Within 24-hour target', tone: 'green' as const }
+    ];
+  });
 
-  readonly waitlist = [
-    { patient: 'Victoria N.', requested: '9:00 AM', opening: '10:30 Therapy Room 1' },
-    { patient: 'Ryan J.', requested: '10:30 AM', opening: '12:30 Therapy Room 3' },
-    { patient: 'Natalie Q.', requested: '1:00 PM', opening: '2:30 Telehealth' }
-  ];
+  readonly filteredClaims = computed(() => {
+    const query = this.claimSearch().trim().toLowerCase();
+    return this.dashboard().claims.filter(claim => {
+      const riskMatches = this.claimRiskFilter() === 'all' || riskCategory(claim.riskReason) === this.claimRiskFilter();
+      const payerMatches = this.claimPayerFilter() === 'all' || claim.payer === this.claimPayerFilter();
+      const queryMatches = query.length === 0 || `${claim.number} ${claim.payer} ${claim.riskReason}`.toLowerCase().includes(query);
+      return riskMatches && payerMatches && queryMatches;
+    });
+  });
+  readonly topClaims = computed(() => this.filteredClaims().slice(0, 8));
+  readonly payerOptions = computed(() => [...new Set(this.dashboard().claims.map(item => item.payer))].sort());
+  readonly claimTrendBars = computed(() => {
+    const values = this.dashboard().claims.map(item => item.amount);
+    const max = Math.max(...values, 1);
+    return values.slice(0, 7).map(value => Math.max(20, Math.round((value / max) * 100)));
+  });
+  readonly payerWatchlist = computed(() => {
+    const grouped = new Map<string, number>();
+    for (const claim of this.dashboard().claims) grouped.set(claim.payer, (grouped.get(claim.payer) ?? 0) + claim.amount);
+    const highest = Math.max(...grouped.values(), 1);
+    return [...grouped.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5).map(([payer, exposure]) => ({
+      payer,
+      exposure,
+      severity: exposure >= highest * 0.7 ? 'High' : exposure >= highest * 0.4 ? 'Medium' : 'Low',
+      tone: exposure >= highest * 0.7 ? 'coral' as const : exposure >= highest * 0.4 ? 'amber' as const : 'green' as const
+    }));
+  });
+  readonly recentClaimActions = computed(() => this.dashboard().claims.slice(0, 5).map((claim, index) => ({
+    claim,
+    action: actionLabel(claim.status),
+    tone: actionTone(claim.status),
+    time: this.dashboard().audit[index]?.occurredAt ?? this.dashboard().appointments[index]?.startsAt ?? new Date().toISOString()
+  })));
 
-  readonly priorityFollowUps = [
-    { label: 'Missing treatment plan', detail: 'Notes without an active plan', count: 23, tone: 'coral' as const },
-    { label: 'Returned for correction', detail: 'Requires clinician updates', count: 14, tone: 'amber' as const },
-    { label: 'Missing interventions', detail: 'No billable interventions documented', count: 11, tone: 'cyan' as const },
-    { label: 'Dx / CPT mismatch', detail: 'Coding alignment needed', count: 6, tone: 'green' as const }
-  ];
+  readonly eventTypeMetrics = computed(() => this.auditTelemetry().categories.map(category => ({
+    label: category.label,
+    count: category.count,
+    share: `${category.share.toFixed(1)}%`,
+    tone: category.tone
+  })));
+  readonly auditSummary = computed(() => {
+    const telemetry = this.auditTelemetry();
+    return [
+      { label: 'Events today', value: `${telemetry.eventsToday}`, detail: 'Current payload', tone: 'cyan' as const },
+      { label: 'Signals / min', value: `${telemetry.signalsPerMinute}`, detail: 'Derived throughput', tone: 'violet' as const },
+      { label: 'Error rate', value: `${telemetry.errorRate}%`, detail: `${telemetry.flaggedEvents} flagged`, tone: 'amber' as const },
+      { label: 'Delivery rate', value: `${telemetry.deliveryRate}%`, detail: `${telemetry.deliveryEvents} delivery events`, tone: 'green' as const },
+      { label: 'Flagged events', value: `${telemetry.flaggedEvents}`, detail: 'Needs review', tone: 'coral' as const },
+      { label: 'Lag (p95)', value: `${telemetry.lagP95Seconds}s`, detail: 'Derived signal lag', tone: 'cyan' as const }
+    ];
+  });
+  readonly auditCards = computed(() => {
+    const telemetry = this.auditTelemetry();
+    const signed = this.documentationTelemetry().signed;
+    const claimEvents = telemetry.categories.find(item => item.label === 'Claims')?.count ?? 0;
+    return [
+      { title: 'Outbox delivery', value: `${telemetry.deliveryRate}%`, detail: 'Delivered', tone: 'cyan' as const },
+      { title: 'Flagged events', value: `${telemetry.flaggedEvents}`, detail: 'Needs review', tone: 'coral' as const },
+      { title: 'Note signatures', value: `${signed}`, detail: 'Signed', tone: 'green' as const },
+      { title: 'Claim status changes', value: `${claimEvents}`, detail: 'Events', tone: 'blue' as const }
+    ];
+  });
 
-  readonly integrationHealth = [
-    { name: 'EHR connector', detail: 'Synthetic EHR feed', state: 'Healthy', tone: 'cyan' as const },
-    { name: 'Claims gateway', detail: 'Synthetic payer gateway', state: 'Healthy', tone: 'violet' as const },
-    { name: 'Identity provider', detail: 'SSO enabled (SAML 2.0)', state: 'Healthy', tone: 'cyan' as const },
-    { name: 'Notification service', detail: 'Email and in-app', state: 'Healthy', tone: 'violet' as const }
-  ];
+  readonly waitlist = computed(() => this.dashboard().appointments
+    .filter(item => item.status === 'Scheduled')
+    .slice(0, 3)
+    .map((item, index) => ({
+      patient: item.patientDisplayName,
+      requested: new Date(item.startsAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }),
+      opening: `${index + 1} available slot${index === 0 ? '' : 's'}`
+    })));
 
-  readonly notificationPreferences = [
-    { label: 'System alerts', cadence: 'Real-time', state: true },
-    { label: 'Documentation updates', cadence: 'Digest (Daily)', state: true },
-    { label: 'Claims and risk notifications', cadence: 'Real-time', state: true },
-    { label: 'Schedule changes', cadence: 'Instant', state: true },
-    { label: 'Team activity', cadence: 'Digest (Daily)', state: false }
-  ];
+  readonly integrationHealth = computed(() => {
+    const live = this.apiMode() === 'live';
+    const notificationsEnabled = this.notificationPreferences().filter(item => item.state).length;
+    return [
+      { name: 'PracticeOps API', detail: live ? 'Live dashboard endpoint' : 'Local synthetic fallback', state: live ? 'Healthy' : 'Demo', tone: live ? 'cyan' as const : 'violet' as const },
+      { name: 'Claims gateway', detail: `${this.dashboard().metrics.claimsAtRisk} claims monitored`, state: 'Healthy', tone: 'violet' as const },
+      { name: 'Audit pipeline', detail: `${this.auditTelemetry().eventsToday} events loaded`, state: 'Healthy', tone: 'cyan' as const },
+      { name: 'Notification service', detail: `${notificationsEnabled}/${this.notificationPreferences().length} preferences enabled`, state: notificationsEnabled > 0 ? 'Healthy' : 'Paused', tone: notificationsEnabled > 0 ? 'green' as const : 'amber' as const }
+    ];
+  });
 
   constructor() {
     this.load();
@@ -337,22 +334,56 @@ export class AppComponent {
     this.selectedScheduleFilter.set(filter);
   }
 
+  shiftScheduleDate(days: number): void {
+    const next = new Date(this.selectedScheduleDate());
+    next.setDate(next.getDate() + days);
+    this.selectedScheduleDate.set(startOfDay(next));
+  }
+
+  setProvider(value: string): void {
+    this.selectedProvider.set(value);
+  }
+
+  setService(value: string): void {
+    this.selectedService.set(value);
+  }
+
+  setStatus(value: string): void {
+    this.selectedStatus.set(value);
+  }
+
+  setClaimRisk(value: string): void {
+    this.claimRiskFilter.set(value);
+  }
+
+  setClaimPayer(value: string): void {
+    this.claimPayerFilter.set(value);
+  }
+
+  setClaimSearch(value: string): void {
+    this.claimSearch.set(value);
+  }
+
+  clearClaimFilters(): void {
+    this.claimRiskFilter.set('all');
+    this.claimPayerFilter.set('all');
+    this.claimSearch.set('');
+  }
+
+  toggleNotification(index: number): void {
+    this.notificationPreferences.update(items => items.map((item, itemIndex) => itemIndex === index ? { ...item, state: !item.state } : item));
+  }
+
   load(): void {
     this.loading.set(true);
     this.apiMode.set('connecting');
     this.notice.set('');
 
     this.http.get<Dashboard>('/api/dashboard').subscribe({
-      next: value => {
-        this.dashboard.set(value);
-        this.apiMode.set('live');
-        this.loading.set(false);
-      },
+      next: value => this.applyDashboard(value, 'live'),
       error: () => {
-        this.dashboard.set(createDemoDashboard());
-        this.apiMode.set('demo');
+        this.applyDashboard(createDemoDashboard(), 'demo');
         this.notice.set('API offline. Showing the complete local synthetic dataset.');
-        this.loading.set(false);
       }
     });
   }
@@ -387,10 +418,32 @@ export class AppComponent {
 
   eventTone(event: AuditEvent, index: number): SignalTone {
     const normalized = `${event.action} ${event.summary}`.toLowerCase();
-    if (normalized.includes('flag') || normalized.includes('error')) return 'coral';
+    if (normalized.includes('flag') || normalized.includes('error') || normalized.includes('denied')) return 'coral';
     if (normalized.includes('claim')) return 'amber';
-    if (normalized.includes('note')) return 'violet';
+    if (normalized.includes('note') || normalized.includes('documentation')) return 'violet';
     if (normalized.includes('appoint')) return 'cyan';
     return index % 2 === 0 ? 'green' : 'blue';
+  }
+
+  ageLabel(hours: number): string {
+    if (hours < 1) return `${Math.max(1, Math.round(hours * 60))}m`;
+    if (hours < 24) return `${Math.round(hours)}h`;
+    return `${Math.round(hours / 24)}d`;
+  }
+
+  trackAppointment(index: number, appointment: Appointment): string {
+    return appointment.id || `${index}`;
+  }
+
+  private applyDashboard(value: Dashboard, mode: 'live' | 'demo'): void {
+    const reference = value.appointments[0] ? new Date(value.appointments[0].startsAt) : new Date();
+    const reconciled = reconcileDashboard(value, reference);
+    this.dashboard.set(reconciled);
+    this.selectedScheduleDate.set(startOfDay(reference));
+    this.selectedProvider.set('all');
+    this.selectedService.set('all');
+    this.selectedStatus.set('all');
+    this.apiMode.set(mode);
+    this.loading.set(false);
   }
 }
