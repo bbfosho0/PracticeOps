@@ -13,7 +13,9 @@ describe('PracticeOps clinical observatory model', () => {
 
   it('creates a complete synthetic dashboard without real records', () => {
     expect(dashboard.metrics.appointmentsToday).toBe(24);
-    expect(dashboard.appointments.length).toBeGreaterThan(6);
+    expect(dashboard.appointments.length).toBe(24);
+    expect(dashboard.notes.length).toBe(24);
+    expect(dashboard.claims.length).toBe(12);
     expect(dashboard.claims.every(claim => claim.id.startsWith('demo-claim-'))).toBeTrue();
   });
 
@@ -27,7 +29,10 @@ describe('PracticeOps clinical observatory model', () => {
       'Final QA',
       'Billing ready'
     ]);
-    expect(stages[2].value).toBe(dashboard.metrics.unsignedNotes);
+    expect(stages[0].value).toBe(dashboard.notes.length);
+    expect(stages[1].value).toBe(dashboard.metrics.unsignedNotes);
+    expect(stages[2].value).toBe(dashboard.notes.filter(note => note.status === 'InReview').length);
+    expect(stages[4].value).toBe(dashboard.notes.filter(note => note.status === 'Signed').length);
   });
 
   it('groups claims into operational risk categories', () => {
