@@ -1,0 +1,198 @@
+name: Visual Audit
+
+on:
+  push:
+    branches:
+      - design/clinical-observatory-fidelity-pass
+  pull_request:
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/visual-audit.yml'
+
+jobs:
+  screenshots:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - run: npm ci
+      - run: npm run build
+
+      - name: Serve production build
+        run: |
+          python3 -m http.server 4173 --directory dist/practiceops/browser > /tmp/practiceops-server.log 2>&1 &
+          echo $! > /tmp/practiceops-server.pid
+          for attempt in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:4173/ > /dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/practiceops-server.log
+          exit 1
+
+      - name: Capture rendered workspaces and diagnostics
+        run: |
+          mkdir -p visual-audit
+          cat > /tmp/practiceops-visual-audit.mjs <<'NODE'
+          import { spawn } from 'node:child_process';
+          import { writeFile } from 'node:fs/promises';
+
+          const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+          const chrome = spawn('google-chrome', [
+            '--headless=new',
+            '--no-sandbox',
+            '--disable-gpu',
+            '--hide-scrollbars',
+            '--force-device-scale-factor=1',
+            '--remote-debugging-port=9222',
+            '--user-data-dir=/tmp/practiceops-chrome',
+            '--window-size=1600,1000',
+            'about:blank'
+          ], { stdio: 'ignore' });
+
+          try {
+            let version;
+            for (let attempt = 0; attempt < 50; attempt += 1) {
+              try {
+                version = await fetch('http://127.0.0.1:9222/json/version').then(response => response.json());
+                break;
+              } catch {
+                await sleep(200);
+              }
+            }
+            if (!version) throw new Error('Chrome DevTools endpoint did not start.');
+
+            const target = await fetch('http://127.0.0.1:9222/json/new?http://127.0.0.1:4173/', { method: 'PUT' }).then(response => response.json());
+            const socket = new WebSocket(target.webSocketDebuggerUrl);
+            await new Promise((resolve, reject) => {
+              socket.addEventListener('open', resolve, { once: true });
+              socket.addEventListener('error', reject, { once: true });
+            });
+
+            let requestId = 0;
+            const pending = new Map();
+            const consoleMessages = [];
+            socket.addEventListener('message', event => {
+              const message = JSON.parse(event.data);
+              if (message.id && pending.has(message.id)) {
+                const { resolve, reject } = pending.get(message.id);
+                pending.delete(message.id);
+                if (message.error) reject(new Error(message.error.message));
+                else resolve(message.result);
+              }
+              if (message.method === 'Runtime.consoleAPICalled') {
+                consoleMessages.push({
+                  type: message.params.type,
+                  values: message.params.args.map(arg => arg.value ?? arg.description ?? '')
+                });
+              }
+              if (message.method === 'Runtime.exceptionThrown') {
+                consoleMessages.push({ type: 'exception', values: [message.params.exceptionDetails.text] });
+              }
+            });
+
+            const send = (method, params = {}) => new Promise((resolve, reject) => {
+              const id = ++requestId;
+              pending.set(id, { resolve, reject });
+              socket.send(JSON.stringify({ id, method, params }));
+            });
+
+            const evaluate = async expression => {
+              const result = await send('Runtime.evaluate', { expression, awaitPromise: true, returnByValue: true });
+              return result.result.value;
+            };
+
+            const screenshot = async fileName => {
+              const result = await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false, fromSurface: true });
+              await writeFile(`visual-audit/${fileName}`, Buffer.from(result.data, 'base64'));
+            };
+
+            const selectWorkspace = async (index, expectedTitle, fileName) => {
+              await evaluate(`document.querySelectorAll('.dock-item')[${index}]?.click()`);
+              await sleep(900);
+              const state = await evaluate(`(() => ({
+                title: document.querySelector('h1')?.textContent?.trim(),
+                activeLabel: document.querySelector('.dock-item[aria-current="page"]')?.getAttribute('aria-label'),
+                dataView: document.querySelector('.observatory')?.getAttribute('data-view')
+              }))()`);
+              if (state.title !== expectedTitle) throw new Error(`Expected ${expectedTitle}, received ${state.title}`);
+              await screenshot(fileName);
+              return state;
+            };
+
+            await send('Page.enable');
+            await send('Runtime.enable');
+            await send('Emulation.setDeviceMetricsOverride', { width: 1600, height: 1000, deviceScaleFactor: 1, mobile: false });
+            await send('Page.navigate', { url: 'http://127.0.0.1:4173/' });
+            await sleep(6500);
+
+            const layout = await evaluate(`(() => {
+              const selectors = ['.observatory','.workspace-header','.signal-strip','.overview-grid','.schedule-preview','.documentation-preview','.risk-preview','.activity-preview','.system-footer'];
+              return Object.fromEntries(selectors.map(selector => {
+                const element = document.querySelector(selector);
+                if (!element) return [selector, null];
+                const rect = element.getBoundingClientRect();
+                const style = getComputedStyle(element);
+                return [selector, {
+                  rect: { x: rect.x, y: rect.y, width: rect.width, height: rect.height, bottom: rect.bottom },
+                  display: style.display,
+                  position: style.position,
+                  visibility: style.visibility,
+                  opacity: style.opacity,
+                  zIndex: style.zIndex,
+                  overflow: style.overflow,
+                  gridArea: style.gridArea,
+                  text: element.innerText.slice(0, 500)
+                }];
+              }));
+            })()`);
+            await writeFile('visual-audit/layout.json', JSON.stringify(layout, null, 2));
+            await screenshot('overview-desktop.png');
+
+            const interactionStates = [];
+            interactionStates.push(await selectWorkspace(1, 'Temporal runway', 'schedule-desktop.png'));
+            interactionStates.push(await selectWorkspace(2, 'Documentation continuum', 'documentation-desktop.png'));
+            interactionStates.push(await selectWorkspace(3, 'Risk constellation', 'claims-desktop.png'));
+            interactionStates.push(await selectWorkspace(4, 'Event spectrum', 'audit-desktop.png'));
+            interactionStates.push(await selectWorkspace(5, 'Workspace parameters', 'settings-desktop.png'));
+            await writeFile('visual-audit/interactions.json', JSON.stringify(interactionStates, null, 2));
+
+            await evaluate(`document.querySelectorAll('.dock-item')[0]?.click()`);
+            await send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
+            await sleep(900);
+            await screenshot('overview-mobile.png');
+
+            await writeFile('visual-audit/console.json', JSON.stringify(consoleMessages, null, 2));
+            socket.close();
+          } finally {
+            chrome.kill('SIGTERM');
+          }
+          NODE
+          node /tmp/practiceops-visual-audit.mjs
+          test -s visual-audit/overview-desktop.png
+          test -s visual-audit/schedule-desktop.png
+          test -s visual-audit/documentation-desktop.png
+          test -s visual-audit/claims-desktop.png
+          test -s visual-audit/audit-desktop.png
+          test -s visual-audit/settings-desktop.png
+          test -s visual-audit/overview-mobile.png
+          test -s visual-audit/layout.json
+          test -s visual-audit/interactions.json
+          test -s visual-audit/console.json
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: clinical-observatory-visual-audit
+          path: frontend/visual-audit/*
+          if-no-files-found: error
+          retention-days: 7

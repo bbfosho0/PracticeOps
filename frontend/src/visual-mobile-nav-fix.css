@@ -1,0 +1,45 @@
+/* Mobile navigation correction verified against the 390px visual audit. */
+
+@media (max-width: 760px) {
+  .command-dock {
+    transform: none !important;
+    max-width: calc(100vw - 16px) !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+  }
+
+  .command-dock nav {
+    display: grid !important;
+    grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
+    grid-auto-flow: row !important;
+    grid-auto-columns: auto !important;
+    justify-content: stretch !important;
+    align-items: stretch !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow: visible !important;
+    gap: 2px !important;
+  }
+
+  .command-dock .dock-item {
+    width: auto !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    padding-inline: 0 !important;
+  }
+
+  .command-dock .dock-item span {
+    font-size: 6px !important;
+    letter-spacing: -0.01em;
+  }
+}
+
+@media (max-width: 360px) {
+  .command-dock .dock-item span {
+    font-size: 0 !important;
+  }
+
+  .command-dock .dock-item span::first-letter {
+    font-size: 0;
+  }
+}
