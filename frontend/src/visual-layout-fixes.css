@@ -100,4 +100,96 @@
   .documentation-preview { grid-area: documentation !important; }
   .risk-preview { grid-area: risk !important; }
   .activity-preview { grid-area: activity !important; }
+
+  .signal-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+  }
+
+  .metric-signal {
+    min-height: 132px;
+    padding: 15px 12px !important;
+    gap: 10px !important;
+  }
+
+  .metric-signal:nth-child(odd)::after {
+    content: "";
+    position: absolute;
+    right: 0;
+    top: 18px;
+    bottom: 18px;
+    width: 1px;
+    background: linear-gradient(transparent, rgba(73, 117, 175, 0.4), transparent);
+  }
+
+  .metric-signal:nth-child(-n + 2) {
+    border-bottom: 1px solid rgba(73, 117, 175, 0.22);
+  }
+
+  .metric-signal .signal-orb {
+    width: 42px;
+    height: 42px;
+  }
+
+  .metric-copy > span {
+    font-size: 7px !important;
+  }
+
+  .metric-copy strong {
+    font-size: 25px !important;
+  }
+
+  .metric-copy small {
+    font-size: 7px !important;
+  }
+
+  .command-dock {
+    left: 8px !important;
+    right: 8px !important;
+    bottom: 8px !important;
+    top: auto !important;
+    width: auto !important;
+    height: 70px !important;
+    padding: 7px 8px !important;
+    flex-direction: row !important;
+    border-radius: 22px !important;
+  }
+
+  .command-dock .brand-orbit,
+  .command-dock .dock-status {
+    display: none !important;
+  }
+
+  .command-dock nav {
+    width: 100% !important;
+    display: grid !important;
+    grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
+    gap: 3px !important;
+  }
+
+  .dock-item {
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 54px !important;
+    padding: 6px 1px 5px !important;
+    border-radius: 12px !important;
+  }
+
+  .dock-item svg {
+    width: 17px !important;
+    height: 17px !important;
+  }
+
+  .dock-item span {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 6.5px !important;
+    white-space: nowrap;
+  }
+
+  .workspace {
+    padding-bottom: 96px !important;
+  }
 }
