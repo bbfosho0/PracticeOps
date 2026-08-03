@@ -1,0 +1,245 @@
+.observatory {
+  --muted: #99a8bf;
+}
+
+/* Keep the employer journey visible without letting it replace the product. */
+.observatory:not([data-view='overview']) .scenario-rail {
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  gap: 18px !important;
+  min-height: 0;
+  padding-block: 16px !important;
+}
+
+.observatory:not([data-view='overview']) .scenario-steps {
+  display: none !important;
+}
+
+.observatory:not([data-view='overview']) .scenario-actions {
+  grid-column: auto !important;
+  grid-template-columns: repeat(2, minmax(150px, 1fr)) !important;
+  min-width: 330px;
+}
+
+.observatory:not([data-view='overview']) .scenario-actions small {
+  grid-column: 1 / -1;
+}
+
+/* The proof layer is available on demand instead of occupying every wide layout. */
+@media (min-width: 1380px) {
+  .portfolio-proof {
+    width: 132px !important;
+    max-height: 64px !important;
+    padding: 12px !important;
+    overflow: hidden !important;
+    transition: width 180ms ease, max-height 180ms ease, padding 180ms ease;
+  }
+
+  .portfolio-proof .panel-kicker,
+  .portfolio-proof p,
+  .portfolio-proof .walk-system,
+  .portfolio-proof .proof-list {
+    display: none !important;
+  }
+
+  .portfolio-proof header strong {
+    font-family: Inter, sans-serif !important;
+    font-size: 11px !important;
+  }
+
+  .portfolio-proof:hover,
+  .portfolio-proof:focus-within {
+    width: var(--proof-width) !important;
+    max-height: calc(100vh - 126px) !important;
+    padding: 16px !important;
+    overflow: auto !important;
+  }
+
+  .portfolio-proof:hover .panel-kicker,
+  .portfolio-proof:focus-within .panel-kicker {
+    display: inline !important;
+  }
+
+  .portfolio-proof:hover p,
+  .portfolio-proof:hover .walk-system,
+  .portfolio-proof:hover .proof-list,
+  .portfolio-proof:focus-within p,
+  .portfolio-proof:focus-within .walk-system,
+  .portfolio-proof:focus-within .proof-list {
+    display: grid !important;
+  }
+
+  .portfolio-proof:hover .walk-system,
+  .portfolio-proof:focus-within .walk-system {
+    display: flex !important;
+  }
+
+  .portfolio-proof:hover header strong,
+  .portfolio-proof:focus-within header strong {
+    font-family: "DM Serif Display", Georgia, serif !important;
+    font-size: 19px !important;
+  }
+}
+
+/* Raise operational microcopy to a practical screenshot and mobile floor. */
+.observatory :is(
+  .panel-kicker,
+  .panel-subtitle,
+  .panel-header small,
+  .text-action,
+  .live-label,
+  .metric-copy > span,
+  .metric-copy small,
+  .schedule-row time,
+  .row-primary strong,
+  .row-primary small,
+  .status-chip,
+  .stage-label,
+  .pipeline-stage > small,
+  .risk-core small,
+  .risk-node,
+  .risk-node b,
+  .risk-node small,
+  .activity-row strong,
+  .activity-row small,
+  .activity-row time,
+  .runway-header,
+  .provider-row strong,
+  .provider-row small,
+  .appointment-block time,
+  .appointment-block strong,
+  .appointment-block small,
+  .load-row,
+  .backlog-row,
+  .risk-names,
+  .waitlist-row,
+  .waitlist-row strong,
+  .micro-panel strong,
+  .note-row,
+  .note-row small,
+  .note-row time,
+  .queue-more,
+  .panel-footnote,
+  .signature-core small,
+  .orbit-caption,
+  .followup-row strong,
+  .followup-row small,
+  .health-item small,
+  .constellation-node strong,
+  .constellation-node small,
+  .trend-panel > small,
+  .distribution-list > div,
+  .event-type-list > div,
+  .payer-row,
+  .claim-action-row,
+  .table-row,
+  .audit-metric small,
+  .audit-metric b,
+  .spectrum-axis,
+  .demo-boundary small,
+  .profile-fields span,
+  .profile-fields strong,
+  .system-fields span,
+  .system-fields strong,
+  .preference-row,
+  .role-title,
+  .scope-row,
+  .integration-row strong,
+  .integration-row small,
+  .integration-row > b,
+  .proof-list strong,
+  .proof-list small
+) {
+  font-size: 10px !important;
+  line-height: 1.35;
+}
+
+.observatory :is(.header-copy p, .mode-notice, .scenario-summary p, .scenario-summary small, .scenario-actions small) {
+  color: #aab6c9 !important;
+  font-size: 12px !important;
+  line-height: 1.5;
+}
+
+.observatory :is(button, select, input) {
+  min-height: 40px;
+}
+
+.observatory :is(button, select, input):focus-visible {
+  outline: 2px solid #6ee7ff !important;
+  outline-offset: 3px;
+  box-shadow: 0 0 0 5px rgba(25, 217, 255, .16) !important;
+}
+
+.observatory :is(select, input) {
+  color: #e8efff;
+}
+
+.observatory .mode-notice button,
+.observatory .text-action {
+  min-height: 32px;
+}
+
+@media (max-width: 760px) {
+  .workspace {
+    padding-bottom: calc(112px + env(safe-area-inset-bottom)) !important;
+  }
+
+  .command-dock {
+    bottom: calc(8px + env(safe-area-inset-bottom)) !important;
+  }
+
+  .scenario-rail,
+  .observatory:not([data-view='overview']) .scenario-rail {
+    grid-template-columns: 1fr !important;
+    gap: 14px !important;
+    padding: 16px 18px !important;
+  }
+
+  .scenario-steps {
+    display: none !important;
+  }
+
+  .scenario-actions,
+  .observatory:not([data-view='overview']) .scenario-actions {
+    grid-column: auto !important;
+    grid-template-columns: 1fr 1fr !important;
+    min-width: 0 !important;
+  }
+
+  .scenario-actions .scenario-primary,
+  .scenario-actions small {
+    grid-column: 1 / -1;
+  }
+
+  .scenario-primary,
+  .scenario-secondary,
+  .refresh-control,
+  .header-actions button,
+  .command-dock button {
+    min-height: 44px !important;
+  }
+
+  .scenario-summary h2 {
+    font-size: 1.1rem !important;
+  }
+
+  .scenario-summary p {
+    margin-bottom: 10px !important;
+  }
+
+  .portfolio-proof {
+    max-height: 58px !important;
+    overflow: hidden !important;
+  }
+
+  .portfolio-proof:not(:focus-within) p,
+  .portfolio-proof:not(:focus-within) .walk-system,
+  .portfolio-proof:not(:focus-within) .proof-list {
+    display: none !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .portfolio-proof {
+    transition: none !important;
+  }
+}
