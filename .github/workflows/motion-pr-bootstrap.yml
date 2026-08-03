@@ -100,7 +100,8 @@ jobs:
           )
           path.write_text(text, encoding='utf-8')
           PY
-          rm -f .github/workflows/motion-pr-bootstrap.yml
+          git checkout -- .github/workflows/visual-audit.yml .github/workflows/motion-bootstrap.yml .github/workflows/motion-pr-bootstrap.yml
+          rm -f docs/diagnostics/observatory-motion-bootstrap-failure.md
 
       - name: Run complete frontend test suite
         run: npm --prefix frontend run test -- --watch=false
