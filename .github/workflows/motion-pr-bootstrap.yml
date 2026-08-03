@@ -5,7 +5,6 @@ on:
     paths:
       - 'frontend/**'
       - 'scripts/apply-observatory-motion.py'
-      - '.github/workflows/motion-bootstrap.yml'
       - '.github/workflows/motion-pr-bootstrap.yml'
 
 permissions:
@@ -100,7 +99,7 @@ jobs:
           )
           path.write_text(text, encoding='utf-8')
           PY
-          git checkout -- .github/workflows/visual-audit.yml .github/workflows/motion-bootstrap.yml .github/workflows/motion-pr-bootstrap.yml
+          git checkout -- .github/workflows/visual-audit.yml .github/workflows/motion-pr-bootstrap.yml
           rm -f docs/diagnostics/observatory-motion-bootstrap-failure.md
 
       - name: Run complete frontend test suite
@@ -119,5 +118,4 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
           git commit -m "feat: orchestrate observatory motion with AutoAnimate and GSAP"
-          git pull --rebase origin design/tailwind-hybrid-observatory
           git push origin HEAD:design/tailwind-hybrid-observatory
