@@ -59,34 +59,34 @@ export class ObservatoryViewMotionDirective implements OnChanges, OnDestroy {
     gsap.killTweensOf(allTargets);
 
     if (!profile.enabled) {
-      gsap.set(allTargets, { clearProps: 'opacity,visibility,transform' });
+      gsap.set(allTargets, { clearProps: 'opacity,transform' });
       return;
     }
 
     this.timeline = gsap.timeline({ defaults: { overwrite: true } });
     this.timeline.fromTo(
       headerTargets,
-      { autoAlpha: 0, y: Math.max(5, profile.travel * 0.42) },
+      { opacity: 0, y: Math.max(5, profile.travel * 0.42) },
       {
-        autoAlpha: 1,
+        opacity: 1,
         y: 0,
         duration: profile.viewDuration * 0.72,
         stagger: profile.stagger,
         ease: 'power3.out',
-        clearProps: 'opacity,visibility,transform'
+        clearProps: 'opacity,transform'
       }
     );
     this.timeline.fromTo(
       surfaceTargets,
-      { autoAlpha: 0, y: profile.travel, scale: 0.992 },
+      { opacity: 0, y: profile.travel, scale: 0.992 },
       {
-        autoAlpha: 1,
+        opacity: 1,
         y: 0,
         scale: 1,
         duration: profile.viewDuration,
         stagger: profile.stagger,
         ease: 'power3.out',
-        clearProps: 'opacity,visibility,transform'
+        clearProps: 'opacity,transform'
       },
       '<0.06'
     );
