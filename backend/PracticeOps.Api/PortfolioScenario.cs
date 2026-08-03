@@ -68,18 +68,12 @@ public static class PortfolioScenarioBuilder
                 "Advance the claim",
                 "Submit the validated fictional claim through the bounded workflow transition.",
                 "claims",
-                submitted),
-            new StepDefinition(
-                "inspect-proof",
-                "Inspect audit and delivery proof",
-                "Review the immutable audit trail and the transactional outbox result.",
-                "audit",
                 submitted)
         };
 
         var completed = definitions.Count(step => step.Complete);
+        var workflowComplete = completed == definitions.Length;
         var currentIndex = Array.FindIndex(definitions, step => !step.Complete);
-        if (currentIndex < 0) currentIndex = definitions.Length - 1;
         var steps = definitions.Select((step, index) => new PortfolioScenarioStep(
             step.Id,
             step.Label,
@@ -96,8 +90,8 @@ public static class PortfolioScenarioBuilder
             completed,
             definitions.Length,
             (int)Math.Round(completed * 100m / definitions.Length),
-            definitions[currentIndex].Id,
-            definitions[currentIndex].Workspace,
+            workflowComplete ? "inspect-proof" : definitions[currentIndex].Id,
+            workflowComplete ? "audit" : definitions[currentIndex].Workspace,
             steps);
     }
 
