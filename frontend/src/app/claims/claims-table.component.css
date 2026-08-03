@@ -1,0 +1,25 @@
+@reference "../../styles.css";
+
+:host { position: relative; display: block; min-height: 198px; margin-top: 14px; padding: 12px 15px; overflow: hidden; border: 1px solid var(--line); border-radius: 17px; background: linear-gradient(135deg, rgba(13, 23, 40, .92), rgba(6, 12, 23, .82)); box-shadow: 0 18px 48px rgba(0, 0, 0, .28), inset 0 1px rgba(255, 255, 255, .05); backdrop-filter: blur(22px) saturate(125%); @apply rounded-panel border border-white/10 bg-ink/75 shadow-observatory backdrop-blur-xl; }
+:host::before { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(105deg, rgba(25, 217, 255, .04), transparent 24%, transparent 78%, rgba(122, 77, 255, .045)); }
+.table-toolbar { position: relative; z-index: 2; display: flex; justify-content: space-between; }
+.table-toolbar > div { display: flex; gap: 12px; }
+.panel-kicker { font-size: 9px; font-weight: 600; letter-spacing: .045em; text-transform: uppercase; @apply text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-cyan/75; }
+.table-toolbar small { color: var(--muted); font-size: 8px; }
+.data-table { position: relative; z-index: 2; overflow-x: auto; }
+.table-row { min-width: 1080px; min-height: 27px; display: grid; grid-template-columns: 70px 80px 62px 125px 100px minmax(150px, 1fr) 75px 38px 75px 70px; align-items: center; gap: 10px; border-top: 1px solid rgba(57, 78, 111, .14); color: #bac4d5; font-size: 6px; }
+.table-row:not(.table-head) { animation: claim-row-enter 160ms ease-out both; }
+.table-head { color: #758299; text-transform: uppercase; }
+.table-row strong { color: var(--cyan); }
+.table-row b { color: var(--amber); }
+.status-text { color: var(--tone); }
+.scenario-record { position: relative; outline: 1px solid rgba(25, 217, 255, .42); outline-offset: -1px; box-shadow: inset 3px 0 0 rgba(25, 217, 255, .72), 0 0 18px rgba(25, 217, 255, .07); }
+[data-tone=cyan] { --tone: var(--cyan); }
+[data-tone=blue] { --tone: var(--blue); }
+[data-tone=violet] { --tone: var(--violet); }
+[data-tone=amber] { --tone: var(--amber); }
+[data-tone=green] { --tone: var(--green); }
+[data-tone=coral] { --tone: var(--coral); }
+@media (max-width: 840px) { .table-toolbar { flex-direction: column; gap: 10px; } }
+@keyframes claim-row-enter { from { opacity: .72; transform: translateY(3px); } to { opacity: 1; transform: translateY(0); } }
+@media (prefers-reduced-motion: reduce) { .scenario-record { box-shadow: inset 3px 0 0 rgba(25, 217, 255, .72); }.table-row:not(.table-head) { animation: none; } }

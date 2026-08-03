@@ -1,0 +1,9 @@
+<select aria-label="Filter claims by risk" [value]="riskFilter()" (change)="riskChanged.emit($any($event.target).value)">
+  <option value="all">All risk types</option>
+  @for (slice of riskDistribution(); track slice.label) { <option [value]="slice.label">{{ slice.label }}</option> }
+</select>
+<select aria-label="Filter claims by payer" [value]="payerFilter()" (change)="payerChanged.emit($any($event.target).value)">
+  <option value="all">All payers</option>
+  @for (payer of payerOptions(); track payer) { <option [value]="payer">{{ payer }}</option> }
+</select>
+<input type="search" aria-label="Search claims" placeholder="Search claims" [value]="search()" (input)="searchChanged.emit($any($event.target).value)">

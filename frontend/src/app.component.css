@@ -40,3 +40,17 @@ button { font: inherit; color: inherit; }
 .pipeline-link { flex: 1; height: 1px; min-width: 14px; margin: 30px -2px 0; background: linear-gradient(90deg, var(--tone), var(--blue)); box-shadow: 0 0 7px var(--tone); }
 
 /* Overview and schedule declarations live with their extracted workspace components. */
+
+.system-footer { min-height: 42px; display: grid; grid-template-columns: 1fr 1fr 1fr auto; align-items: center; gap: 18px; margin-top: 14px; padding: 8px 15px; border: 1px solid rgba(47, 107, 255, .32); border-radius: 13px; background: rgba(6, 14, 25, .72); }
+.system-footer > div { display: flex; gap: 8px; color: #647189; font-size: 6px; }
+.loading-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.skeleton { min-height: 220px; border: 1px solid rgba(50, 80, 124, .25); border-radius: 18px; background: linear-gradient(100deg, rgba(12, 21, 36, .85) 20%, rgba(25, 40, 67, .9) 38%, rgba(12, 21, 36, .85) 56%); background-size: 220% 100%; animation: loading 1.6s linear infinite; }
+.skeleton-wide { grid-column: 1 / -1; min-height: 110px; }
+button:focus-visible, a:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
+@keyframes drift { to { transform: translate3d(3%, 4%, 0) scale(1.08); } }
+@keyframes drift2 { to { transform: translate3d(12%, -3%, 0) scale(1.15); } }
+@keyframes stars { to { background-position: 143px 137px, 211px 193px; } }
+@keyframes loading { to { background-position: -30% 0; } }
+@media (max-width: 840px) { .system-footer { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 560px) { .system-footer { grid-template-columns: 1fr; } }
+@media (prefers-reduced-motion: reduce) { .aurora-primary, .aurora-secondary, .star-field, .skeleton { animation-duration: .01ms !important; animation-iteration-count: 1 !important; } }

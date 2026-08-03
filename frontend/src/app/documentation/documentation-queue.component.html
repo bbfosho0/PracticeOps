@@ -1,0 +1,12 @@
+<header class="panel-header"><span class="panel-kicker">Note queue</span><small>{{ unsigned() }} unsigned</small></header>
+@for (note of items(); track note.id) {
+  <div class="note-row" [class.scenario-record]="note.id === scenarioClinicalNoteId()">
+    <span class="activity-icon" [attr.data-tone]="note.tone"></span>
+    <strong>{{ note.clinician }}</strong>
+    <small>{{ note.code }}</small>
+    <span class="status-text" [attr.data-tone]="note.tone">{{ note.status }}</span>
+    <time>{{ note.age }}</time>
+  </div>
+} @empty {
+  <div class="workspace-empty compact"><small>All notes are signed.</small></div>
+}

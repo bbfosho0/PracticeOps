@@ -15,7 +15,7 @@ import {
 import { AutoAnimateDirective } from '../../auto-animate.directive';
 import { ApiMode } from '../../operational-refresh.store';
 import { AuditTelemetry, DocumentationTelemetry } from '../../operational-telemetry';
-import { RiskTopologyComponent } from '../../risk-topology.component';
+import { RiskTopologyComponent } from '../claims/risk-topology.component';
 import { MetricSignalStripComponent } from './metric-signal-strip.component';
 
 @Component({
