@@ -23,8 +23,16 @@ var app = builder.Build();
 app.UseExceptionHandler(handler => handler.Run(async context =>
 {
     var exception = context.Features.Get<IExceptionHandlerFeature>()?.Error;
-    var status = exception is InvalidOperationException ? StatusCodes.Status409Conflict : StatusCodes.Status500InternalServerError;
-    await Results.Problem(statusCode: status, title: status == 409 ? "Invalid workflow transition" : "Unexpected server error", detail: exception?.Message).ExecuteAsync(context);
+    var (status, title) = exception switch
+    {
+        KeyNotFoundException => (StatusCodes.Status404NotFound, "Record not found"),
+        InvalidOperationException => (StatusCodes.Status409Conflict, "Invalid workflow transition"),
+        _ => (StatusCodes.Status500InternalServerError, "Unexpected server error")
+    };
+    var detail = status == StatusCodes.Status500InternalServerError
+        ? "The operation could not be completed."
+        : exception?.Message;
+    await Results.Problem(statusCode: status, title: title, detail: detail).ExecuteAsync(context);
 }));
 app.UseCors();
 app.UseSwagger();
@@ -34,31 +42,14 @@ app.MapHealthChecks("/health/live", new() { Predicate = _ => false });
 app.MapHealthChecks("/health/ready", new() { Predicate = check => check.Tags.Contains("ready") });
 
 app.MapGet("/api/dashboard", async (PracticeOpsDbContext db, CancellationToken ct) =>
-{
-    var now = DateTimeOffset.UtcNow;
-    var today = new DateTimeOffset(now.UtcDateTime.Date, TimeSpan.Zero);
-    var tomorrow = today.AddDays(1);
-    var appointments = await db.Appointments
-        .Where(x => x.StartsAt >= today && x.StartsAt < tomorrow)
-        .OrderBy(x => x.StartsAt)
-        .ToListAsync(ct);
-    var notes = await db.ClinicalNotes.OrderBy(x => x.DueAt).ToListAsync(ct);
-    var claims = await db.Claims
-        .Where(x => x.Status == ClaimStatus.NeedsReview || x.Status == ClaimStatus.Denied)
-        .OrderByDescending(x => x.Amount)
-        .ToListAsync(ct);
-    var audit = await db.AuditEntries.OrderByDescending(x => x.OccurredAt).Take(20).ToListAsync(ct);
-    var metrics = DashboardMetricsCalculator.Calculate(appointments, notes, claims);
+    Results.Ok(await DashboardSnapshotBuilder.BuildAsync(db, ct)))
+    .WithName("GetDashboard")
+    .WithOpenApi();
 
-    return Results.Ok(new
-    {
-        metrics,
-        appointments,
-        notes,
-        claims,
-        audit
-    });
-}).WithName("GetDashboard").WithOpenApi();
+app.MapPost("/api/demo/reset", async (PracticeOpsDbContext db, CancellationToken ct) =>
+    Results.Ok(await DemoResetService.ResetAsync(db, DateTimeOffset.UtcNow, ct)))
+    .WithName("ResetPortfolioDemo")
+    .WithOpenApi();
 
 app.MapPost("/api/appointments/{id:guid}/status", async (Guid id, StatusRequest<AppointmentStatus> request, PracticeOpsDbContext db, CancellationToken ct) =>
 {
@@ -67,7 +58,7 @@ app.MapPost("/api/appointments/{id:guid}/status", async (Guid id, StatusRequest<
     AddAuditAndEvent(db, request.Actor, "AppointmentStatusChanged", "Appointment", id, $"Appointment moved to {request.Status}.", new { id, request.Status });
     await db.SaveChangesAsync(ct);
     return Results.Ok(entity);
-}).WithOpenApi();
+}).WithName("UpdateAppointmentStatus").WithOpenApi();
 
 app.MapPost("/api/notes/{id:guid}/status", async (Guid id, StatusRequest<NoteStatus> request, PracticeOpsDbContext db, CancellationToken ct) =>
 {
@@ -76,7 +67,7 @@ app.MapPost("/api/notes/{id:guid}/status", async (Guid id, StatusRequest<NoteSta
     AddAuditAndEvent(db, request.Actor, "ClinicalNoteStatusChanged", "ClinicalNote", id, $"Clinical note moved to {request.Status}.", new { id, request.Status });
     await db.SaveChangesAsync(ct);
     return Results.Ok(entity);
-}).WithOpenApi();
+}).WithName("UpdateClinicalNoteStatus").WithOpenApi();
 
 app.MapPost("/api/claims/{id:guid}/status", async (Guid id, StatusRequest<ClaimStatus> request, PracticeOpsDbContext db, CancellationToken ct) =>
 {
@@ -85,7 +76,7 @@ app.MapPost("/api/claims/{id:guid}/status", async (Guid id, StatusRequest<ClaimS
     AddAuditAndEvent(db, request.Actor, "ClaimStatusChanged", "Claim", id, $"Claim moved to {request.Status}.", new { id, request.Status });
     await db.SaveChangesAsync(ct);
     return Results.Ok(entity);
-}).WithOpenApi();
+}).WithName("UpdateClaimStatus").WithOpenApi();
 
 await using (var scope = app.Services.CreateAsyncScope())
 {
