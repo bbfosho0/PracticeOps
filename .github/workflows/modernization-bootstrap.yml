@@ -36,8 +36,6 @@ jobs:
           npm install --save-dev --save-exact --legacy-peer-deps \
             @storybook/angular@9.0.15 \
             @storybook/addon-a11y@9.0.15 \
-            @storybook/addon-essentials@9.0.15 \
-            @storybook/test@9.0.15 \
             @playwright/test@1.55.0
           npm pkg set scripts.storybook="storybook dev -p 6006"
           npm pkg set scripts.build-storybook="storybook build"
@@ -51,7 +49,7 @@ jobs:
 
           const config: StorybookConfig = {
             stories: ['../src/**/*.stories.@(ts|mdx)'],
-            addons: ['@storybook/addon-essentials', '@storybook/addon-a11y'],
+            addons: ['@storybook/addon-a11y'],
             framework: {
               name: '@storybook/angular',
               options: {},
@@ -68,7 +66,6 @@ jobs:
 
           const preview: Preview = {
             parameters: {
-              actions: { argTypesRegex: '^on[A-Z].*' },
               controls: {
                 matchers: {
                   color: /(background|color)$/i,
