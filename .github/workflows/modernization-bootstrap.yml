@@ -38,9 +38,36 @@ jobs:
             @storybook/angular@9.0.15 \
             @storybook/addon-a11y@9.0.15 \
             @playwright/test@1.55.0
-          npm pkg set scripts.storybook="storybook dev -p 6006"
-          npm pkg set scripts.build-storybook="storybook build"
+          npm pkg set scripts.storybook="ng run practiceops:storybook"
+          npm pkg set scripts.build-storybook="ng run practiceops:build-storybook"
           npm pkg set scripts.test:e2e="playwright test"
+
+      - name: Configure Angular Storybook builders
+        working-directory: frontend
+        run: |
+          node <<'EOF'
+          const fs = require('node:fs');
+          const path = 'angular.json';
+          const config = JSON.parse(fs.readFileSync(path, 'utf8'));
+          const architect = config.projects.practiceops.architect;
+          architect.storybook = {
+            builder: '@storybook/angular:start-storybook',
+            options: {
+              configDir: '.storybook',
+              browserTarget: 'practiceops:build',
+              port: 6006
+            }
+          };
+          architect['build-storybook'] = {
+            builder: '@storybook/angular:build-storybook',
+            options: {
+              configDir: '.storybook',
+              browserTarget: 'practiceops:build',
+              outputDir: 'storybook-static'
+            }
+          };
+          fs.writeFileSync(path, `${JSON.stringify(config, null, 2)}\n`);
+          EOF
 
       - name: Create Storybook configuration
         run: |
@@ -184,7 +211,7 @@ jobs:
         run: |
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add frontend/package.json frontend/package-lock.json frontend/.storybook frontend/src/stories frontend/playwright.config.ts frontend/e2e
+          git add frontend/package.json frontend/package-lock.json frontend/angular.json frontend/.storybook frontend/src/stories frontend/playwright.config.ts frontend/e2e
           if git diff --cached --quiet; then
             echo "No bootstrap changes to commit"
             exit 0
