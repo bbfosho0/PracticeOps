@@ -1,0 +1,184 @@
+name: Tailwind Layout Diagnostic
+
+on:
+  push:
+    branches: [design/tailwind-hybrid-observatory]
+
+jobs:
+  compare-mobile-rail:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout candidate
+        uses: actions/checkout@v4
+        with:
+          ref: design/tailwind-hybrid-observatory
+          path: candidate
+
+      - name: Checkout baseline
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: baseline
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Build candidate
+        working-directory: candidate/frontend
+        run: |
+          npm ci
+          npm run build
+
+      - name: Build baseline
+        working-directory: baseline/frontend
+        run: |
+          npm ci
+          npm run build
+
+      - name: Serve both builds
+        run: |
+          python3 -m http.server 4173 --directory candidate/frontend/dist/practiceops/browser >/tmp/candidate.log 2>&1 &
+          python3 -m http.server 4174 --directory baseline/frontend/dist/practiceops/browser >/tmp/baseline.log 2>&1 &
+          for port in 4173 4174; do
+            for attempt in {1..30}; do
+              curl --fail --silent "http://127.0.0.1:${port}/" >/dev/null && break
+              sleep 1
+            done
+          done
+
+      - name: Compare computed mobile layout
+        run: |
+          cat >/tmp/measure-layout.mjs <<'NODE'
+          import { spawn } from 'node:child_process';
+
+          const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+          const chrome = spawn('google-chrome', [
+            '--headless=new', '--no-sandbox', '--disable-gpu', '--hide-scrollbars',
+            '--remote-debugging-port=9222', '--user-data-dir=/tmp/practiceops-layout-chrome',
+            '--window-size=390,844', 'about:blank'
+          ], { stdio: 'ignore' });
+
+          try {
+            let version;
+            for (let attempt = 0; attempt < 50; attempt += 1) {
+              try {
+                version = await fetch('http://127.0.0.1:9222/json/version').then(response => response.json());
+                break;
+              } catch {
+                await sleep(200);
+              }
+            }
+            if (!version) throw new Error('Chrome did not start');
+
+            const target = await fetch('http://127.0.0.1:9222/json/new?about:blank', { method: 'PUT' }).then(response => response.json());
+            const socket = new WebSocket(target.webSocketDebuggerUrl);
+            await new Promise((resolve, reject) => {
+              socket.addEventListener('open', resolve, { once: true });
+              socket.addEventListener('error', reject, { once: true });
+            });
+
+            let id = 0;
+            const pending = new Map();
+            socket.addEventListener('message', event => {
+              const message = JSON.parse(event.data);
+              if (!message.id || !pending.has(message.id)) return;
+              const operation = pending.get(message.id);
+              pending.delete(message.id);
+              if (message.error) operation.reject(new Error(message.error.message));
+              else operation.resolve(message.result);
+            });
+            const send = (method, params = {}) => new Promise((resolve, reject) => {
+              const requestId = ++id;
+              pending.set(requestId, { resolve, reject });
+              socket.send(JSON.stringify({ id: requestId, method, params }));
+            });
+            const evaluate = async expression => {
+              const result = await send('Runtime.evaluate', { expression, awaitPromise: true, returnByValue: true });
+              if (result.exceptionDetails) throw new Error(result.exceptionDetails.text);
+              return result.result.value;
+            };
+
+            await send('Page.enable');
+            await send('Runtime.enable');
+            await send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
+
+            const measure = async url => {
+              await send('Page.navigate', { url });
+              for (let attempt = 0; attempt < 80; attempt += 1) {
+                if (await evaluate(`Boolean(document.querySelector('.scenario-rail') && document.querySelector('.metric-signal'))`)) break;
+                await sleep(100);
+              }
+              await sleep(1000);
+              return evaluate(`(() => {
+                const px = value => Number.parseFloat(value) || 0;
+                const details = selector => {
+                  const element = document.querySelector(selector);
+                  if (!element) return null;
+                  const rect = element.getBoundingClientRect();
+                  const style = getComputedStyle(element);
+                  return {
+                    selector,
+                    top: rect.top,
+                    bottom: rect.bottom,
+                    width: rect.width,
+                    height: rect.height,
+                    display: style.display,
+                    boxSizing: style.boxSizing,
+                    paddingTop: px(style.paddingTop),
+                    paddingBottom: px(style.paddingBottom),
+                    marginTop: px(style.marginTop),
+                    marginBottom: px(style.marginBottom),
+                    rowGap: px(style.rowGap),
+                    columnGap: px(style.columnGap),
+                    gridTemplateRows: style.gridTemplateRows,
+                    fontFamily: style.fontFamily,
+                    fontSize: px(style.fontSize),
+                    lineHeight: px(style.lineHeight),
+                    minHeight: style.minHeight
+                  };
+                };
+                const actionChildren = [...document.querySelectorAll('.scenario-actions > *')].map((element, index) => {
+                  const rect = element.getBoundingClientRect();
+                  const style = getComputedStyle(element);
+                  return {
+                    index,
+                    tag: element.tagName,
+                    className: element.className,
+                    text: element.textContent?.trim(),
+                    top: rect.top,
+                    bottom: rect.bottom,
+                    height: rect.height,
+                    marginTop: px(style.marginTop),
+                    marginBottom: px(style.marginBottom),
+                    paddingTop: px(style.paddingTop),
+                    paddingBottom: px(style.paddingBottom),
+                    fontFamily: style.fontFamily,
+                    fontSize: px(style.fontSize),
+                    lineHeight: px(style.lineHeight),
+                    minHeight: style.minHeight
+                  };
+                });
+                return {
+                  rail: details('.scenario-rail'),
+                  summary: details('.scenario-summary'),
+                  heading: details('.scenario-summary h2'),
+                  description: details('.scenario-summary p'),
+                  progress: details('.scenario-progress'),
+                  summarySmall: details('.scenario-summary > small'),
+                  actions: details('.scenario-actions'),
+                  actionChildren
+                };
+              })()`);
+            };
+
+            const baseline = await measure('http://127.0.0.1:4174/');
+            const candidate = await measure('http://127.0.0.1:4173/');
+            console.log(JSON.stringify({ baseline, candidate }, null, 2));
+            socket.close();
+          } finally {
+            chrome.kill('SIGTERM');
+          }
+          NODE
+          node /tmp/measure-layout.mjs
