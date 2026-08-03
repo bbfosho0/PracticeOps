@@ -25,47 +25,58 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
-      - name: Add dependencies and failing motion-policy tests
-        run: python3 scripts/apply-observatory-motion.py tests
-
-      - name: Install runtime motion dependencies and update lockfile
-        working-directory: frontend
-        run: npm install
-
-      - name: Verify motion-policy tests fail before implementation
-        working-directory: frontend
+      - name: Execute TDD migration and verification
         shell: bash
         run: |
+          set -o pipefail
+          exec > >(tee /tmp/observatory-motion-bootstrap.log) 2>&1
+
+          python3 scripts/apply-observatory-motion.py tests
+          npm --prefix frontend install
+
           set +e
-          npm run test -- --watch=false > /tmp/observatory-motion-red.log 2>&1
-          status=$?
+          npm --prefix frontend run test -- --watch=false > /tmp/observatory-motion-red.log 2>&1
+          red_status=$?
           set -e
           cat /tmp/observatory-motion-red.log
-          if [ "$status" -eq 0 ]; then
+          if [ "$red_status" -eq 0 ]; then
             echo "Expected motion policy tests to fail before implementation."
             exit 1
           fi
           grep -Eq "motion-policy|Cannot find module|TS2307" /tmp/observatory-motion-red.log
 
-      - name: Apply AutoAnimate and GSAP implementation
-        run: python3 scripts/apply-observatory-motion.py implementation
-
-      - name: Run complete frontend test suite
-        working-directory: frontend
-        run: npm run test -- --watch=false
-
-      - name: Build production frontend
-        working-directory: frontend
-        run: npm run build
-
-      - name: Check generated diff
-        run: git diff --check
+          python3 scripts/apply-observatory-motion.py implementation
+          npm --prefix frontend run test -- --watch=false
+          npm --prefix frontend run build
+          git diff --check
 
       - name: Commit verified motion system
+        if: success()
         shell: bash
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
           git commit -m "feat: orchestrate observatory motion with AutoAnimate and GSAP"
+          git pull --rebase origin design/tailwind-hybrid-observatory
+          git push origin HEAD:design/tailwind-hybrid-observatory
+
+      - name: Record migration failure evidence
+        if: failure()
+        shell: bash
+        run: |
+          git reset --hard HEAD
+          mkdir -p docs/diagnostics
+          {
+            echo '# Observatory motion bootstrap failure'
+            echo
+            echo '```text'
+            tail -n 500 /tmp/observatory-motion-bootstrap.log 2>/dev/null || true
+            echo '```'
+          } > docs/diagnostics/observatory-motion-bootstrap-failure.md
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/diagnostics/observatory-motion-bootstrap-failure.md
+          git commit -m "test: record observatory motion bootstrap failure"
+          git pull --rebase origin design/tailwind-hybrid-observatory
           git push origin HEAD:design/tailwind-hybrid-observatory
