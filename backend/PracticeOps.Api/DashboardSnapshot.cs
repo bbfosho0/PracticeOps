@@ -5,10 +5,10 @@ namespace PracticeOps.Api;
 public sealed record OutboxSummary(
     int TotalMessages,
     int PendingMessages,
-    int DeliveredMessages,
+    int PublishedMessages,
     string? LatestEventType,
     DateTimeOffset? LatestOccurredAt,
-    DateTimeOffset? LatestProcessedAt);
+    DateTimeOffset? LatestPublishedAt);
 
 public sealed record DashboardSnapshot(
     DashboardMetrics Metrics,
