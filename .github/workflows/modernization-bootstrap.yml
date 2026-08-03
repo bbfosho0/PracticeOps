@@ -34,6 +34,7 @@ jobs:
             @angular/animations@20.2.0 \
             @angular/platform-browser-dynamic@20.2.0
           npm install --save-dev --save-exact --legacy-peer-deps \
+            storybook@9.0.15 \
             @storybook/angular@9.0.15 \
             @storybook/addon-a11y@9.0.15 \
             @playwright/test@1.55.0
