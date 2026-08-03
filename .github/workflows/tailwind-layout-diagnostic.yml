@@ -4,8 +4,12 @@ on:
   push:
     branches: [design/tailwind-hybrid-observatory]
 
+permissions:
+  contents: write
+
 jobs:
   compare-mobile-rail:
+    if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -50,8 +54,10 @@ jobs:
 
       - name: Compare computed mobile layout
         run: |
+          mkdir -p candidate/docs/diagnostics
           cat >/tmp/measure-layout.mjs <<'NODE'
           import { spawn } from 'node:child_process';
+          import { writeFile } from 'node:fs/promises';
 
           const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
           const chrome = spawn('google-chrome', [
@@ -175,10 +181,21 @@ jobs:
 
             const baseline = await measure('http://127.0.0.1:4174/');
             const candidate = await measure('http://127.0.0.1:4173/');
-            console.log(JSON.stringify({ baseline, candidate }, null, 2));
+            const result = { baseline, candidate };
+            console.log(JSON.stringify(result, null, 2));
+            await writeFile('candidate/docs/diagnostics/tailwind-mobile-rail.json', JSON.stringify(result, null, 2));
             socket.close();
           } finally {
             chrome.kill('SIGTERM');
           }
           NODE
           node /tmp/measure-layout.mjs
+
+      - name: Commit diagnostic evidence
+        working-directory: candidate
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/diagnostics/tailwind-mobile-rail.json
+          git commit -m "test: record Tailwind mobile rail diagnostics"
+          git push origin HEAD:design/tailwind-hybrid-observatory
