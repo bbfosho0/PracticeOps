@@ -51,4 +51,33 @@ describe('WorkspaceHeaderComponent', () => {
     expect(refresh.disabled).toBeTrue();
     expect(refresh.textContent?.trim()).toBe('Updating…');
   });
+
+  it('stops the live status animation under reduced motion', () => {
+    render();
+    const reducedMotionRule = componentReducedMotionRule('.live-dot[');
+
+    expect(reducedMotionRule?.animationName).toBe('none');
+  });
 });
+
+function componentReducedMotionRule(selectorFragment: string): CSSStyleDeclaration | undefined {
+  for (const sheet of Array.from(document.styleSheets)) {
+    let rules: CSSRuleList;
+    try {
+      rules = sheet.cssRules;
+    } catch {
+      continue;
+    }
+    for (const rule of Array.from(rules)) {
+      if (!(rule instanceof CSSMediaRule) || !rule.conditionText.includes('prefers-reduced-motion')) continue;
+      for (const nestedRule of Array.from(rule.cssRules)) {
+        if (nestedRule instanceof CSSStyleRule
+          && nestedRule.selectorText.includes('_ngcontent')
+          && nestedRule.selectorText.includes(selectorFragment)) {
+          return nestedRule.style;
+        }
+      }
+    }
+  }
+  return undefined;
+}

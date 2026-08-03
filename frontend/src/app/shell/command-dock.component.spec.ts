@@ -39,4 +39,35 @@ describe('CommandDockComponent', () => {
     expect(host.querySelector('button[aria-current="page"]')?.getAttribute('aria-label')).toBe('Claims');
     expect(host.querySelector('.dock-status')?.getAttribute('title')).toBe('Synthetic preview');
   });
+
+  it('removes dock transitions and hover transforms under reduced motion', () => {
+    render();
+    const transitionRule = componentReducedMotionRule(selector => selector.includes('.dock-item[') && !selector.includes(':hover'));
+    const hoverRule = componentReducedMotionRule(selector => selector.includes('.dock-item') && selector.includes(':hover'));
+
+    expect(transitionRule?.transitionDuration).toBe('0.01ms');
+    expect(hoverRule?.transform).toBe('none');
+  });
 });
+
+function componentReducedMotionRule(matches: (selector: string) => boolean): CSSStyleDeclaration | undefined {
+  for (const sheet of Array.from(document.styleSheets)) {
+    let rules: CSSRuleList;
+    try {
+      rules = sheet.cssRules;
+    } catch {
+      continue;
+    }
+    for (const rule of Array.from(rules)) {
+      if (!(rule instanceof CSSMediaRule) || !rule.conditionText.includes('prefers-reduced-motion')) continue;
+      for (const nestedRule of Array.from(rule.cssRules)) {
+        if (nestedRule instanceof CSSStyleRule
+          && nestedRule.selectorText.includes('_ngcontent')
+          && matches(nestedRule.selectorText)) {
+          return nestedRule.style;
+        }
+      }
+    }
+  }
+  return undefined;
+}

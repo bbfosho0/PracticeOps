@@ -52,4 +52,5 @@ button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
 
 @media (prefers-reduced-motion: reduce) {
   .refresh-control { transition-duration: 1ms; }
+  .live-dot { animation: none !important; }
 }

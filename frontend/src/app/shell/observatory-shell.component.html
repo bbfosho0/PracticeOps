@@ -1,5 +1,5 @@
 <ng-content select=".atmosphere"></ng-content>
-<aside appCommandDock [items]="items()" [activeView]="activeView()" [runtimeMode]="runtimeMode()" (viewSelected)="viewSelected.emit($event)"></aside>
+<aside appCommandDock [items]="items()" [activeView]="activeView()" [runtimeMode]="runtimeMode()" [stale]="stale()" (viewSelected)="viewSelected.emit($event)"></aside>
 <main class="workspace" [appObservatoryViewMotion]="activeView()">
   <header appWorkspaceHeader [metadata]="metadata()" [runtimeStatus]="runtimeStatus()" [updatedLabel]="updatedLabel()" [refreshing]="refreshing()" (refreshRequested)="retryRequested.emit()"></header>
   @if (notice()) {

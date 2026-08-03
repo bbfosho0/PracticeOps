@@ -24,9 +24,11 @@ export class CommandDockComponent {
   readonly items = input.required<readonly WorkspaceNavItem[]>();
   readonly activeView = input.required<ViewId>();
   readonly runtimeMode = input.required<ApiMode>();
+  readonly stale = input(false);
   readonly viewSelected = output<ViewId>();
 
   readonly runtimeLabel = computed(() => {
+    if (this.stale()) return 'Stale snapshot';
     switch (this.runtimeMode()) {
       case 'live': return 'Live API';
       case 'demo': return 'Synthetic preview';

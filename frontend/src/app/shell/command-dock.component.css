@@ -44,3 +44,8 @@ button:focus-visible, a:focus-visible { outline: 2px solid var(--cyan); outline-
   :host { overflow-x: auto; }
   nav { min-width: 480px; }
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .dock-item { transition-duration: 0.01ms !important; }
+  .dock-item:hover { transform: none; }
+}

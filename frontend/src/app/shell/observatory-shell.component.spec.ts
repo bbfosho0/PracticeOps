@@ -17,7 +17,7 @@ import { ObservatoryShellComponent } from './observatory-shell.component';
       updatedLabel="Updated just now"
       [refreshing]="false"
       notice="Live API data refreshed."
-      [stale]="false"
+      [stale]="stale"
       [retryAvailable]="true"
       [proofCollapsed]="true">
       <div class="atmosphere" aria-hidden="true"></div>
@@ -29,6 +29,7 @@ class ShellTestHostComponent {
   readonly items = WORKSPACE_NAV_ITEMS;
   readonly metadata = WORKSPACE_VIEW_METADATA.claims;
   readonly runtimeStatus = { label: 'Live API', tone: 'green' as const };
+  stale = false;
 }
 
 describe('ObservatoryShellComponent', () => {
@@ -47,5 +48,15 @@ describe('ObservatoryShellComponent', () => {
     expect(main.querySelector(':scope > header.workspace-header')).not.toBeNull();
     expect(main.querySelector(':scope > section.mode-notice')).not.toBeNull();
     expect(main.querySelector(':scope > section.projected-workspace')?.textContent).toContain('Workspace content');
+  });
+
+  it('labels a stale live snapshot as stale without changing the live API mode', () => {
+    const fixture = TestBed.createComponent(ShellTestHostComponent);
+    fixture.componentInstance.stale = true;
+    fixture.detectChanges();
+    const status = fixture.nativeElement.querySelector('.dock-status') as HTMLElement;
+
+    expect(status.getAttribute('title')).toBe('Stale snapshot');
+    expect(status.getAttribute('data-mode')).toBe('live');
   });
 });
