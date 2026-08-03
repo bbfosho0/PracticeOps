@@ -1,11 +1,12 @@
 import { CurrencyPipe, DatePipe, DecimalPipe } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { AfterViewInit, ChangeDetectionStrategy, Component, ElementRef, OnDestroy, ViewChild, computed, inject, signal } from '@angular/core';
 import {
   Appointment,
   AuditEvent,
   Claim,
   Dashboard,
+  DashboardMetrics,
   MetricSignal,
   PipelineStage,
   RiskSlice,
@@ -31,6 +32,8 @@ import {
   buildScheduleTelemetry,
   reconcileDashboard
 } from './operational-telemetry';
+import { AtmosphereRenderer } from './atmosphere-renderer';
+import { MetricValueMotionDirective } from './metric-value-motion.directive';
 
 interface NavItem {
   id: ViewId;
@@ -66,6 +69,13 @@ interface NoteQueueItem {
   status: string;
   age: string;
   tone: SignalTone;
+}
+
+interface ClaimTableRow {
+  claim: Claim;
+  patient: string;
+  appointmentAt?: string;
+  clinician: string;
 }
 
 interface NotificationPreference {
@@ -117,16 +127,23 @@ function hoursSince(value: string, reference: Date): number {
   return Math.max(0, (reference.getTime() - new Date(value).getTime()) / 3_600_000);
 }
 
+function defaultProofLayerOpen(): boolean {
+  return typeof window === 'undefined' || !window.matchMedia('(max-width: 1379px)').matches;
+}
+
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CurrencyPipe, DatePipe, DecimalPipe],
+  imports: [CurrencyPipe, DatePipe, DecimalPipe, MetricValueMotionDirective],
   templateUrl: './app.component.html',
-  styleUrls: ['./app.component.css', './app.component.workspaces.css'],
+  styleUrls: ['./app.component.css', './app.component.workspaces.css', './portfolio-showcase.css'],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class AppComponent {
+export class AppComponent implements AfterViewInit, OnDestroy {
   private readonly http = inject(HttpClient);
+  private liveDashboard?: Dashboard;
+  private atmosphereRenderer?: AtmosphereRenderer;
+  @ViewChild('atmosphereCanvas') private readonly atmosphereCanvas?: ElementRef<HTMLCanvasElement>;
 
   readonly nav = NAV_ITEMS;
   readonly activeView = signal<ViewId>('overview');
@@ -143,6 +160,9 @@ export class AppComponent {
   readonly claimPayerFilter = signal('all');
   readonly claimSearch = signal('');
   readonly notificationPreferences = signal<NotificationPreference[]>(INITIAL_PREFERENCES.map(item => ({ ...item })));
+  readonly portfolioScenario = signal<'portfolio' | 'live'>('portfolio');
+  readonly proofLayerOpen = signal(defaultProofLayerOpen());
+  readonly kpiAnnouncement = signal('');
 
   readonly view = computed(() => VIEW_META[this.activeView()]);
   readonly metrics = computed<MetricSignal[]>(() => buildMetricSignals(this.dashboard()));
@@ -249,6 +269,15 @@ export class AppComponent {
     });
   });
   readonly topClaims = computed(() => this.filteredClaims().slice(0, 8));
+  readonly claimTableRows = computed<ClaimTableRow[]>(() => this.topClaims().map((claim, index) => {
+    const appointment = this.dashboard().appointments[index];
+    return {
+      claim,
+      patient: appointment?.patientDisplayName ?? 'Synthetic record',
+      appointmentAt: appointment?.startsAt,
+      clinician: appointment?.clinician ?? 'Revenue cycle'
+    };
+  }));
   readonly payerOptions = computed(() => [...new Set(this.dashboard().claims.map(item => item.payer))].sort());
   readonly claimTrendBars = computed(() => {
     const values = this.dashboard().claims.map(item => item.amount);
@@ -326,8 +355,42 @@ export class AppComponent {
     this.load();
   }
 
+  ngAfterViewInit(): void {
+    if (this.atmosphereCanvas) {
+      this.atmosphereRenderer = new AtmosphereRenderer(this.atmosphereCanvas.nativeElement);
+      this.atmosphereRenderer.start();
+    }
+  }
+
+  ngOnDestroy(): void {
+    this.atmosphereRenderer?.destroy();
+  }
+
   selectView(view: ViewId): void {
     this.activeView.set(view);
+  }
+
+  selectPortfolioScenario(mode: 'portfolio' | 'live'): void {
+    this.portfolioScenario.set(mode);
+    if (mode === 'portfolio') {
+      this.applyDashboard(createDemoDashboard(), 'demo');
+      this.notice.set('Portfolio scenario active. All records are fictional and designed to demonstrate the full workflow.');
+      return;
+    }
+    if (this.liveDashboard) {
+      this.applyDashboard(this.liveDashboard, 'live');
+      this.notice.set('Live API data active. Switch back to Portfolio scenario for the curated demo day.');
+      return;
+    }
+    this.notice.set('Live API data is unavailable. Portfolio scenario remains active.');
+  }
+
+  toggleProofLayer(): void {
+    this.proofLayerOpen.update(value => !value);
+  }
+
+  showProofInWorkspace(view: ViewId): void {
+    this.selectView(view);
   }
 
   selectScheduleFilter(filter: 'day' | 'week' | 'list'): void {
@@ -380,7 +443,15 @@ export class AppComponent {
     this.notice.set('');
 
     this.http.get<Dashboard>('/api/dashboard').subscribe({
-      next: value => this.applyDashboard(value, 'live'),
+      next: value => {
+        this.liveDashboard = value;
+        if (this.portfolioScenario() === 'portfolio') {
+          this.applyDashboard(createDemoDashboard(), 'demo');
+          this.notice.set('Portfolio scenario active. Live API data is available to inspect.');
+        } else {
+          this.applyDashboard(value, 'live');
+        }
+      },
       error: () => {
         this.applyDashboard(createDemoDashboard(), 'demo');
         this.notice.set('API offline. Showing the complete local synthetic dataset.');
@@ -438,6 +509,7 @@ export class AppComponent {
   private applyDashboard(value: Dashboard, mode: 'live' | 'demo'): void {
     const reference = value.appointments[0] ? new Date(value.appointments[0].startsAt) : new Date();
     const reconciled = reconcileDashboard(value, reference);
+    this.announceMetricChanges(this.dashboard().metrics, reconciled.metrics);
     this.dashboard.set(reconciled);
     this.selectedScheduleDate.set(startOfDay(reference));
     this.selectedProvider.set('all');
@@ -445,5 +517,16 @@ export class AppComponent {
     this.selectedStatus.set('all');
     this.apiMode.set(mode);
     this.loading.set(false);
+  }
+
+  private announceMetricChanges(previous: DashboardMetrics, current: DashboardMetrics): void {
+    const changed = [
+      ['Appointments today', previous.appointmentsToday, current.appointmentsToday],
+      ['Unsigned notes', previous.unsignedNotes, current.unsignedNotes],
+      ['Claims at risk', previous.claimsAtRisk, current.claimsAtRisk],
+      ['Team utilization', previous.teamUtilization, current.teamUtilization]
+    ].filter(([, before, after]) => before !== after)
+      .map(([label, , after]) => `${label}: ${after}`);
+    this.kpiAnnouncement.set(changed.length ? `Operational metrics updated. ${changed.join(', ')}.` : '');
   }
 }

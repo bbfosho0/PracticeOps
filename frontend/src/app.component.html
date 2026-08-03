@@ -1,5 +1,6 @@
 <div class="observatory" [attr.data-view]="activeView()">
   <div class="atmosphere" aria-hidden="true">
+    <canvas #atmosphereCanvas class="atmosphere-canvas"></canvas>
     <span class="aurora aurora-primary"></span>
     <span class="aurora aurora-secondary"></span>
     <span class="horizon"></span>
@@ -25,8 +26,12 @@
       <div class="brand-lockup"><span class="product-name">PracticeOps</span><span class="product-divider"></span><span class="product-context">Clinical Observatory</span></div>
       <div class="header-copy"><span class="eyebrow">{{ view().eyebrow }}</span><h1>{{ view().title }}</h1><p>{{ view().description }}</p></div>
       <div class="header-actions">
+        <div class="portfolio-control" role="group" aria-label="Portfolio data source">
+          <button type="button" [class.active]="portfolioScenario() === 'portfolio'" [attr.aria-pressed]="portfolioScenario() === 'portfolio'" (click)="selectPortfolioScenario('portfolio')">Portfolio scenario</button>
+          <button type="button" [class.active]="portfolioScenario() === 'live'" [attr.aria-pressed]="portfolioScenario() === 'live'" (click)="selectPortfolioScenario('live')">Live API</button>
+        </div>
         <span class="live-pill" [attr.data-tone]="view().tone"><span class="live-dot"></span>{{ view().liveLabel }}</span>
-        <span class="demo-pill">Synthetic demo</span><span class="avatar" aria-label="Yoshi Gomez">YG</span>
+        <span class="demo-pill">Portfolio mode</span><span class="avatar" aria-label="Yoshi Gomez">YG</span>
       </div>
     </header>
 
@@ -34,14 +39,29 @@
       <section class="mode-notice" aria-live="polite"><span class="notice-pulse"></span><span>{{ notice() }}</span><button type="button" (click)="load()">Retry API</button></section>
     }
 
+    <aside class="portfolio-proof" [class.is-collapsed]="!proofLayerOpen()" aria-label="Operator's proof layer">
+      <header><div><span class="panel-kicker">Operator's proof layer</span><strong>{{ proofLayerOpen() ? 'How this demo was built' : 'Portfolio proof' }}</strong></div><button type="button" [attr.aria-expanded]="proofLayerOpen()" (click)="toggleProofLayer()">{{ proofLayerOpen() ? 'Collapse' : 'Explore proof' }}</button></header>
+      @if (proofLayerOpen()) {
+        <p>Explore the same fictional operating day through product, engineering, and interface decisions.</p>
+        <button type="button" class="walk-system" (click)="showProofInWorkspace('schedule')">Walk the system <span>→</span></button>
+        <div class="proof-list">
+          <button type="button" (click)="showProofInWorkspace('schedule')"><span>01</span><div><strong>Domain workflows</strong><small>Appointments, documentation, and claims remain separate operational journeys.</small></div></button>
+          <button type="button" (click)="showProofInWorkspace('claims')"><span>02</span><div><strong>Data integrity</strong><small>Metrics, topology, and risk exposure reconcile directly with the displayed records.</small></div></button>
+          <button type="button" (click)="showProofInWorkspace('audit')"><span>03</span><div><strong>Event delivery</strong><small>State transitions write an auditable outbox before asynchronous delivery.</small></div></button>
+          <button type="button" (click)="showProofInWorkspace('settings')"><span>04</span><div><strong>Interface system</strong><small>Signals, responsive layouts, focus states, and reduced motion are built into the product.</small></div></button>
+        </div>
+      }
+    </aside>
+
     @if (loading()) {
       <section class="loading-grid" aria-label="Loading operational signals"><div class="skeleton skeleton-wide"></div><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton skeleton-wide"></div></section>
     } @else {
       @switch (activeView()) {
         @case ('overview') {
+          <p class="sr-only" role="status" aria-live="polite" aria-atomic="true">{{ kpiAnnouncement() }}</p>
           <section class="signal-strip" aria-label="Primary operations metrics">
             @for (metric of metrics(); track metric.label) {
-              <article class="metric-signal" [attr.data-tone]="metric.tone"><span class="signal-orb"><span></span></span><div class="metric-copy"><span>{{ metric.label }}</span><strong>{{ metric.value | number:'1.0-0' }}{{ metric.suffix }}</strong><small>{{ metric.detail }}</small></div></article>
+              <article class="metric-signal" [attr.data-tone]="metric.tone"><span class="signal-orb" aria-hidden="true"><span></span></span><div class="metric-copy"><span>{{ metric.label }}</span><strong [appMetricValueMotion]="metric.value" [metricSuffix]="metric.suffix ?? ''">{{ metric.value | number:'1.0-0' }}{{ metric.suffix }}</strong><small>{{ metric.detail }}</small></div></article>
             }
           </section>
 
@@ -102,7 +122,7 @@
                 <div class="runway-header"><span>Providers</span>@for (time of ['8 AM','9 AM','10 AM','11 AM','12 PM','1 PM','2 PM','3 PM','4 PM','5 PM']; track time) { <span>{{ time }}</span> }</div>
                 @if (filteredScheduleAppointments().length) {
                   <div class="runway-body">
-                    <div class="provider-column">@for (provider of providerRows(); track provider) { <div class="provider-row"><span class="provider-orb"></span><div><strong>{{ provider }}</strong><small>{{ clinicianLoad()[$index]?.appointments ?? 0 }} appointments</small></div></div> }</div>
+                    <div class="provider-column">@for (provider of providerRows(); track provider) { <div class="provider-row"><span class="provider-orb"></span><div><strong>{{ provider }}</strong><small>{{ clinicianLoad()[$index].appointments }} appointments</small></div></div> }</div>
                     <div class="time-grid">
                       @for (line of [1,2,3,4,5,6,7,8,9,10]; track line) { <span class="time-line" [style.left.%]="line * 10"></span> }
                       <span class="current-time-beam"></span><span class="current-time-label">Now</span>
@@ -159,7 +179,7 @@
 
           <article class="glass-panel claims-table-panel"><header class="table-toolbar"><div><span class="panel-kicker">Claims at risk</span><small>{{ filteredClaims().length }} results</small></div><div class="claim-filters"><select aria-label="Filter claims by risk" [value]="claimRiskFilter()" (change)="setClaimRisk($any($event.target).value)"><option value="all">All risk types</option>@for (slice of riskDistribution(); track slice.label) { <option [value]="slice.label">{{ slice.label }}</option> }</select><select aria-label="Filter claims by payer" [value]="claimPayerFilter()" (change)="setClaimPayer($any($event.target).value)"><option value="all">All payers</option>@for (payer of payerOptions(); track payer) { <option [value]="payer">{{ payer }}</option> }</select><input type="search" aria-label="Search claims" placeholder="Search claims" [value]="claimSearch()" (input)="setClaimSearch($any($event.target).value)"></div></header>
             <div class="data-table claims-table" role="table" aria-label="Claims at risk"><div class="table-row table-head" role="row"><span>Claim #</span><span>Patient</span><span>DOS</span><span>Payer</span><span>Risk type</span><span>Risk reason</span><span>Exposure</span><span>Days</span><span>Status</span><span>Owner</span></div>
-              @for (claim of topClaims(); track claim.id) { <div class="table-row" role="row"><strong>{{ claim.number }}</strong><span>{{ dashboard().appointments[$index]?.patientDisplayName ?? 'Synthetic patient' }}</span><span>{{ dashboard().appointments[$index]?.startsAt | date:'MM/dd/yy' }}</span><span>{{ claim.payer }}</span><span>{{ riskLabel(claim) }}</span><span>{{ claim.riskReason }}</span><b>{{ claim.amount | currency:'USD':'symbol':'1.0-0' }}</b><span>{{ 18 - $index * 3 }}</span><span class="status-text" [attr.data-tone]="tone(claim.status)">{{ statusLabel(claim.status) }}</span><span>{{ dashboard().appointments[$index]?.clinician ?? 'Claims team' }}</span></div> } @empty { <div class="workspace-empty table-empty"><strong>No claims match the current filters.</strong><small>Clear the search or choose a different payer or risk type.</small></div> }
+              @for (row of claimTableRows(); track row.claim.id) { <div class="table-row" role="row"><strong>{{ row.claim.number }}</strong><span>{{ row.patient }}</span><span>{{ row.appointmentAt ? (row.appointmentAt | date:'MM/dd/yy') : '—' }}</span><span>{{ row.claim.payer }}</span><span>{{ riskLabel(row.claim) }}</span><span>{{ row.claim.riskReason }}</span><b>{{ row.claim.amount | currency:'USD':'symbol':'1.0-0' }}</b><span>{{ 18 - $index * 3 }}</span><span class="status-text" [attr.data-tone]="tone(row.claim.status)">{{ statusLabel(row.claim.status) }}</span><span>{{ row.clinician }}</span></div> } @empty { <div class="workspace-empty table-empty"><strong>No claims match the current filters.</strong><small>Clear the search or choose a different payer or risk type.</small></div> }
             </div>
           </article>
         }
