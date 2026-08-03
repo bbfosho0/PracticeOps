@@ -458,34 +458,6 @@ h1 {
     inset 0 0 18px rgba(255, 176, 32, 0.08);
 }
 
-.runway-panel {
-  background:
-    linear-gradient(180deg, rgba(7, 15, 28, 0.94), rgba(4, 10, 19, 0.91)),
-    radial-gradient(ellipse at 35% 8%, rgba(38, 122, 255, 0.09), transparent 45%) !important;
-}
-
-.current-time-beam {
-  width: 2px !important;
-  background: linear-gradient(to bottom, transparent, var(--observatory-cyan) 8%, var(--observatory-cyan) 92%, transparent) !important;
-  box-shadow:
-    0 0 8px var(--observatory-cyan),
-    0 0 22px var(--observatory-cyan),
-    0 0 46px rgba(41, 221, 255, 0.28) !important;
-}
-
-.current-time-label {
-  border: 1px solid rgba(119, 206, 255, 0.4);
-  background: linear-gradient(180deg, #327cff, #245edf) !important;
-  box-shadow: 0 0 18px rgba(47, 107, 255, 0.42);
-}
-
-.appointment-block {
-  box-shadow:
-    0 8px 16px rgba(0, 0, 0, 0.26),
-    0 0 14px color-mix(in srgb, var(--tone) 10%, transparent),
-    inset 0 1px rgba(255, 255, 255, 0.045) !important;
-}
-
 .continuum-panel {
   background:
     radial-gradient(ellipse 58% 70% at 50% 55%, rgba(38, 100, 203, 0.07), transparent 70%),

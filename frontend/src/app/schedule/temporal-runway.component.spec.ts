@@ -62,14 +62,25 @@ describe('TemporalRunwayComponent', () => {
     expect(componentStyleRule('.runway-body')?.display).toBe('grid');
     expect(hostStyleRule()?.minHeight).toBe('640px');
   });
+
+  it('owns current-time and appointment polish in component-scoped CSS', () => {
+    render(appointments, runwayBlocks);
+
+    expect(componentStyleRule('.current-time-beam')?.width).toBe('2px');
+    expect(componentStyleRule('.current-time-label')?.borderTopWidth).toBe('1px');
+    expect(componentStyleRule('.appointment-block', style => style.boxShadow !== '')?.boxShadow).not.toBe('');
+  });
 });
 
-function componentStyleRule(selector: string): CSSStyleDeclaration | undefined {
+function componentStyleRule(
+  selector: string,
+  matches: (style: CSSStyleDeclaration) => boolean = () => true
+): CSSStyleDeclaration | undefined {
   for (const sheet of Array.from(document.styleSheets)) {
     let rules: CSSRuleList;
     try { rules = sheet.cssRules; } catch { continue; }
     for (const rule of Array.from(rules)) {
-      if (rule instanceof CSSStyleRule && rule.selectorText.includes(selector) && rule.selectorText.includes('_ng')) return rule.style;
+      if (rule instanceof CSSStyleRule && rule.selectorText.includes(selector) && rule.selectorText.includes('_ng') && matches(rule.style)) return rule.style;
     }
   }
   return undefined;

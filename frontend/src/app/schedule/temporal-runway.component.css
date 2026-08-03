@@ -13,15 +13,15 @@
 .provider-row small { color: #617089; font-size: 6px; }
 .time-grid { position: relative; display: grid; grid-template-columns: repeat(10, minmax(65px, 1fr)); grid-template-rows: repeat(7, 1fr); gap: 6px 3px; padding: 8px 5px; }
 .time-line { position: absolute; top: 0; bottom: 0; width: 1px; background: rgba(37, 74, 119, .14); }
-.current-time-beam { position: absolute; z-index: 4; left: 32%; top: 0; bottom: 0; width: 2px; background: var(--cyan); box-shadow: 0 0 9px var(--cyan), 0 0 32px var(--cyan); }
-.current-time-label { position: absolute; z-index: 5; left: 32%; top: -22px; padding: 5px 8px; border-radius: 999px; transform: translateX(-50%); background: var(--blue); font-size: 7px; }
+.current-time-beam { position: absolute; z-index: 4; left: 32%; top: 0; bottom: 0; width: 2px !important; background: linear-gradient(to bottom, transparent, var(--observatory-cyan) 8%, var(--observatory-cyan) 92%, transparent) !important; box-shadow: 0 0 8px var(--observatory-cyan), 0 0 22px var(--observatory-cyan), 0 0 46px rgba(41, 221, 255, .28) !important; }
+.current-time-label { position: absolute; z-index: 5; left: 32%; top: -22px; padding: 5px 8px; border: 1px solid rgba(119, 206, 255, .4); border-radius: 999px; transform: translateX(-50%); background: linear-gradient(180deg, #327cff, #245edf) !important; box-shadow: 0 0 18px rgba(47, 107, 255, .42); font-size: 7px; }
 [data-tone=cyan] { --tone: var(--cyan); }
 [data-tone=blue] { --tone: var(--blue); }
 [data-tone=violet] { --tone: var(--violet); }
 [data-tone=amber] { --tone: var(--amber); }
 [data-tone=green] { --tone: var(--green); }
 [data-tone=coral] { --tone: var(--coral); }
-.appointment-block { z-index: 3; align-self: center; min-height: 47px; display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto; gap: 2px 6px; padding: 6px 8px; border: 1px solid var(--tone); border-radius: 7px; background: color-mix(in srgb, var(--tone) 8%, rgba(9, 17, 31, .94)); text-align: left; }
+.appointment-block { z-index: 3; align-self: center; min-height: 47px; display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto; gap: 2px 6px; padding: 6px 8px; border: 1px solid var(--tone); border-radius: 7px; background: color-mix(in srgb, var(--tone) 8%, rgba(9, 17, 31, .94)); box-shadow: 0 8px 16px rgba(0, 0, 0, .26), 0 0 14px color-mix(in srgb, var(--tone) 10%, transparent), inset 0 1px rgba(255, 255, 255, .045) !important; text-align: left; }
 .appointment-block time { grid-row: 1 / span 2; color: #9facbf; font-size: 6px; }
 .appointment-block strong { font-size: 7px; }
 .appointment-block small { color: var(--tone); font-size: 6px; }

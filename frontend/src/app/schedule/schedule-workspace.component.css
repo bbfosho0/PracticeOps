@@ -16,7 +16,12 @@
 .schedule-workspace { display: grid; grid-template-columns: minmax(0, 1fr) 310px; gap: 14px; }
 .schedule-workspace[data-mode="week"] .runway-panel,
 .schedule-workspace[data-mode="list"] .runway-panel { min-width: 0; }
-.runway-panel { min-height: 640px; padding: 12px 13px; border-radius: 18px; }
+.runway-panel {
+  min-height: 640px;
+  padding: 12px 13px;
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(7, 15, 28, .94), rgba(4, 10, 19, .91)), radial-gradient(ellipse at 35% 8%, rgba(38, 122, 255, .09), transparent 45%) !important;
+}
 .week-panel, .list-panel { min-height: 640px; }
 .week-grid { display: grid; grid-template-columns: repeat(7, minmax(100px, 1fr)); gap: 10px; overflow-x: auto; padding: 10px 2px 4px; }
 .week-grid > article { min-width: 100px; min-height: 250px; display: flex; flex-direction: column; justify-content: flex-end; gap: 9px; padding: 16px 13px; border: 1px solid rgba(57, 110, 176, .28); border-radius: 14px; background: radial-gradient(circle at 50% 10%, color-mix(in srgb, var(--view-accent, var(--cyan)) 8%, transparent), transparent 42%), linear-gradient(180deg, rgba(13, 24, 42, .78), rgba(6, 13, 25, .9)); box-shadow: inset 0 1px rgba(255, 255, 255, .035); }

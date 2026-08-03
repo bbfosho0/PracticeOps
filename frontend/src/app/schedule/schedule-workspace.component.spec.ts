@@ -139,14 +139,23 @@ describe('ScheduleWorkspaceComponent', () => {
     expect(componentStyleRule('.schedule-workspace')?.display).toBe('grid');
     expect(componentStyleRule('.schedule-side')?.display).toBe('grid');
   });
+
+  it('owns the runway panel background polish in component-scoped CSS', () => {
+    render('week');
+
+    expect(componentStyleRule('.runway-panel', style => style.backgroundImage !== '')?.backgroundImage).toContain('linear-gradient');
+  });
 });
 
-function componentStyleRule(selector: string): CSSStyleDeclaration | undefined {
+function componentStyleRule(
+  selector: string,
+  matches: (style: CSSStyleDeclaration) => boolean = () => true
+): CSSStyleDeclaration | undefined {
   for (const sheet of Array.from(document.styleSheets)) {
     let rules: CSSRuleList;
     try { rules = sheet.cssRules; } catch { continue; }
     for (const rule of Array.from(rules)) {
-      if (rule instanceof CSSStyleRule && rule.selectorText.includes(selector) && rule.selectorText.includes('_ng')) return rule.style;
+      if (rule instanceof CSSStyleRule && rule.selectorText.includes(selector) && rule.selectorText.includes('_ng') && matches(rule.style)) return rule.style;
     }
   }
   return undefined;
