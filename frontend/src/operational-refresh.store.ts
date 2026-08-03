@@ -27,8 +27,11 @@ export class OperationalRefreshStore implements OnDestroy {
   private inFlight?: Subscription;
   private mutationSubscription?: Subscription;
   private pollTimer?: number;
+  private relativeTimeTimer?: number;
   private refreshQueued = false;
+  private readonly clock = signal(new Date());
   private readonly visibilityListener = () => {
+    this.clock.set(new Date());
     if (typeof document !== 'undefined' && shouldPollOperationalData(this.apiMode(), document.hidden))
       this.refresh('recovery');
   };
@@ -43,7 +46,7 @@ export class OperationalRefreshStore implements OnDestroy {
   readonly stale = signal(false);
   readonly kpiAnnouncement = signal('');
   readonly isReadOnly = computed(() => this.apiMode() !== 'live');
-  readonly updatedLabel = computed(() => relativeRefreshLabel(this.lastUpdatedAt()));
+  readonly updatedLabel = computed(() => relativeRefreshLabel(this.lastUpdatedAt(), this.clock()));
 
   constructor() {
     if (typeof document !== 'undefined')
@@ -53,6 +56,7 @@ export class OperationalRefreshStore implements OnDestroy {
         if (typeof document !== 'undefined' && shouldPollOperationalData(this.apiMode(), document.hidden))
           this.refresh('poll');
       }, 45_000);
+      this.relativeTimeTimer = window.setInterval(() => this.clock.set(new Date()), 10_000);
     }
     this.refresh('initial');
   }
@@ -124,6 +128,8 @@ export class OperationalRefreshStore implements OnDestroy {
     this.mutationSubscription?.unsubscribe();
     if (this.pollTimer !== undefined && typeof window !== 'undefined')
       window.clearInterval(this.pollTimer);
+    if (this.relativeTimeTimer !== undefined && typeof window !== 'undefined')
+      window.clearInterval(this.relativeTimeTimer);
     if (typeof document !== 'undefined')
       document.removeEventListener('visibilitychange', this.visibilityListener);
   }
@@ -134,7 +140,9 @@ export class OperationalRefreshStore implements OnDestroy {
     this.announceMetricChanges(this.dashboard().metrics, reconciled.metrics);
     this.dashboard.set(reconciled);
     this.apiMode.set('live');
-    this.lastUpdatedAt.set(new Date());
+    const refreshedAt = new Date();
+    this.lastUpdatedAt.set(refreshedAt);
+    this.clock.set(refreshedAt);
     this.stale.set(false);
     if (notice) this.notice.set(notice);
   }
