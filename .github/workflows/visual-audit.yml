@@ -202,6 +202,23 @@ jobs:
             assert(await evaluate(`document.querySelector('.scenario-primary')?.disabled`) === true, 'Synthetic preview must disable persisted scenario actions.');
             assert((await evaluate(`document.querySelector('.mode-notice')?.textContent`)).includes('Synthetic preview'), 'Synthetic fallback notice is missing.');
 
+            const polishState = await evaluate(`(() => {
+              const focusTarget = document.querySelector('.refresh-control');
+              focusTarget?.focus();
+              const focusStyle = focusTarget ? getComputedStyle(focusTarget) : null;
+              const kicker = document.querySelector('.panel-kicker');
+              const primary = document.querySelector('.scenario-primary');
+              return {
+                focusOutline: focusStyle?.outlineStyle,
+                focusShadow: focusStyle?.boxShadow,
+                kickerSize: kicker ? parseFloat(getComputedStyle(kicker).fontSize) : 0,
+                primaryHeight: primary?.getBoundingClientRect().height ?? 0
+              };
+            })()`);
+            assert(polishState.kickerSize >= 10, `Operational microcopy is too small: ${JSON.stringify(polishState)}`);
+            assert(polishState.primaryHeight >= 40, `Primary action target is too short: ${JSON.stringify(polishState)}`);
+            assert(polishState.focusOutline !== 'none' || polishState.focusShadow !== 'none', `Keyboard focus is not visible: ${JSON.stringify(polishState)}`);
+
             for (const view of views) {
               await selectView(view);
               evidence.desktop[view.id] = await assertLayout(`${view.id}-desktop`, view.selectors);
@@ -241,11 +258,24 @@ jobs:
               evidence.mobile[view.id] = await assertLayout(`${view.id}-mobile`, view.selectors.slice(0, 2));
               const navCount = await evaluate(`document.querySelectorAll('.dock-item').length`);
               assert(navCount === 6, `Mobile navigation has ${navCount} destinations.`);
+              if (view.id === 'overview') {
+                const mobilePolish = await evaluate(`(() => {
+                  const rail = document.querySelector('.scenario-rail');
+                  const workspace = document.querySelector('.workspace');
+                  return {
+                    railHeight: rail?.getBoundingClientRect().height ?? 0,
+                    workspacePaddingBottom: workspace ? parseFloat(getComputedStyle(workspace).paddingBottom) : 0
+                  };
+                })()`);
+                assert(mobilePolish.railHeight < 360, `Mobile journey rail is too tall: ${JSON.stringify(mobilePolish)}`);
+                assert(mobilePolish.workspacePaddingBottom >= 100, `Mobile navigation safe area is missing: ${JSON.stringify(mobilePolish)}`);
+              }
               await screenshot(`${view.id}-mobile.png`);
             }
 
             const relevantConsoleMessages = consoleMessages.filter(message => ['error', 'exception', 'assert'].includes(message.type));
             assert(relevantConsoleMessages.length === 0, `Browser console errors: ${JSON.stringify(relevantConsoleMessages)}`);
+            evidence.polish = polishState;
             await writeFile('visual-audit/functional.json', JSON.stringify(evidence, null, 2));
             await writeFile('visual-audit/console.json', JSON.stringify(consoleMessages, null, 2));
             socket.close();
