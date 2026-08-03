@@ -51,6 +51,16 @@ jobs:
 
       - name: Apply AutoAnimate and GSAP integration
         run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('.github/workflows/visual-audit.yml')
+          text = path.read_text(encoding='utf-8')
+          current = "              assert(state.dataView === view.id, `Expected data-view ${view.id}, received ${state.dataView}`);\n            };"
+          normalized = "            assert(state.dataView === view.id, `Expected data-view ${view.id}, received ${state.dataView}`);\n          };"
+          if current in text:
+              path.write_text(text.replace(current, normalized, 1), encoding='utf-8')
+          PY
           python3 scripts/apply-observatory-motion.py implementation
           rm -f .github/workflows/motion-pr-bootstrap.yml
 
