@@ -29,3 +29,7 @@ The implementation already preserved the six real workspaces, synthetic fallback
 ## Risks and guardrails
 
 The atmospheric renderer is decorative, non-interactive, capped at device-pixel-ratio 1.5, pauses while hidden, and renders a single static frame for reduced-motion users. CSS aurora/horizon styling remains the fallback when WebGL2 is unavailable. No patient data or new backend workflow is introduced.
+
+## Visual audit evidence
+
+Desktop and 390px mobile captures for all six workspaces are stored in the ignored `.local-audit/` folder. Live browser verification confirmed the WebGL canvas renders behind content, all six dock destinations change visible workspace state, the schedule Day/Week/List controls render, provider filtering narrows the day runway to six Ava Chen appointments, claims search narrows to one result, notification toggles announce the changed state, and the console has no warnings or errors.
