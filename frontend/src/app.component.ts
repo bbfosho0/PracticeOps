@@ -6,6 +6,7 @@ import {
   AuditEvent,
   Claim,
   Dashboard,
+  DashboardMetrics,
   MetricSignal,
   PipelineStage,
   RiskSlice,
@@ -32,6 +33,7 @@ import {
   reconcileDashboard
 } from './operational-telemetry';
 import { AtmosphereRenderer } from './atmosphere-renderer';
+import { MetricValueMotionDirective } from './metric-value-motion.directive';
 
 interface NavItem {
   id: ViewId;
@@ -132,7 +134,7 @@ function defaultProofLayerOpen(): boolean {
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CurrencyPipe, DatePipe, DecimalPipe],
+  imports: [CurrencyPipe, DatePipe, DecimalPipe, MetricValueMotionDirective],
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.css', './app.component.workspaces.css', './portfolio-showcase.css'],
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -160,6 +162,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   readonly notificationPreferences = signal<NotificationPreference[]>(INITIAL_PREFERENCES.map(item => ({ ...item })));
   readonly portfolioScenario = signal<'portfolio' | 'live'>('portfolio');
   readonly proofLayerOpen = signal(defaultProofLayerOpen());
+  readonly kpiAnnouncement = signal('');
 
   readonly view = computed(() => VIEW_META[this.activeView()]);
   readonly metrics = computed<MetricSignal[]>(() => buildMetricSignals(this.dashboard()));
@@ -506,6 +509,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   private applyDashboard(value: Dashboard, mode: 'live' | 'demo'): void {
     const reference = value.appointments[0] ? new Date(value.appointments[0].startsAt) : new Date();
     const reconciled = reconcileDashboard(value, reference);
+    this.announceMetricChanges(this.dashboard().metrics, reconciled.metrics);
     this.dashboard.set(reconciled);
     this.selectedScheduleDate.set(startOfDay(reference));
     this.selectedProvider.set('all');
@@ -513,5 +517,16 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     this.selectedStatus.set('all');
     this.apiMode.set(mode);
     this.loading.set(false);
+  }
+
+  private announceMetricChanges(previous: DashboardMetrics, current: DashboardMetrics): void {
+    const changed = [
+      ['Appointments today', previous.appointmentsToday, current.appointmentsToday],
+      ['Unsigned notes', previous.unsignedNotes, current.unsignedNotes],
+      ['Claims at risk', previous.claimsAtRisk, current.claimsAtRisk],
+      ['Team utilization', previous.teamUtilization, current.teamUtilization]
+    ].filter(([, before, after]) => before !== after)
+      .map(([label, , after]) => `${label}: ${after}`);
+    this.kpiAnnouncement.set(changed.length ? `Operational metrics updated. ${changed.join(', ')}.` : '');
   }
 }

@@ -1,0 +1,141 @@
+/* The telemetry layer is intentionally last in the cascade: it replaces brittle
+   viewport-specific metric sizing with fluid, container-aware primitives. */
+:root {
+  --type-label: clamp(0.72rem, 0.63rem + 0.14vw, 0.84rem);
+  --type-meta: clamp(0.76rem, 0.68rem + 0.16vw, 0.9rem);
+  --type-kpi: clamp(2rem, 1.55rem + 1.3vw, 2.8rem);
+  --motion-kpi: 560ms;
+}
+
+.workspace { container-type: inline-size; }
+
+.workspace-header h1,
+h1 {
+  font-size: clamp(2.5rem, 3.2cqi, 4.25rem) !important;
+  line-height: 0.98;
+  white-space: normal !important;
+}
+
+.header-copy p {
+  font-size: clamp(0.88rem, 0.78rem + 0.18cqi, 1rem) !important;
+  line-height: 1.55;
+}
+
+.panel-kicker,
+.metric-copy > span,
+.metric-copy small,
+.dock-item span,
+.portfolio-control button,
+.live-pill,
+.demo-pill,
+.table-row,
+.schedule-row time,
+.row-primary strong,
+.row-primary small,
+.status-chip {
+  font-size: var(--type-label) !important;
+  line-height: 1.35;
+}
+
+.signal-strip {
+  container: metrics / inline-size;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 13.5rem), 1fr)) !important;
+  min-height: 0 !important;
+  margin-bottom: clamp(0.9rem, 1.5cqi, 1.35rem);
+  overflow: clip !important;
+}
+
+.metric-signal {
+  min-width: 0;
+  min-height: clamp(8.25rem, 10cqi, 10rem);
+  padding: clamp(1rem, 1.7cqi, 1.45rem) !important;
+  gap: clamp(0.75rem, 1.35cqi, 1.1rem) !important;
+  isolation: isolate;
+}
+
+.metric-signal:not(:last-child)::after { display: none; }
+
+.metric-signal::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  opacity: 0;
+  background: radial-gradient(circle at 18% 50%, color-mix(in srgb, var(--tone) 18%, transparent), transparent 42%);
+  transition: opacity var(--motion-kpi) ease;
+}
+
+.metric-signal:has(.is-updating)::before { opacity: 1; }
+
+.metric-signal .signal-orb {
+  width: clamp(2.65rem, 5cqi, 3.35rem) !important;
+  height: clamp(2.65rem, 5cqi, 3.35rem) !important;
+  animation: metric-orb-breathe 4.8s ease-in-out infinite;
+  will-change: transform, box-shadow;
+}
+
+.metric-copy { min-width: 0; gap: 0.18rem; }
+
+.metric-copy > span {
+  color: #c4d0e3 !important;
+  font-weight: 600;
+  letter-spacing: 0.085em;
+}
+
+.metric-copy strong {
+  margin-top: 0.12rem;
+  color: #ffffff;
+  font-size: var(--type-kpi) !important;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.035em;
+  line-height: 1;
+  transition: color 180ms ease, text-shadow var(--motion-kpi) ease;
+}
+
+.metric-copy strong.is-updating {
+  color: color-mix(in srgb, var(--tone) 70%, white);
+  text-shadow: 0 0 22px color-mix(in srgb, var(--tone) 50%, transparent);
+}
+
+.metric-copy small {
+  color: color-mix(in srgb, var(--tone) 72%, white 28%) !important;
+  font-size: var(--type-meta) !important;
+}
+
+@container metrics (max-width: 34rem) {
+  .metric-signal { min-height: 7.75rem; }
+  .metric-signal:nth-child(odd) { border-right: 1px solid rgba(73, 117, 175, 0.26); }
+  .metric-signal:nth-child(-n + 2) { border-bottom: 1px solid rgba(73, 117, 175, 0.26); }
+}
+
+@container metrics (max-width: 26rem) {
+  .metric-signal { min-height: 7.2rem; }
+  .metric-signal:nth-child(odd) { border-right: 0; }
+  .metric-signal:nth-child(-n + 2) { border-bottom: 1px solid rgba(73, 117, 175, 0.22); }
+}
+
+@container (max-width: 58rem) {
+  .workspace-header { grid-template-columns: minmax(0, 1fr); }
+  .header-copy,
+  .header-actions { grid-column: 1; grid-row: auto; }
+  .header-actions { justify-content: flex-start; flex-wrap: wrap; }
+}
+
+@media (max-width: 33.75rem) {
+  .signal-strip { grid-template-columns: minmax(0, 1fr) !important; }
+  .metric-signal { min-height: 7.4rem; }
+  .metric-signal:nth-child(-n + 3) { border-bottom: 1px solid rgba(73, 117, 175, 0.24); }
+  .metric-signal:nth-child(odd) { border-right: 0; }
+  .dock-item span { font-size: 0.65rem !important; }
+}
+
+@keyframes metric-orb-breathe {
+  0%, 100% { transform: translateZ(0) scale(1); box-shadow: 0 0 20px color-mix(in srgb, var(--tone) 32%, transparent), inset 0 0 18px color-mix(in srgb, var(--tone) 15%, transparent); }
+  50% { transform: translateZ(0) scale(1.055); box-shadow: 0 0 32px color-mix(in srgb, var(--tone) 50%, transparent), inset 0 0 24px color-mix(in srgb, var(--tone) 22%, transparent); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .metric-signal .signal-orb { animation: none; }
+  .metric-signal::before,
+  .metric-copy strong { transition-duration: 0.01ms !important; }
+}

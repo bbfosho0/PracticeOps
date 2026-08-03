@@ -58,9 +58,10 @@
     } @else {
       @switch (activeView()) {
         @case ('overview') {
+          <p class="sr-only" role="status" aria-live="polite" aria-atomic="true">{{ kpiAnnouncement() }}</p>
           <section class="signal-strip" aria-label="Primary operations metrics">
             @for (metric of metrics(); track metric.label) {
-              <article class="metric-signal" [attr.data-tone]="metric.tone"><span class="signal-orb"><span></span></span><div class="metric-copy"><span>{{ metric.label }}</span><strong>{{ metric.value | number:'1.0-0' }}{{ metric.suffix }}</strong><small>{{ metric.detail }}</small></div></article>
+              <article class="metric-signal" [attr.data-tone]="metric.tone"><span class="signal-orb" aria-hidden="true"><span></span></span><div class="metric-copy"><span>{{ metric.label }}</span><strong [appMetricValueMotion]="metric.value" [metricSuffix]="metric.suffix ?? ''">{{ metric.value | number:'1.0-0' }}{{ metric.suffix }}</strong><small>{{ metric.detail }}</small></div></article>
             }
           </section>
 
