@@ -55,6 +55,7 @@ jobs:
             options: {
               configDir: '.storybook',
               browserTarget: 'practiceops:build',
+              compodoc: false,
               port: 6006
             }
           };
@@ -63,6 +64,7 @@ jobs:
             options: {
               configDir: '.storybook',
               browserTarget: 'practiceops:build',
+              compodoc: false,
               outputDir: 'storybook-static'
             }
           };
