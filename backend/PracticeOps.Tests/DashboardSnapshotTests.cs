@@ -36,7 +36,8 @@ public sealed class DashboardSnapshotTests
 
         Assert.Equal(105, snapshot.Outbox.TotalMessages);
         Assert.Equal(53, snapshot.Outbox.PendingMessages);
-        Assert.Equal(52, snapshot.Outbox.DeliveredMessages);
+        Assert.Equal(52, snapshot.Outbox.PublishedMessages);
         Assert.Equal("PortfolioEvent104", snapshot.Outbox.LatestEventType);
+        Assert.Null(snapshot.Outbox.LatestPublishedAt);
     }
 }
