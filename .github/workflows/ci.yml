@@ -6,58 +6,6 @@ on:
     branches: [main, feature/practiceops-mvp]
 
 jobs:
-  # BEGIN ONE-TIME FINAL POLISH APPLICATOR
-  apply-final-polish:
-    if: github.actor != 'github-actions[bot]'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: feature/deployment-truthful-practiceops-mvp
-          fetch-depth: 0
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.13'
-
-      - name: Apply assertion-guarded refinements
-        run: |
-          python3 <<'PY'
-          from pathlib import Path
-          path = Path('scripts/apply-final-polish.py')
-          content = path.read_text()
-          old = '''    if count != expected:\n        raise RuntimeError(f"{path}: expected {expected} occurrence(s), found {count}: {old[:100]!r}")'''
-          new = '''    if count != expected:\n        if path == "frontend/src/app.component.html" and count == 0:\n            return\n        raise RuntimeError(f"{path}: expected {expected} occurrence(s), found {count}: {old[:100]!r}")'''
-          if old not in content:
-              raise RuntimeError('Could not install the template-copy tolerance guard.')
-          content = content.replace(old, new, 1)
-          old_all = '''    if count < minimum:\n        raise RuntimeError(f"{path}: expected at least {minimum} occurrence(s), found {count}: {old!r}")'''
-          new_all = '''    if count < minimum:\n        if path in {"README.md", "docs/portfolio-demo.md"} and count == 0:\n            return\n        raise RuntimeError(f"{path}: expected at least {minimum} occurrence(s), found {count}: {old!r}")'''
-          if old_all not in content:
-              raise RuntimeError('Could not install the documentation-copy tolerance guard.')
-          path.write_text(content.replace(old_all, new_all, 1))
-          PY
-          python scripts/apply-final-polish.py
-
-      - name: Keep workflow changes for connector-managed cleanup
-        run: |
-          git checkout -- .github/workflows/ci.yml
-          git checkout -- .github/workflows/visual-audit.yml
-          git checkout -- .github/workflows/apply-final-polish.yml
-          rm scripts/apply-final-polish.py
-
-      - name: Commit audited application refinements
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git diff --cached --check
-          git commit -m "refactor: apply final audited portfolio polish"
-          git push origin HEAD:feature/deployment-truthful-practiceops-mvp
-  # END ONE-TIME FINAL POLISH APPLICATOR
-
   backend:
     runs-on: ubuntu-latest
     steps:
@@ -108,7 +56,6 @@ jobs:
           python3 <<'PY'
           import json
           import time
-          import urllib.error
           import urllib.request
 
           base = 'http://127.0.0.1:8081'
@@ -126,6 +73,7 @@ jobs:
           dashboard = request('/api/demo/reset', 'POST', {})
           scenario = dashboard['scenario']
           assert scenario['completedSteps'] == 0, scenario
+          assert scenario['totalSteps'] == 5, scenario
           assert dashboard['metrics']['appointmentsToday'] == 24, dashboard['metrics']
           assert dashboard['metrics']['unsignedNotes'] == 7, dashboard['metrics']
           assert dashboard['metrics']['claimsAtRisk'] == 12, dashboard['metrics']
@@ -138,7 +86,7 @@ jobs:
               (f"/api/notes/{scenario['clinicalNoteId']}/status", 'InReview', 2),
               (f"/api/notes/{scenario['clinicalNoteId']}/status", 'Signed', 3),
               (f"/api/claims/{scenario['claimId']}/status", 'ReadyForSubmission', 4),
-              (f"/api/claims/{scenario['claimId']}/status", 'Submitted', 6),
+              (f"/api/claims/{scenario['claimId']}/status", 'Submitted', 5),
           ]
 
           for path, status, expected_steps in transitions:
@@ -146,6 +94,8 @@ jobs:
               dashboard = request('/api/dashboard')
               assert dashboard['scenario']['completedSteps'] == expected_steps, dashboard['scenario']
 
+          assert dashboard['scenario']['currentStepId'] == 'inspect-proof', dashboard['scenario']
+          assert dashboard['scenario']['currentWorkspace'] == 'audit', dashboard['scenario']
           assert dashboard['metrics']['unsignedNotes'] == 6, dashboard['metrics']
           assert dashboard['metrics']['claimsAtRisk'] == 11, dashboard['metrics']
           assert len(dashboard['audit']) == 17, len(dashboard['audit'])
@@ -153,12 +103,12 @@ jobs:
 
           for _ in range(30):
               dashboard = request('/api/dashboard')
-              if dashboard['outbox']['deliveredMessages'] == 5:
+              if dashboard['outbox']['publishedMessages'] == 5:
                   break
               time.sleep(1)
 
           assert dashboard['outbox']['pendingMessages'] == 0, dashboard['outbox']
-          assert dashboard['outbox']['deliveredMessages'] == 5, dashboard['outbox']
+          assert dashboard['outbox']['publishedMessages'] == 5, dashboard['outbox']
           assert dashboard['scenario']['completionPercent'] == 100, dashboard['scenario']
           print(json.dumps({
               'scenario': dashboard['scenario'],
@@ -167,6 +117,11 @@ jobs:
               'auditCount': len(dashboard['audit'])
           }, indent=2))
           PY
+
+      - name: Verify RabbitMQ routing proof
+        run: |
+          docker compose exec -T rabbitmq rabbitmqctl list_queues name messages --quiet |
+            grep -E '^practiceops\.portfolio\.audit[[:space:]]+5$'
 
       - name: Print service logs on failure
         if: failure()
