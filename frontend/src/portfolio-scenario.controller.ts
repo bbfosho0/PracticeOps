@@ -1,5 +1,5 @@
 import { Injectable, computed, inject } from '@angular/core';
-import { PortfolioScenario, ViewId } from './dashboard-model';
+import { PortfolioScenario, PortfolioScenarioStep, ViewId } from './dashboard-model';
 import { OperationalRefreshStore } from './operational-refresh.store';
 import { PracticeOpsApiService } from './practiceops-api.service';
 
@@ -8,6 +8,14 @@ export type ScenarioAction =
   | { kind: 'note'; id: string; status: 'InReview' | 'Signed'; workspace: 'documentation' }
   | { kind: 'claim'; id: string; status: 'ReadyForSubmission' | 'Submitted'; workspace: 'claims' }
   | { kind: 'navigate'; workspace: 'audit' };
+
+const PROOF_STEP: PortfolioScenarioStep = {
+  id: 'inspect-proof',
+  label: 'Inspect audit and publication proof',
+  description: 'Review immutable audit records and broker-confirmed outbox publication.',
+  workspace: 'audit',
+  state: 'current'
+};
 
 export function resolveScenarioAction(scenario: PortfolioScenario): ScenarioAction {
   switch (scenario.currentStepId) {
@@ -34,7 +42,8 @@ export class PortfolioScenarioController {
   readonly scenario = computed(() => this.store.dashboard().scenario);
   readonly currentStep = computed(() => {
     const scenario = this.scenario();
-    return scenario.steps.find(step => step.id === scenario.currentStepId) ?? scenario.steps[scenario.steps.length - 1];
+    if (scenario.currentStepId === PROOF_STEP.id) return PROOF_STEP;
+    return scenario.steps.find(step => step.id === scenario.currentStepId) ?? scenario.steps[0] ?? PROOF_STEP;
   });
   readonly canMutate = computed(() => this.store.apiMode() === 'live' && !this.store.mutationPending());
   readonly actionLabel = computed(() => {
@@ -60,7 +69,7 @@ export class PortfolioScenarioController {
   performCurrentAction(): ViewId {
     const action = resolveScenarioAction(this.scenario());
     if (action.kind === 'navigate') {
-      this.store.notice.set('Audit and outbox proof are shown from the authoritative live snapshot.');
+      this.store.notice.set('Audit records and broker-confirmed publication are shown from the authoritative live snapshot.');
       return action.workspace;
     }
 
