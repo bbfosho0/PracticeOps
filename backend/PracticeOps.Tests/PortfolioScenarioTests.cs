@@ -19,7 +19,10 @@ public sealed class PortfolioScenarioTests
         Assert.Equal(scenario.AppointmentId, dataset.Notes.Single(x => x.Id == scenario.ClinicalNoteId).AppointmentId);
         Assert.Equal("CLM-742198", dataset.Claims.Single(x => x.Id == scenario.ClaimId).Number);
         Assert.Equal("schedule", scenario.CurrentWorkspace);
+        Assert.Equal("confirm-appointment", scenario.CurrentStepId);
         Assert.Equal(0, scenario.CompletedSteps);
+        Assert.Equal(5, scenario.TotalSteps);
+        Assert.Equal(5, scenario.Steps.Count);
     }
 
     [Fact]
@@ -38,7 +41,33 @@ public sealed class PortfolioScenarioTests
         var scenario = PortfolioScenarioBuilder.Build(dataset.Appointments, dataset.Notes, dataset.Claims);
 
         Assert.Equal(4, scenario.CompletedSteps);
+        Assert.Equal(5, scenario.TotalSteps);
         Assert.Equal("claims", scenario.CurrentWorkspace);
-        Assert.Equal(67, scenario.CompletionPercent);
+        Assert.Equal("submit-claim", scenario.CurrentStepId);
+        Assert.Equal(80, scenario.CompletionPercent);
+    }
+
+    [Fact]
+    public void Completed_workflow_exposes_proof_navigation_without_counting_it_as_persisted_work()
+    {
+        var dataset = FictionalSeed.BuildDataset(Now);
+        var appointment = dataset.Appointments.Single(x => x.PatientDisplayName == "Luna Baker");
+        var note = dataset.Notes.Single(x => x.AppointmentId == appointment.Id);
+        var claim = dataset.Claims.Single(x => x.Number == "CLM-742198");
+
+        appointment.TransitionTo(AppointmentStatus.Confirmed);
+        note.TransitionTo(NoteStatus.InReview, Now);
+        note.TransitionTo(NoteStatus.Signed, Now);
+        claim.TransitionTo(ClaimStatus.ReadyForSubmission, Now);
+        claim.TransitionTo(ClaimStatus.Submitted, Now);
+
+        var scenario = PortfolioScenarioBuilder.Build(dataset.Appointments, dataset.Notes, dataset.Claims);
+
+        Assert.Equal(5, scenario.CompletedSteps);
+        Assert.Equal(5, scenario.TotalSteps);
+        Assert.Equal(100, scenario.CompletionPercent);
+        Assert.Equal("inspect-proof", scenario.CurrentStepId);
+        Assert.Equal("audit", scenario.CurrentWorkspace);
+        Assert.All(scenario.Steps, step => Assert.Equal("complete", step.State));
     }
 }
