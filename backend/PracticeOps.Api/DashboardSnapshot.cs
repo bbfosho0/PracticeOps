@@ -48,22 +48,26 @@ public static class DashboardSnapshotBuilder
             .OrderByDescending(item => item.OccurredAt)
             .Take(40)
             .ToListAsync(cancellationToken);
-        var outboxMessages = await db.OutboxMessages
+        var totalOutboxMessages = await db.OutboxMessages
+            .AsNoTracking()
+            .CountAsync(cancellationToken);
+        var pendingOutboxMessages = await db.OutboxMessages
+            .AsNoTracking()
+            .CountAsync(item => item.ProcessedAt == null, cancellationToken);
+        var latestOutboxMessage = await db.OutboxMessages
             .AsNoTracking()
             .OrderByDescending(item => item.OccurredAt)
-            .Take(100)
-            .ToListAsync(cancellationToken);
+            .FirstOrDefaultAsync(cancellationToken);
 
-        var latest = outboxMessages.FirstOrDefault();
         var metrics = DashboardMetricsCalculator.Calculate(appointments, notes, claims);
         var scenario = PortfolioScenarioBuilder.Build(appointments, notes, claims);
         var outbox = new OutboxSummary(
-            outboxMessages.Count,
-            outboxMessages.Count(item => item.ProcessedAt is null),
-            outboxMessages.Count(item => item.ProcessedAt is not null),
-            latest?.EventType,
-            latest?.OccurredAt,
-            latest?.ProcessedAt);
+            totalOutboxMessages,
+            pendingOutboxMessages,
+            totalOutboxMessages - pendingOutboxMessages,
+            latestOutboxMessage?.EventType,
+            latestOutboxMessage?.OccurredAt,
+            latestOutboxMessage?.ProcessedAt);
 
         return new DashboardSnapshot(metrics, appointments, notes, claims, audit, scenario, outbox);
     }
