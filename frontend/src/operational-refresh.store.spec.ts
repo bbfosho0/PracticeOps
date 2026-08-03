@@ -16,7 +16,7 @@ function liveDashboard(): Dashboard {
     },
     outbox: {
       ...dashboard.outbox,
-      deliveredMessages: 0
+      publishedMessages: 0
     }
   };
 }

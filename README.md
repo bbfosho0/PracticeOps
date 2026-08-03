@@ -12,7 +12,7 @@ Schedule exception
 → claim risk
 → staff resolution actions
 → immutable audit events
-→ transactional outbox delivery
+→ transactional outbox publication
 ```
 
 In live API mode, every guided action uses a real ASP.NET Core endpoint, persists to PostgreSQL, creates an audit entry and outbox message, and immediately refreshes every Angular workspace. A deterministic reset restores the fictional baseline for repeatable interviews.
@@ -29,7 +29,7 @@ The code-first Angular interface includes:
 - **Temporal Runway** for provider capacity and the scenario appointment exception
 - **Documentation Continuum** for draft, review, signature, and billing readiness
 - **Risk Constellation** for payer, filing, coding, and authorization exposure
-- **Event Spectrum** for immutable audit records and truthful outbox delivery state
+- **Event Spectrum** for immutable audit records and truthful outbox publication state
 - **System & Demo** for runtime mode, refresh state, scenario progress, architecture, and safety boundaries
 - CSS-rendered aurora, signal fields, glass materials, orbit visualizations, and state-driven motion
 - responsive desktop, tablet, and mobile layouts
@@ -82,7 +82,7 @@ PracticeOps is intentionally a modular monolith. It keeps local development and 
 - Quiet polling runs every 45 seconds while the document is visible.
 - Polling pauses when the browser tab is hidden.
 - The last valid snapshot remains visible during transient failures.
-- Outbox delivery is shown as delivered only when the database record has `ProcessedAt`.
+- Outbox publication is shown as delivered only when the database record has `ProcessedAt`.
 
 ### Synthetic preview mode
 

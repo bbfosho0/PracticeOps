@@ -223,15 +223,6 @@ function auditCategory(event: AuditEvent): { label: string; tone: SignalTone } {
   return { label: 'Workspace', tone: 'blue' };
 }
 
-function eventHash(event: AuditEvent): number {
-  const value = `${event.id}|${event.actor}|${event.action}|${event.summary}`;
-  let hash = 0;
-  for (let index = 0; index < value.length; index += 1) {
-    hash = ((hash << 5) - hash + value.charCodeAt(index)) | 0;
-  }
-  return Math.abs(hash);
-}
-
 export function buildAuditTelemetry(dashboard: Dashboard): AuditTelemetry {
   const grouped = new Map<string, { label: string; count: number; tone: SignalTone }>();
   for (const event of dashboard.audit) {
@@ -250,13 +241,24 @@ export function buildAuditTelemetry(dashboard: Dashboard): AuditTelemetry {
     .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
   const flaggedEvents = dashboard.audit.filter(event => /flag|denied|error|security|exception/i.test(`${event.action} ${event.summary}`)).length;
   const deliveryEvents = dashboard.audit.filter(event => /deliver|outbox|publish/i.test(`${event.action} ${event.summary}`)).length;
-  const spectrumSource = dashboard.audit.length === 0
-    ? [{ id: 'empty', actor: 'System', action: 'No events', summary: 'No audit activity', occurredAt: new Date(0).toISOString() }]
-    : dashboard.audit;
-  const spectrum = Array.from({ length: 72 }, (_, index) => {
-    const event = spectrumSource[index % spectrumSource.length];
-    return 20 + ((eventHash(event) + index * 17) % 77);
-  });
+  const spectrum = Array.from({ length: 72 }, () => 0);
+  if (dashboard.audit.length > 0) {
+    const timestamps = dashboard.audit.map(event => new Date(event.occurredAt).getTime());
+    const earliest = Math.min(...timestamps);
+    const latest = Math.max(...timestamps);
+    const span = Math.max(1, latest - earliest);
+    dashboard.audit.forEach((event, eventIndex) => {
+      const timestamp = new Date(event.occurredAt).getTime();
+      const bucket = latest === earliest
+        ? Math.min(71, eventIndex)
+        : Math.min(71, Math.floor(((timestamp - earliest) / span) * 71));
+      spectrum[bucket] += 1;
+    });
+    const peak = Math.max(...spectrum, 1);
+    spectrum.forEach((count, index) => {
+      spectrum[index] = count === 0 ? 0 : 20 + Math.round((count / peak) * 77);
+    });
+  }
 
   return {
     eventsToday: total,

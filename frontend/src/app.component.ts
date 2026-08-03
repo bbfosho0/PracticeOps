@@ -32,6 +32,7 @@ import { AtmosphereRenderer } from './atmosphere-renderer';
 import { MetricValueMotionDirective } from './metric-value-motion.directive';
 import { OperationalRefreshStore } from './operational-refresh.store';
 import { PortfolioScenarioController } from './portfolio-scenario.controller';
+import { resolveInitialScheduleDate } from './schedule-date';
 
 interface NavItem {
   id: ViewId;
@@ -126,7 +127,7 @@ function hoursSince(value: string, reference: Date): number {
 }
 
 function defaultProofLayerOpen(): boolean {
-  return typeof window === 'undefined' || !window.matchMedia('(max-width: 1379px)').matches;
+  return false;
 }
 
 @Component({
@@ -155,7 +156,8 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   readonly updatedLabel = this.refreshStore.updatedLabel;
   readonly kpiAnnouncement = this.refreshStore.kpiAnnouncement;
   readonly selectedScheduleFilter = signal<'day' | 'week' | 'list'>('day');
-  readonly selectedScheduleDate = signal<Date>(startOfDay(new Date()));
+  readonly selectedScheduleDate = signal<Date | null>(null);
+  readonly effectiveScheduleDate = computed(() => resolveInitialScheduleDate(this.dashboard().appointments, this.selectedScheduleDate()));
   readonly selectedProvider = signal('all');
   readonly selectedService = signal('all');
   readonly selectedStatus = signal('all');
@@ -181,11 +183,11 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   readonly auditTelemetry = computed(() => buildAuditTelemetry(this.dashboard()));
   readonly spectrumBars = computed(() => this.auditTelemetry().spectrum);
   readonly auditEvents = computed(() => this.dashboard().audit.slice(0, 12));
-  readonly scheduleDateLabel = computed(() => this.selectedScheduleDate());
+  readonly scheduleDateLabel = computed(() => this.effectiveScheduleDate());
   readonly outboxState = computed(() => {
     if (this.apiMode() !== 'live') return { label: 'Preview only', detail: 'No delivery state is fabricated', tone: 'violet' as const };
-    if (this.dashboard().outbox.pendingMessages > 0) return { label: 'Pending delivery', detail: `${this.dashboard().outbox.pendingMessages} message${this.dashboard().outbox.pendingMessages === 1 ? '' : 's'} waiting`, tone: 'amber' as const };
-    if (this.dashboard().outbox.deliveredMessages > 0) return { label: 'Delivered', detail: `${this.dashboard().outbox.deliveredMessages} messages published`, tone: 'green' as const };
+    if (this.dashboard().outbox.pendingMessages > 0) return { label: 'Pending publication', detail: `${this.dashboard().outbox.pendingMessages} message${this.dashboard().outbox.pendingMessages === 1 ? '' : 's'} waiting`, tone: 'amber' as const };
+    if (this.dashboard().outbox.publishedMessages > 0) return { label: 'Published', detail: `${this.dashboard().outbox.publishedMessages} broker-confirmed messages`, tone: 'green' as const };
     return { label: 'No scenario events yet', detail: 'Complete a persisted step to create proof', tone: 'cyan' as const };
   });
   readonly systemState = computed(() => {
@@ -195,7 +197,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     return { label: 'Synthetic preview', tone: 'violet' as const };
   });
 
-  readonly appointmentsForSelectedDate = computed(() => this.dashboard().appointments.filter(item => sameLocalDay(item.startsAt, this.selectedScheduleDate())));
+  readonly appointmentsForSelectedDate = computed(() => this.dashboard().appointments.filter(item => sameLocalDay(item.startsAt, this.effectiveScheduleDate())));
   readonly providerOptions = computed(() => [...new Set(this.appointmentsForSelectedDate().map(item => item.clinician))].sort());
   readonly serviceOptions = computed(() => [...new Set(this.appointmentsForSelectedDate().map(item => item.service))].sort());
   readonly statusOptions = computed(() => [...new Set(this.appointmentsForSelectedDate().map(item => item.status))].sort());
@@ -208,15 +210,15 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   readonly filteredScheduleDashboard = computed(() => reconcileDashboard({
     ...this.dashboard(),
     appointments: this.filteredScheduleAppointments()
-  }, this.selectedScheduleDate()));
-  readonly scheduleTelemetry = computed(() => buildScheduleTelemetry(this.filteredScheduleDashboard(), this.selectedScheduleDate()));
-  readonly clinicianLoad = computed(() => buildClinicianLoad(this.filteredScheduleDashboard(), this.selectedScheduleDate()));
+  }, this.effectiveScheduleDate()));
+  readonly scheduleTelemetry = computed(() => buildScheduleTelemetry(this.filteredScheduleDashboard(), this.effectiveScheduleDate()));
+  readonly clinicianLoad = computed(() => buildClinicianLoad(this.filteredScheduleDashboard(), this.effectiveScheduleDate()));
   readonly providerRows = computed(() => this.clinicianLoad().map(item => item.name));
   readonly noShowRiskAppointments = computed(() => this.filteredScheduleAppointments()
     .filter(item => ['Scheduled', 'NoShow', 'Cancelled'].includes(item.status))
     .slice(0, 3));
   readonly weekSummary = computed(() => Array.from({ length: 7 }, (_, index) => {
-    const date = new Date(this.selectedScheduleDate());
+    const date = new Date(this.effectiveScheduleDate());
     date.setDate(date.getDate() + index);
     const appointments = this.dashboard().appointments.filter(item => sameLocalDay(item.startsAt, date));
     const capacity = new Set(appointments.map(item => item.clinician)).size * 7;
@@ -334,13 +336,14 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   readonly auditSummary = computed(() => {
     const telemetry = this.auditTelemetry();
     const outbox = this.dashboard().outbox;
+    const categoryCount = (label: string) => telemetry.categories.find(item => item.label === label)?.count ?? 0;
     return [
-      { label: 'Audit events', value: `${telemetry.eventsToday}`, detail: 'Current snapshot', tone: 'cyan' as const },
-      { label: 'Signals / min', value: `${telemetry.signalsPerMinute}`, detail: 'Derived throughput', tone: 'violet' as const },
-      { label: 'Flagged rate', value: `${telemetry.errorRate}%`, detail: `${telemetry.flaggedEvents} flagged`, tone: 'amber' as const },
-      { label: 'Outbox delivered', value: `${outbox.deliveredMessages}`, detail: 'Processed messages', tone: 'green' as const },
-      { label: 'Outbox pending', value: `${outbox.pendingMessages}`, detail: outbox.pendingMessages ? 'Waiting for RabbitMQ' : 'Queue clear', tone: outbox.pendingMessages ? 'amber' as const : 'green' as const },
-      { label: 'Latest event', value: outbox.latestEventType ? '1' : '0', detail: outbox.latestEventType ?? 'No scenario event', tone: 'blue' as const }
+      { label: 'Audit events', value: `${telemetry.eventsToday}`, detail: 'Current persisted snapshot', tone: 'cyan' as const },
+      { label: 'Appointment events', value: `${categoryCount('Appointments')}`, detail: 'Persisted transitions', tone: 'blue' as const },
+      { label: 'Documentation events', value: `${categoryCount('Documentation')}`, detail: 'Persisted transitions', tone: 'violet' as const },
+      { label: 'Claim events', value: `${categoryCount('Claims')}`, detail: 'Persisted transitions', tone: 'amber' as const },
+      { label: 'Outbox published', value: `${outbox.publishedMessages}`, detail: 'Broker-confirmed messages', tone: 'green' as const },
+      { label: 'Outbox pending', value: `${outbox.pendingMessages}`, detail: outbox.pendingMessages ? 'Waiting for publication' : 'Queue clear', tone: outbox.pendingMessages ? 'amber' as const : 'green' as const }
     ];
   });
   readonly auditCards = computed(() => {
@@ -349,7 +352,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     const claimEvents = telemetry.categories.find(item => item.label === 'Claims')?.count ?? 0;
     const outbox = this.dashboard().outbox;
     return [
-      { title: 'Outbox delivery', value: `${outbox.deliveredMessages}/${outbox.totalMessages}`, detail: this.outboxState().label, tone: this.outboxState().tone },
+      { title: 'Outbox publication', value: `${outbox.publishedMessages}/${outbox.totalMessages}`, detail: this.outboxState().label, tone: this.outboxState().tone },
       { title: 'Pending messages', value: `${outbox.pendingMessages}`, detail: outbox.pendingMessages ? 'Retrying safely' : 'Queue clear', tone: outbox.pendingMessages ? 'amber' as const : 'green' as const },
       { title: 'Note signatures', value: `${signed}`, detail: 'Signed', tone: 'green' as const },
       { title: 'Claim status changes', value: `${claimEvents}`, detail: 'Audited events', tone: 'blue' as const }
@@ -372,7 +375,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     return [
       { name: 'PracticeOps API', detail: live ? this.updatedLabel() : 'Static fictional preview', state: this.systemState().label, tone: this.systemState().tone },
       { name: 'PostgreSQL snapshot', detail: live ? 'Dashboard query completed' : 'Unavailable in preview mode', state: live ? 'Reachable' : 'Not connected', tone: live ? 'cyan' as const : 'violet' as const },
-      { name: 'Transactional outbox', detail: `${outbox.deliveredMessages} delivered · ${outbox.pendingMessages} pending`, state: this.outboxState().label, tone: this.outboxState().tone },
+      { name: 'Transactional outbox', detail: `${outbox.publishedMessages} published · ${outbox.pendingMessages} pending`, state: this.outboxState().label, tone: this.outboxState().tone },
       { name: 'Local preferences', detail: `${notificationsEnabled}/${this.notificationPreferences().length} enabled in this browser`, state: 'Browser-local', tone: notificationsEnabled > 0 ? 'green' as const : 'amber' as const }
     ];
   });
@@ -397,10 +400,12 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   }
 
   startScenario(): void {
+    this.selectedScheduleDate.set(null);
     this.selectView(this.scenarioController.start());
   }
 
   resetScenario(): void {
+    this.selectedScheduleDate.set(null);
     this.selectView(this.scenarioController.reset());
   }
 
@@ -425,7 +430,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   }
 
   shiftScheduleDate(days: number): void {
-    const next = new Date(this.selectedScheduleDate());
+    const next = new Date(this.effectiveScheduleDate());
     next.setDate(next.getDate() + days);
     this.selectedScheduleDate.set(startOfDay(next));
   }

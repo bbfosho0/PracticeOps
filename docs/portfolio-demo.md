@@ -54,9 +54,9 @@ Open **Event Spectrum** and **System & Demo**.
 Show:
 
 - audit entries created by each workflow transition;
-- total, pending, and delivered outbox messages;
+- total, pending, and published outbox messages;
 - the latest outbox event type and timestamps;
-- truthful delivery state: `Delivered` only when `ProcessedAt` exists, otherwise `Pending delivery`;
+- truthful publication state: `Delivered` only when `ProcessedAt` exists, otherwise `Pending delivery`;
 - API/PostgreSQL availability, snapshot freshness, and 45-second visibility-aware polling;
 - the non-HIPAA, fictional-data boundary.
 
@@ -71,7 +71,7 @@ When `/api/dashboard` is reachable:
 - mutations trigger an immediate shared refresh;
 - quiet polling runs every 45 seconds while the browser tab is visible;
 - audit and outbox telemetry reflect real database state;
-- RabbitMQ delivery is reported as delivered or pending based on `ProcessedAt`.
+- RabbitMQ delivery is reported as published or pending based on `ProcessedAt`.
 
 ### Synthetic preview mode
 

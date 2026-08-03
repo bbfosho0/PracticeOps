@@ -8,7 +8,7 @@ const scenario: PortfolioScenario = {
   clinicalNoteId: 'note-1',
   claimId: 'claim-1',
   completedSteps: 0,
-  totalSteps: 6,
+  totalSteps: 5,
   completionPercent: 0,
   currentStepId: 'confirm-appointment',
   currentWorkspace: 'schedule',

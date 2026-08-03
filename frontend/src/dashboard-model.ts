@@ -71,10 +71,10 @@ export interface PortfolioScenario {
 export interface OutboxSummary {
   totalMessages: number;
   pendingMessages: number;
-  deliveredMessages: number;
+  publishedMessages: number;
   latestEventType: string | null;
   latestOccurredAt: string | null;
-  latestProcessedAt: string | null;
+  latestPublishedAt: string | null;
 }
 
 export interface Dashboard {
@@ -254,7 +254,7 @@ export function createDemoDashboard(now = new Date()): Dashboard {
     clinicalNoteId: notes[20].id,
     claimId: claims[0].id,
     completedSteps: 0,
-    totalSteps: 6,
+    totalSteps: 5,
     completionPercent: 0,
     currentStepId: 'confirm-appointment',
     currentWorkspace: 'schedule',
@@ -264,7 +264,6 @@ export function createDemoDashboard(now = new Date()): Dashboard {
       { id: 'sign-note', label: 'Complete the documentation', description: 'Persisted actions require the live API.', workspace: 'documentation', state: 'pending' },
       { id: 'clear-claim-risk', label: 'Clear the claim risk', description: 'Persisted actions require the live API.', workspace: 'claims', state: 'pending' },
       { id: 'submit-claim', label: 'Advance the claim', description: 'Persisted actions require the live API.', workspace: 'claims', state: 'pending' },
-      { id: 'inspect-proof', label: 'Inspect audit and delivery proof', description: 'Live proof requires the API, database, and outbox.', workspace: 'audit', state: 'pending' }
     ]
   };
 
@@ -278,10 +277,10 @@ export function createDemoDashboard(now = new Date()): Dashboard {
     outbox: {
       totalMessages: 0,
       pendingMessages: 0,
-      deliveredMessages: 0,
+      publishedMessages: 0,
       latestEventType: null,
       latestOccurredAt: null,
-      latestProcessedAt: null
+      latestPublishedAt: null
     }
   };
 }
