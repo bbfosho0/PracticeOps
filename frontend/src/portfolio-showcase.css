@@ -31,11 +31,14 @@
   h1 { max-width: none; font-size: 50px; white-space: nowrap; }
   .header-copy p { max-width: 540px; }
 }
-@media (max-width: 1379px) { .portfolio-proof { top: auto; bottom: 92px; max-height: 48vh; } }
+@media (max-width: 1379px) {
+  .portfolio-proof { position: relative; inset: auto; width: 100%; max-height: none; margin: 0 0 14px; padding: 14px; }
+  .portfolio-proof.is-collapsed { width: 100%; max-height: none; padding: 10px 14px; }
+  .portfolio-proof.is-collapsed header strong { font-size: 11px; }
+  .portfolio-proof.is-collapsed header .panel-kicker { display: inline; }
+}
 @media (max-width: 760px) {
   .header-actions { grid-column: 1; grid-row: auto; justify-content: flex-start; flex-wrap: wrap; }
   .portfolio-control { order: -1; width: 100%; }
   .portfolio-control button { flex: 1; min-height: 29px; }
-  .portfolio-proof { left: 10px; right: 10px; bottom: 84px; width: auto; max-height: 49vh; }
-  .portfolio-proof.is-collapsed { left: auto; width: 135px; }
 }

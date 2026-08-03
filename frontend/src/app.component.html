@@ -39,6 +39,20 @@
       <section class="mode-notice" aria-live="polite"><span class="notice-pulse"></span><span>{{ notice() }}</span><button type="button" (click)="load()">Retry API</button></section>
     }
 
+    <aside class="portfolio-proof" [class.is-collapsed]="!proofLayerOpen()" aria-label="Operator's proof layer">
+      <header><div><span class="panel-kicker">Operator's proof layer</span><strong>{{ proofLayerOpen() ? 'How this demo was built' : 'Portfolio proof' }}</strong></div><button type="button" [attr.aria-expanded]="proofLayerOpen()" (click)="toggleProofLayer()">{{ proofLayerOpen() ? 'Collapse' : 'Explore proof' }}</button></header>
+      @if (proofLayerOpen()) {
+        <p>Explore the same fictional operating day through product, engineering, and interface decisions.</p>
+        <button type="button" class="walk-system" (click)="showProofInWorkspace('schedule')">Walk the system <span>→</span></button>
+        <div class="proof-list">
+          <button type="button" (click)="showProofInWorkspace('schedule')"><span>01</span><div><strong>Domain workflows</strong><small>Appointments, documentation, and claims remain separate operational journeys.</small></div></button>
+          <button type="button" (click)="showProofInWorkspace('claims')"><span>02</span><div><strong>Data integrity</strong><small>Metrics, topology, and risk exposure reconcile directly with the displayed records.</small></div></button>
+          <button type="button" (click)="showProofInWorkspace('audit')"><span>03</span><div><strong>Event delivery</strong><small>State transitions write an auditable outbox before asynchronous delivery.</small></div></button>
+          <button type="button" (click)="showProofInWorkspace('settings')"><span>04</span><div><strong>Interface system</strong><small>Signals, responsive layouts, focus states, and reduced motion are built into the product.</small></div></button>
+        </div>
+      }
+    </aside>
+
     @if (loading()) {
       <section class="loading-grid" aria-label="Loading operational signals"><div class="skeleton skeleton-wide"></div><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton skeleton-wide"></div></section>
     } @else {
@@ -192,20 +206,6 @@
       }
 
       <footer class="system-footer"><div><span class="system-dot"></span><strong>All systems operational</strong></div><div><span>Data freshness</span><strong>{{ apiMode() === 'live' ? 'Live API' : 'Local synthetic data' }}</strong></div><div><span>Practice</span><strong>Mindful Health Partners</strong></div><div><span>Signals monitored</span><strong>{{ activeView() === 'audit' ? '8 / 8' : '3 / 3' }}</strong></div></footer>
-
-      <aside class="portfolio-proof" [class.is-collapsed]="!proofLayerOpen()" aria-label="Operator's proof layer">
-        <header><div><span class="panel-kicker">Operator's proof layer</span><strong>{{ proofLayerOpen() ? 'How this demo was built' : 'Portfolio proof' }}</strong></div><button type="button" [attr.aria-expanded]="proofLayerOpen()" (click)="toggleProofLayer()">{{ proofLayerOpen() ? 'Collapse' : 'Expand' }}</button></header>
-        @if (proofLayerOpen()) {
-          <p>Explore the same fictional operating day through product, engineering, and interface decisions.</p>
-          <button type="button" class="walk-system" (click)="showProofInWorkspace('schedule')">Walk the system <span>→</span></button>
-          <div class="proof-list">
-            <button type="button" (click)="showProofInWorkspace('schedule')"><span>01</span><div><strong>Domain workflows</strong><small>Appointments, documentation, and claims remain separate operational journeys.</small></div></button>
-            <button type="button" (click)="showProofInWorkspace('claims')"><span>02</span><div><strong>Data integrity</strong><small>Metrics, topology, and risk exposure reconcile directly with the displayed records.</small></div></button>
-            <button type="button" (click)="showProofInWorkspace('audit')"><span>03</span><div><strong>Event delivery</strong><small>State transitions write an auditable outbox before asynchronous delivery.</small></div></button>
-            <button type="button" (click)="showProofInWorkspace('settings')"><span>04</span><div><strong>Interface system</strong><small>Signals, responsive layouts, focus states, and reduced motion are built into the product.</small></div></button>
-          </div>
-        }
-      </aside>
     }
   </main>
 </div>

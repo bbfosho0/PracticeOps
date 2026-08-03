@@ -125,6 +125,10 @@ function hoursSince(value: string, reference: Date): number {
   return Math.max(0, (reference.getTime() - new Date(value).getTime()) / 3_600_000);
 }
 
+function defaultProofLayerOpen(): boolean {
+  return typeof window === 'undefined' || !window.matchMedia('(max-width: 1379px)').matches;
+}
+
 @Component({
   selector: 'app-root',
   standalone: true,
@@ -155,7 +159,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   readonly claimSearch = signal('');
   readonly notificationPreferences = signal<NotificationPreference[]>(INITIAL_PREFERENCES.map(item => ({ ...item })));
   readonly portfolioScenario = signal<'portfolio' | 'live'>('portfolio');
-  readonly proofLayerOpen = signal(true);
+  readonly proofLayerOpen = signal(defaultProofLayerOpen());
 
   readonly view = computed(() => VIEW_META[this.activeView()]);
   readonly metrics = computed<MetricSignal[]>(() => buildMetricSignals(this.dashboard()));

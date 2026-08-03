@@ -36,4 +36,10 @@ button { -webkit-tap-highlight-color: transparent; }
   color: #ffffff;
   background: rgba(25, 217, 255, 0.32);
 }
-.atmosphere-canvas { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; opacity: .82; mix-blend-mode: screen; }
+.atmosphere-canvas { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; opacity: .82; mix-blend-mode: screen; transition: opacity 180ms ease; }
+.atmosphere-canvas[data-atmosphere-state="fallback"], .atmosphere-canvas[data-atmosphere-state="reduced"] { opacity: 0; mix-blend-mode: normal; }
+
+@media (prefers-reduced-motion: reduce), (max-width: 760px) {
+  .atmosphere-canvas { opacity: .22; mix-blend-mode: normal; }
+  .atmosphere-canvas[data-atmosphere-state="reduced"] { opacity: 0; }
+}

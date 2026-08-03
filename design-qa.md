@@ -47,6 +47,23 @@ No actionable P0, P1, or P2 differences remain.
 - [x] Desktop and mobile layout checks pass.
 - [x] Build, unit tests, and browser console checks pass.
 
+## Accessibility remediation verification
+
+- Latest implementation screenshot: `.local-audit/accessibility-remediation-wide-final.png` at `1487 x 1058`, DPR `1`, expanded desktop proof rail, Portfolio scenario active.
+- Latest combined comparison: `.local-audit/accessibility-remediation-comparison.png` (source above implementation in one image). The current implementation retains the visual hierarchy, serif/caps typographic system, observatory palette, and right-side proof rail at the matched wide viewport.
+- Responsive proof-layer evidence: `.local-audit/accessibility-remediation-laptop-final.png` (`1280 x 720`) and `.local-audit/accessibility-remediation-mobile-final.png` (`390 x 844`). At laptop and phone widths, the collapsed proof entry is in document flow rather than overlapping operational content; at `390 x 844`, `scrollWidth` is `375` and the proof entry ends at `425px`, above the command dock beginning at `766px`.
+- Shader passthrough evidence: desktop keeps an active `screen` blend at `0.82` opacity. The mobile state keeps the transparent canvas but uses `normal` blend at `0.22` opacity. CSS remains the fallback when WebGL is unavailable or reduced motion is requested.
+- Interaction and console evidence: Portfolio scenario, Live API, proof expansion, walkthrough, schedule navigation, claims filtering, and keyboard focus were exercised in-browser. The final console audit reported no warnings or errors.
+
+### Remediation history
+
+3. The UI/UX audit found that the floating proof chip overlapped mobile schedule rows and the mid-width rail could cover claims content.
+   - Fix: moved the proof component before workspace content and made it an inline, collapsed entry at widths below `1380px`; the full fixed rail remains at wide desktop.
+   - Post-fix evidence: the laptop and mobile captures above show no proof-layer/content overlap.
+4. The shader audit found that the WebGL canvas had no explicit reduced-motion or fallback state.
+   - Fix: added explicit active, paused, reduced, and fallback renderer states; pauses animation when hidden, disconnects observers and loses the WebGL context on teardown, and uses lower-opacity normal blending on narrow viewports.
+   - Post-fix evidence: renderer unit tests cover state resolution; browser captures confirm desktop and mobile visual states.
+
 ## Follow-up polish
 
 - [P3] If a future case study needs broader organizational storytelling, add a practice selector backed by more fictional practice data; it is not needed for the current single-practice portfolio narrative.
