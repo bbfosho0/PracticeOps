@@ -1,0 +1,8 @@
+<div class="brand-lockup"><span class="product-name">PracticeOps</span><span class="product-divider"></span><span class="product-context">Clinical Observatory</span></div>
+<div class="header-copy"><span class="eyebrow">{{ metadata().eyebrow }}</span><h1>{{ metadata().title }}</h1><p>{{ metadata().description }}</p></div>
+<div class="header-actions">
+  <button type="button" class="refresh-control" [disabled]="refreshing()" (click)="refreshRequested.emit()">{{ refreshing() ? 'Updating…' : 'Refresh' }}</button>
+  <span class="live-pill" [attr.data-tone]="runtimeStatus().tone"><span class="live-dot"></span>{{ runtimeStatus().label }}</span>
+  <span class="demo-pill">{{ updatedLabel() }}</span>
+  <span class="avatar" aria-label="Yoshi Gomez">YG</span>
+</div>

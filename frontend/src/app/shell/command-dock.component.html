@@ -1,0 +1,10 @@
+<a class="brand-orbit" href="#" aria-label="PracticeOps home" (click)="selectHome($event)"><span class="brand-core"></span></a>
+<nav>
+  @for (item of items(); track item.id) {
+    <button type="button" class="dock-item" [class.active]="activeView() === item.id" [attr.aria-current]="activeView() === item.id ? 'page' : null" [attr.aria-label]="item.label" (click)="viewSelected.emit(item.id)">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="item.icon"></path></svg>
+      <span>{{ item.shortLabel }}</span>
+    </button>
+  }
+</nav>
+<div class="dock-status" [attr.data-mode]="runtimeMode()" [attr.title]="runtimeLabel()"><span></span></div>

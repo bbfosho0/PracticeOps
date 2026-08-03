@@ -1,0 +1,46 @@
+:host {
+  position: fixed;
+  z-index: 20;
+  left: 18px;
+  top: 24px;
+  bottom: 24px;
+  width: 76px;
+  padding: 18px 8px 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border: 1px solid rgba(42, 116, 203, 0.5);
+  border-radius: 28px;
+  background: linear-gradient(180deg, rgba(8, 17, 31, 0.94), rgba(5, 11, 22, 0.88));
+  backdrop-filter: blur(24px);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.55), inset 0 1px rgba(255, 255, 255, 0.06);
+}
+
+nav { width: 100%; display: grid; gap: 10px; }
+.brand-orbit { width: 42px; height: 42px; display: grid; place-items: center; margin-bottom: 25px; border: 1px solid rgba(122, 77, 255, 0.75); border-radius: 50%; background: radial-gradient(circle, rgba(122, 77, 255, 0.28), rgba(9, 14, 27, 0.94) 62%); box-shadow: 0 0 25px rgba(122, 77, 255, 0.48); text-decoration: none; }
+.brand-core { width: 8px; height: 8px; border-radius: 50%; background: #e8fdff; box-shadow: 0 0 14px var(--cyan); }
+.dock-item { width: 58px; min-height: 58px; padding: 9px 4px 6px; display: grid; justify-items: center; gap: 4px; border: 1px solid transparent; border-radius: 14px; background: rgba(8, 15, 28, 0.5); color: #7f8ba1; cursor: pointer; transition: 0.18s ease; }
+.dock-item svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.dock-item:first-child svg { fill: currentColor; stroke: none; }
+.dock-item span { font-size: 8px; }
+.dock-item:hover { color: #fff; transform: translateX(2px); background: rgba(16, 28, 48, 0.75); }
+.dock-item.active { color: var(--cyan); border-color: rgba(25, 217, 255, 0.65); background: linear-gradient(145deg, rgba(47, 107, 255, 0.45), rgba(122, 77, 255, 0.2)); box-shadow: 0 0 24px rgba(25, 217, 255, 0.2), inset 0 0 18px rgba(47, 107, 255, 0.18); }
+.dock-status { width: 28px; height: 28px; margin-top: auto; display: grid; place-items: center; border: 1px solid rgba(72, 104, 150, 0.4); border-radius: 50%; }
+.dock-status span { width: 7px; height: 7px; border-radius: 50%; background: var(--amber); box-shadow: 0 0 10px var(--amber); }
+.dock-status[data-mode='live'] span { background: var(--green); box-shadow: 0 0 10px var(--green); }
+.dock-status[data-mode='demo'] span { background: var(--violet); box-shadow: 0 0 10px var(--violet); }
+
+button { font: inherit; color: inherit; }
+button:focus-visible, a:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
+
+@media (max-width: 840px) {
+  :host { left: 12px; right: 12px; top: auto; bottom: 10px; width: auto; height: 68px; padding: 7px 10px; flex-direction: row; }
+  .brand-orbit, .dock-status { display: none; }
+  nav { grid-template-columns: repeat(6, 1fr); }
+  .dock-item { width: auto; }
+}
+
+@media (max-width: 560px) {
+  :host { overflow-x: auto; }
+  nav { min-width: 480px; }
+}

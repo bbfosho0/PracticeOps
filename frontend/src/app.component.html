@@ -1,4 +1,8 @@
-<div class="observatory" [attr.data-view]="activeView()" [attr.data-api-mode]="apiMode()" [class.is-stale]="stale()">
+<div appObservatoryShell class="observatory" [attr.data-view]="activeView()" [attr.data-api-mode]="apiMode()" [class.is-stale]="stale()"
+  [items]="nav" [activeView]="activeView()" [runtimeMode]="apiMode()" [metadata]="view()" [runtimeStatus]="systemState()"
+  [updatedLabel]="updatedLabel()" [refreshing]="refreshing()" [notice]="notice()" [stale]="stale()"
+  [retryAvailable]="!refreshing()" [proofCollapsed]="!proofLayerOpen()"
+  (viewSelected)="selectView($event)" (retryRequested)="refresh()">
   <div class="atmosphere" aria-hidden="true">
     <canvas #atmosphereCanvas class="atmosphere-canvas"></canvas>
     <span class="aurora aurora-primary"></span>
@@ -7,38 +11,6 @@
     <span class="star-field"></span>
     <span class="scanline"></span>
   </div>
-
-  <aside class="command-dock" aria-label="PracticeOps navigation">
-    <a class="brand-orbit" href="#" aria-label="PracticeOps home" (click)="$event.preventDefault(); selectView('overview')"><span class="brand-core"></span></a>
-    <nav>
-      @for (item of nav; track item.id) {
-        <button type="button" class="dock-item" [class.active]="activeView() === item.id" [attr.aria-current]="activeView() === item.id ? 'page' : null" [attr.aria-label]="item.label" (click)="selectView(item.id)">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="item.icon"></path></svg>
-          <span>{{ item.shortLabel }}</span>
-        </button>
-      }
-    </nav>
-    <div class="dock-status" [attr.data-mode]="apiMode()" [attr.title]="systemState().label"><span></span></div>
-  </aside>
-
-  <main class="workspace" [appObservatoryViewMotion]="activeView()">
-    <header class="workspace-header">
-      <div class="brand-lockup"><span class="product-name">PracticeOps</span><span class="product-divider"></span><span class="product-context">Clinical Observatory</span></div>
-      <div class="header-copy"><span class="eyebrow">{{ view().eyebrow }}</span><h1>{{ view().title }}</h1><p>{{ view().description }}</p></div>
-      <div class="header-actions">
-        <button type="button" class="refresh-control" [disabled]="refreshing()" (click)="refresh()">{{ refreshing() ? 'Updating…' : 'Refresh' }}</button>
-        <span class="live-pill" [attr.data-tone]="systemState().tone"><span class="live-dot"></span>{{ systemState().label }}</span>
-        <span class="demo-pill">{{ updatedLabel() }}</span>
-        <span class="avatar" aria-label="Yoshi Gomez">YG</span>
-      </div>
-    </header>
-
-    @if (notice()) {
-      <section class="mode-notice" [class.is-stale]="stale()" aria-live="polite">
-        <span class="notice-pulse"></span><span>{{ notice() }}</span>
-        <button type="button" [disabled]="refreshing()" (click)="refresh()">{{ apiMode() === 'demo' ? 'Retry API' : 'Refresh now' }}</button>
-      </section>
-    }
 
     <section class="scenario-rail glass-panel" [attr.data-state]="apiMode() === 'live' ? (scenarioComplete() ? 'complete' : 'active') : 'preview'" aria-labelledby="scenario-title">
       <div class="scenario-summary">
@@ -199,5 +171,4 @@
 
       <footer class="system-footer"><div><span class="system-dot" [attr.data-tone]="systemState().tone"></span><strong>{{ systemState().label }}</strong></div><div><span>Data freshness</span><strong>{{ updatedLabel() }}</strong></div><div><span>Demo boundary</span><strong>Fictional records only</strong></div><div><span>Outbox</span><strong>{{ outboxState().label }}</strong></div></footer>
     }
-  </main>
 </div>

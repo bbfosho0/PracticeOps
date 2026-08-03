@@ -1,0 +1,9 @@
+<ng-content select=".atmosphere"></ng-content>
+<aside appCommandDock [items]="items()" [activeView]="activeView()" [runtimeMode]="runtimeMode()" (viewSelected)="viewSelected.emit($event)"></aside>
+<main class="workspace" [appObservatoryViewMotion]="activeView()">
+  <header appWorkspaceHeader [metadata]="metadata()" [runtimeStatus]="runtimeStatus()" [updatedLabel]="updatedLabel()" [refreshing]="refreshing()" (refreshRequested)="retryRequested.emit()"></header>
+  @if (notice()) {
+    <section appRuntimeNotice [mode]="runtimeMode()" [notice]="notice()" [stale]="stale()" [retryAvailable]="retryAvailable()" (retryRequested)="retryRequested.emit()"></section>
+  }
+  <ng-content></ng-content>
+</main>

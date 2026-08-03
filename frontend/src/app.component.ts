@@ -33,26 +33,16 @@ import {
 } from './operational-telemetry';
 import { AtmosphereRenderer } from './atmosphere-renderer';
 import { MetricValueMotionDirective } from './metric-value-motion.directive';
-import { ObservatoryViewMotionDirective } from './observatory-view-motion.directive';
 import { RiskTopologyComponent } from './risk-topology.component';
 import { OperationalRefreshStore } from './operational-refresh.store';
 import { PortfolioScenarioController } from './portfolio-scenario.controller';
 import { resolveInitialScheduleDate } from './schedule-date';
+import { ObservatoryShellComponent } from './app/shell/observatory-shell.component';
+import { WorkspaceNavItem } from './app/shell/command-dock.component';
+import { WorkspaceViewMetadata } from './app/shell/workspace-header.component';
 
-export interface WorkspaceNavItem {
-  id: ViewId;
-  label: string;
-  shortLabel: string;
-  icon: string;
-}
-
-export interface WorkspaceViewMetadata {
-  eyebrow: string;
-  title: string;
-  description: string;
-  liveLabel: string;
-  tone: SignalTone;
-}
+export type { WorkspaceNavItem } from './app/shell/command-dock.component';
+export type { WorkspaceViewMetadata } from './app/shell/workspace-header.component';
 
 export interface WorkspaceRuntimeInput {
   readonly mode: 'connecting' | 'live' | 'demo';
@@ -186,7 +176,7 @@ function defaultProofLayerOpen(): boolean {
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CurrencyPipe, DatePipe, DecimalPipe, MetricValueMotionDirective, RiskTopologyComponent, AutoAnimateDirective, ObservatoryViewMotionDirective],
+  imports: [CurrencyPipe, DatePipe, DecimalPipe, MetricValueMotionDirective, RiskTopologyComponent, AutoAnimateDirective, ObservatoryShellComponent],
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.css', './app.component.workspaces.css', './portfolio-showcase.css', './tailwind-structure.css'],
   changeDetection: ChangeDetectionStrategy.OnPush
