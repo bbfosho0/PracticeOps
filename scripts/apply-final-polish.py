@@ -103,11 +103,10 @@ regex_replace(
   });
   readonly auditCards"""
 )
-replace(component, "detail: 'Processed messages'", "detail: 'Broker-confirmed messages'", expected=0) if False else None
 
 # Template copy and response-property bindings.
 template = "frontend/src/app.component.html"
-replace_all(template, ".deliveredMessages", ".publishedMessages", minimum=2)
+replace_all(template, ".deliveredMessages", ".publishedMessages", minimum=1)
 replace(template, "proof steps complete", "persisted transitions complete")
 replace(template, "truthful transactional outbox delivery state", "truthful transactional outbox publication state")
 replace(template, "transactional outbox delivery.", "transactional outbox publication.")
@@ -115,7 +114,6 @@ replace(template, "RabbitMQ outbox delivery", "RabbitMQ outbox publication")
 replace(template, "Runtime and delivery state", "Runtime and publication state")
 replace(template, "<span>Delivered</span>", "<span>Published</span>")
 replace(template, "<span>Delivery result</span>", "<span>Publication result</span>")
-replace(template, "Inspect audit and delivery proof", "Inspect audit and publication proof", expected=0) if False else None
 
 # Derive the audit spectrum from event timestamps rather than event hashes.
 telemetry = "frontend/src/operational-telemetry.ts"
@@ -204,7 +202,6 @@ replace(visual, mobile_anchor, mobile_insert)
 # Documentation terminology.
 for path in ["README.md", "docs/portfolio-demo.md"]:
     replace_all(path, "delivered outbox messages", "published outbox messages", minimum=1)
-    replace_all(path, "deliveredMessages", "publishedMessages", minimum=0) if False else None
     content = read(path)
     content = content.replace("Outbox delivery", "Outbox publication")
     content = content.replace("outbox delivery", "outbox publication")
