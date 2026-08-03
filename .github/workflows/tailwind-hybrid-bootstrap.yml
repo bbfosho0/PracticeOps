@@ -1,0 +1,71 @@
+name: Tailwind Hybrid Bootstrap
+
+on:
+  push:
+    branches: [design/tailwind-hybrid-observatory]
+
+permissions:
+  contents: write
+
+jobs:
+  migrate-and-verify:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: design/tailwind-hybrid-observatory
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Add dependencies and failing topology tests
+        run: python3 scripts/apply-tailwind-hybrid.py tests
+
+      - name: Install Tailwind toolchain and update lockfile
+        working-directory: frontend
+        run: npm install
+
+      - name: Verify the topology test fails before implementation
+        working-directory: frontend
+        shell: bash
+        run: |
+          set +e
+          npm run test -- --watch=false > /tmp/risk-topology-red.log 2>&1
+          status=$?
+          set -e
+          cat /tmp/risk-topology-red.log
+          if [ "$status" -eq 0 ]; then
+            echo "Expected the risk topology test to fail before implementation."
+            exit 1
+          fi
+          grep -Eq "risk-topology|Cannot find module|TS2307" /tmp/risk-topology-red.log
+
+      - name: Apply hybrid Tailwind and SVG implementation
+        run: python3 scripts/apply-tailwind-hybrid.py implementation
+
+      - name: Run frontend tests
+        working-directory: frontend
+        run: npm run test -- --watch=false
+
+      - name: Build production frontend
+        working-directory: frontend
+        run: npm run build
+
+      - name: Check generated diff
+        run: git diff --check
+
+      - name: Commit verified migration
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "feat: add Tailwind hybrid observatory system"
+          git push origin HEAD:design/tailwind-hybrid-observatory
