@@ -100,7 +100,7 @@ export class OperationalRefreshStore implements OnDestroy {
     this.notice.set('Resetting the fictional portfolio scenario…');
     this.mutationSubscription?.unsubscribe();
     this.mutationSubscription = this.api.resetDemo().pipe(finalize(() => this.mutationPending.set(false))).subscribe({
-      next: value => this.applyLiveDashboard(value, 'Portfolio scenario reset. Begin with the schedule exception.'),
+      next: value => this.applyLiveDashboard(value, 'Portfolio scenario reset. Begin with the schedule exception.', false),
       error: error => this.notice.set(this.problemDetail(error, 'The portfolio scenario could not be reset.'))
     });
   }
@@ -134,7 +134,8 @@ export class OperationalRefreshStore implements OnDestroy {
       document.removeEventListener('visibilitychange', this.visibilityListener);
   }
 
-  private applyLiveDashboard(value: Dashboard, notice: string): void {
+  private applyLiveDashboard(value: Dashboard, notice: string, recoveryAware = true): void {
+    const recovered = recoveryAware && this.stale();
     const reference = value.appointments[0] ? new Date(value.appointments[0].startsAt) : new Date();
     const reconciled = reconcileDashboard(value, reference);
     this.announceMetricChanges(this.dashboard().metrics, reconciled.metrics);
@@ -144,7 +145,8 @@ export class OperationalRefreshStore implements OnDestroy {
     this.lastUpdatedAt.set(refreshedAt);
     this.clock.set(refreshedAt);
     this.stale.set(false);
-    if (notice) this.notice.set(notice);
+    if (recovered) this.notice.set('Live data recovered.');
+    else if (notice) this.notice.set(notice);
   }
 
   private handleRefreshFailure(error: unknown): void {
