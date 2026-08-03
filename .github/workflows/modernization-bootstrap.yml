@@ -1,10 +1,12 @@
 name: Modernization Bootstrap
 
 on:
-  push:
-    branches:
-      - feat/engineering-quality-modernization
   workflow_dispatch:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/modernization-bootstrap.yml'
 
 permissions:
   contents: write
@@ -70,9 +72,7 @@ jobs:
                   date: /Date$/i,
                 },
               },
-              a11y: {
-                test: 'error',
-              },
+              a11y: { test: 'error' },
               backgrounds: {
                 default: 'observatory',
                 values: [{ name: 'observatory', value: '#04060c' }],
@@ -94,19 +94,11 @@ jobs:
                 <main style="min-height:100vh;padding:2rem;background:#04060c;color:#f5f7ff;font-family:Inter,system-ui,sans-serif">
                   <p style="margin:0;color:#19d9ff;font-size:12px;letter-spacing:.12em;text-transform:uppercase">Component workshop</p>
                   <h1 style="margin:.75rem 0;font-size:40px">Clinical Observatory</h1>
-                  <p style="max-width:60ch;color:#aeb9cf;line-height:1.6">
-                    Deterministic component states are developed here before integration into the six operational workspaces.
-                  </p>
+                  <p style="max-width:60ch;color:#aeb9cf;line-height:1.6">Deterministic component states are developed here before integration into the six operational workspaces.</p>
                   <section aria-label="Runtime states" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1rem;margin-top:2rem">
-                    <article style="padding:1rem;border:1px solid rgba(25,217,255,.35);border-radius:16px;background:#0d1727">
-                      <strong>Live API</strong><p style="color:#37e08b">Authoritative data</p>
-                    </article>
-                    <article style="padding:1rem;border:1px solid rgba(122,77,255,.35);border-radius:16px;background:#0d1727">
-                      <strong>Synthetic preview</strong><p style="color:#9f7cff">Clearly labeled fallback</p>
-                    </article>
-                    <article style="padding:1rem;border:1px solid rgba(255,176,32,.35);border-radius:16px;background:#0d1727">
-                      <strong>Stale snapshot</strong><p style="color:#ffb020">Last valid data retained</p>
-                    </article>
+                    <article style="padding:1rem;border:1px solid rgba(25,217,255,.35);border-radius:16px;background:#0d1727"><strong>Live API</strong><p style="color:#37e08b">Authoritative data</p></article>
+                    <article style="padding:1rem;border:1px solid rgba(122,77,255,.35);border-radius:16px;background:#0d1727"><strong>Synthetic preview</strong><p style="color:#9f7cff">Clearly labeled fallback</p></article>
+                    <article style="padding:1rem;border:1px solid rgba(255,176,32,.35);border-radius:16px;background:#0d1727"><strong>Stale snapshot</strong><p style="color:#ffb020">Last valid data retained</p></article>
                   </section>
                 </main>
               `,
@@ -115,7 +107,6 @@ jobs:
 
           export default meta;
           type Story = StoryObj;
-
           export const RuntimeStateMatrix: Story = {};
           EOF
 
@@ -130,9 +121,7 @@ jobs:
             expect: { timeout: 10_000 },
             fullyParallel: false,
             retries: process.env.CI ? 2 : 0,
-            reporter: process.env.CI
-              ? [['list'], ['html', { outputFolder: 'playwright-report', open: 'never' }]]
-              : 'list',
+            reporter: process.env.CI ? [['list'], ['html', { outputFolder: 'playwright-report', open: 'never' }]] : 'list',
             use: {
               baseURL: 'http://127.0.0.1:4200',
               trace: 'retain-on-failure',
@@ -178,6 +167,17 @@ jobs:
           npx playwright install --with-deps chromium
           npm run build-storybook
           npm run test:e2e
+
+      - name: Upload verification artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: modernization-bootstrap-artifacts
+          path: |
+            frontend/storybook-static
+            frontend/playwright-report
+            frontend/test-results
+          if-no-files-found: ignore
 
       - name: Commit deterministic bootstrap output
         run: |
