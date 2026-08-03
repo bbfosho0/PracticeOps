@@ -62,6 +62,44 @@ jobs:
               path.write_text(text.replace(current, normalized, 1), encoding='utf-8')
           PY
           python3 scripts/apply-observatory-motion.py implementation
+          cat > frontend/src/auto-animate.directive.ts <<'TS'
+          import { AfterViewInit, Directive, ElementRef, NgZone, OnDestroy } from '@angular/core';
+          import autoAnimate from '@formkit/auto-animate';
+
+          @Directive({
+            selector: '[auto-animate]',
+            standalone: true
+          })
+          export class AutoAnimateDirective implements AfterViewInit, OnDestroy {
+            private controller?: { disable(): void };
+
+            constructor(
+              private readonly element: ElementRef<HTMLElement>,
+              private readonly zone: NgZone
+            ) {}
+
+            ngAfterViewInit(): void {
+              this.zone.runOutsideAngular(() => {
+                this.controller = autoAnimate(this.element.nativeElement);
+              });
+            }
+
+            ngOnDestroy(): void {
+              this.controller?.disable();
+            }
+          }
+          TS
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('frontend/src/app.component.ts')
+          text = path.read_text(encoding='utf-8')
+          text = text.replace(
+              "import { AutoAnimateDirective } from '@formkit/auto-animate/angular';",
+              "import { AutoAnimateDirective } from './auto-animate.directive';"
+          )
+          path.write_text(text, encoding='utf-8')
+          PY
           rm -f .github/workflows/motion-pr-bootstrap.yml
 
       - name: Run complete frontend test suite
