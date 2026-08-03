@@ -1,5 +1,6 @@
 export type ViewId = 'overview' | 'schedule' | 'documentation' | 'claims' | 'audit' | 'settings';
 export type SignalTone = 'cyan' | 'violet' | 'amber' | 'green' | 'coral' | 'blue';
+export type ScenarioStepState = 'complete' | 'current' | 'pending';
 
 export interface DashboardMetrics {
   appointmentsToday: number;
@@ -20,6 +21,7 @@ export interface Appointment {
 
 export interface ClinicalNote {
   id: string;
+  appointmentId: string;
   clinician: string;
   dueAt: string;
   status: string;
@@ -40,6 +42,39 @@ export interface AuditEvent {
   action: string;
   summary: string;
   occurredAt: string;
+  entityType?: string;
+  entityId?: string;
+}
+
+export interface PortfolioScenarioStep {
+  id: string;
+  label: string;
+  description: string;
+  workspace: ViewId;
+  state: ScenarioStepState;
+}
+
+export interface PortfolioScenario {
+  id: string;
+  title: string;
+  appointmentId: string;
+  clinicalNoteId: string;
+  claimId: string;
+  completedSteps: number;
+  totalSteps: number;
+  completionPercent: number;
+  currentStepId: string;
+  currentWorkspace: ViewId;
+  steps: PortfolioScenarioStep[];
+}
+
+export interface OutboxSummary {
+  totalMessages: number;
+  pendingMessages: number;
+  publishedMessages: number;
+  latestEventType: string | null;
+  latestOccurredAt: string | null;
+  latestPublishedAt: string | null;
 }
 
 export interface Dashboard {
@@ -48,6 +83,8 @@ export interface Dashboard {
   notes: ClinicalNote[];
   claims: Claim[];
   audit: AuditEvent[];
+  scenario: PortfolioScenario;
+  outbox: OutboxSummary;
 }
 
 export interface MetricSignal {
@@ -171,6 +208,7 @@ export function createDemoDashboard(now = new Date()): Dashboard {
 
     return {
       id: `demo-note-${index + 1}`,
+      appointmentId: appointment.id,
       clinician: appointment.clinician,
       dueAt,
       status
@@ -209,12 +247,41 @@ export function createDemoDashboard(now = new Date()): Dashboard {
     occurredAt: new Date(now.getTime() - index * 7 * 60 * 1000).toISOString()
   }));
 
+  const scenario: PortfolioScenario = {
+    id: 'practiceops-exception-journey',
+    title: 'Resolve one exception from schedule to revenue proof',
+    appointmentId: appointments[20].id,
+    clinicalNoteId: notes[20].id,
+    claimId: claims[0].id,
+    completedSteps: 0,
+    totalSteps: 5,
+    completionPercent: 0,
+    currentStepId: 'confirm-appointment',
+    currentWorkspace: 'schedule',
+    steps: [
+      { id: 'confirm-appointment', label: 'Resolve the schedule exception', description: 'Persisted actions require the live API.', workspace: 'schedule', state: 'current' },
+      { id: 'submit-note-review', label: 'Submit the delayed note', description: 'Persisted actions require the live API.', workspace: 'documentation', state: 'pending' },
+      { id: 'sign-note', label: 'Complete the documentation', description: 'Persisted actions require the live API.', workspace: 'documentation', state: 'pending' },
+      { id: 'clear-claim-risk', label: 'Clear the claim risk', description: 'Persisted actions require the live API.', workspace: 'claims', state: 'pending' },
+      { id: 'submit-claim', label: 'Advance the claim', description: 'Persisted actions require the live API.', workspace: 'claims', state: 'pending' },
+    ]
+  };
+
   return {
     metrics: deriveMetrics(appointments, notes, claims, now),
     appointments,
     notes,
     claims,
-    audit
+    audit,
+    scenario,
+    outbox: {
+      totalMessages: 0,
+      pendingMessages: 0,
+      publishedMessages: 0,
+      latestEventType: null,
+      latestOccurredAt: null,
+      latestPublishedAt: null
+    }
   };
 }
 

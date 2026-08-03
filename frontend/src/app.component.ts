@@ -1,12 +1,9 @@
 import { CurrencyPipe, DatePipe, DecimalPipe } from '@angular/common';
-import { HttpClient } from '@angular/common/http';
 import { AfterViewInit, ChangeDetectionStrategy, Component, ElementRef, OnDestroy, ViewChild, computed, inject, signal } from '@angular/core';
 import {
   Appointment,
   AuditEvent,
   Claim,
-  Dashboard,
-  DashboardMetrics,
   MetricSignal,
   PipelineStage,
   RiskSlice,
@@ -16,7 +13,6 @@ import {
   buildPipelineStages,
   buildRiskDistribution,
   clampPercent,
-  createDemoDashboard,
   formatCompactCurrency,
   humanizeStatus,
   initials,
@@ -34,6 +30,9 @@ import {
 } from './operational-telemetry';
 import { AtmosphereRenderer } from './atmosphere-renderer';
 import { MetricValueMotionDirective } from './metric-value-motion.directive';
+import { OperationalRefreshStore } from './operational-refresh.store';
+import { PortfolioScenarioController } from './portfolio-scenario.controller';
+import { resolveInitialScheduleDate } from './schedule-date';
 
 interface NavItem {
   id: ViewId;
@@ -90,24 +89,24 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'documentation', label: 'Documentation', shortLabel: 'Docs', icon: 'M7 3h8l3 3v15H6V4a1 1 0 0 1 1-1Zm7 0v4h4M9 11h6M9 15h6M9 19h4' },
   { id: 'claims', label: 'Claims', shortLabel: 'Claims', icon: 'm12 3 8 9-8 9-8-9 8-9Zm0 5v8m-3-4h6' },
   { id: 'audit', label: 'Audit', shortLabel: 'Audit', icon: 'M11 4a7 7 0 1 0 5.9 10.8L21 19m-9-11v4l3 2' },
-  { id: 'settings', label: 'Settings', shortLabel: 'Settings', icon: 'M12 8.5A3.5 3.5 0 1 0 12 15.5 3.5 3.5 0 1 0 12 8.5Zm0-5 1.2 2.3 2.6.5 1.8-1.8 1.9 1.9-1.8 1.8.5 2.6 2.3 1.2v2.7l-2.3 1.2-.5 2.6 1.8 1.8-1.9 1.9-1.8-1.8-2.6.5L12 20.5H9.3l-1.2-2.3-2.6-.5-1.8 1.8-1.9-1.9 1.8-1.8-.5-2.6L.8 12V9.3l2.3-1.2.5-2.6-1.8-1.8 1.9-1.9 1.8 1.8 2.6-.5L9.3.8H12Z' }
+  { id: 'settings', label: 'System & Demo', shortLabel: 'System', icon: 'M12 8.5A3.5 3.5 0 1 0 12 15.5 3.5 3.5 0 1 0 12 8.5Zm0-5 1.2 2.3 2.6.5 1.8-1.8 1.9 1.9-1.8 1.8.5 2.6 2.3 1.2v2.7l-2.3 1.2-.5 2.6 1.8 1.8-1.9 1.9-1.8-1.8-2.6.5L12 20.5H9.3l-1.2-2.3-2.6-.5-1.8 1.8-1.9-1.9 1.8-1.8-.5-2.6L.8 12V9.3l2.3-1.2.5-2.6-1.8-1.8 1.9-1.9 1.8 1.8 2.6-.5L9.3.8H12Z' }
 ];
 
 const VIEW_META: Record<ViewId, ViewMeta> = {
-  overview: { eyebrow: 'Live operations workspace', title: 'Operations observatory', description: 'Real-time visibility across schedule, documentation, claims risk, and operational signals.', liveLabel: 'Live telemetry', tone: 'cyan' },
-  schedule: { eyebrow: 'Live operations workspace', title: 'Temporal runway', description: 'Coordinate appointments, confirmations, clinician capacity, and check-ins in real time.', liveLabel: 'Live capacity', tone: 'cyan' },
-  documentation: { eyebrow: 'Live operations workspace', title: 'Documentation continuum', description: 'Move every note from capture through review to signature and billing readiness.', liveLabel: 'Signature flow', tone: 'violet' },
-  claims: { eyebrow: 'Live operations workspace', title: 'Risk constellation', description: 'Resolve validation, filing, and payer risk before it delays reimbursement.', liveLabel: 'Risk field live', tone: 'amber' },
-  audit: { eyebrow: 'Live operations workspace', title: 'Event spectrum', description: 'Review immutable operational events and system signals across every workflow.', liveLabel: 'Observability live', tone: 'green' },
-  settings: { eyebrow: 'Live operations workspace', title: 'Workspace parameters', description: 'Review demonstration boundaries, preferences, role access, and integration health.', liveLabel: 'Secure demo', tone: 'green' }
+  overview: { eyebrow: 'Operational command workspace', title: 'Operations observatory', description: 'Current visibility across schedule, documentation, claim risk, and persisted activity.', liveLabel: 'Operational snapshot', tone: 'cyan' },
+  schedule: { eyebrow: 'Operational command workspace', title: 'Temporal runway', description: 'Coordinate fictional appointments, confirmation exceptions, and clinician capacity.', liveLabel: 'Schedule state', tone: 'cyan' },
+  documentation: { eyebrow: 'Operational command workspace', title: 'Documentation continuum', description: 'Move fictional notes from capture through review, signature, and billing readiness.', liveLabel: 'Documentation state', tone: 'violet' },
+  claims: { eyebrow: 'Operational command workspace', title: 'Risk constellation', description: 'Resolve fictional validation, filing, and payer risk before reimbursement is delayed.', liveLabel: 'Claim state', tone: 'amber' },
+  audit: { eyebrow: 'Persistence proof workspace', title: 'Event spectrum', description: 'Review immutable audit events and truthful transactional outbox delivery state.', liveLabel: 'Audit proof', tone: 'green' },
+  settings: { eyebrow: 'Architecture proof workspace', title: 'System & Demo', description: 'Review runtime mode, scenario progress, delivery state, architecture, and safety boundaries.', liveLabel: 'System proof', tone: 'green' }
 };
 
 const INITIAL_PREFERENCES: NotificationPreference[] = [
-  { label: 'System alerts', cadence: 'Real-time', state: true },
-  { label: 'Documentation updates', cadence: 'Digest (Daily)', state: true },
-  { label: 'Claims and risk notifications', cadence: 'Real-time', state: true },
-  { label: 'Schedule changes', cadence: 'Instant', state: true },
-  { label: 'Team activity', cadence: 'Digest (Daily)', state: false }
+  { label: 'System alerts', cadence: 'Browser-local', state: true },
+  { label: 'Documentation updates', cadence: 'Browser-local', state: true },
+  { label: 'Claims and risk notifications', cadence: 'Browser-local', state: true },
+  { label: 'Schedule changes', cadence: 'Browser-local', state: true },
+  { label: 'Team activity', cadence: 'Browser-local', state: false }
 ];
 
 function startOfDay(value: Date): Date {
@@ -128,7 +127,7 @@ function hoursSince(value: string, reference: Date): number {
 }
 
 function defaultProofLayerOpen(): boolean {
-  return typeof window === 'undefined' || !window.matchMedia('(max-width: 1379px)').matches;
+  return false;
 }
 
 @Component({
@@ -140,19 +139,25 @@ function defaultProofLayerOpen(): boolean {
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class AppComponent implements AfterViewInit, OnDestroy {
-  private readonly http = inject(HttpClient);
-  private liveDashboard?: Dashboard;
+  private readonly refreshStore = inject(OperationalRefreshStore);
+  readonly scenarioController = inject(PortfolioScenarioController);
   private atmosphereRenderer?: AtmosphereRenderer;
   @ViewChild('atmosphereCanvas') private readonly atmosphereCanvas?: ElementRef<HTMLCanvasElement>;
 
   readonly nav = NAV_ITEMS;
   readonly activeView = signal<ViewId>('overview');
-  readonly dashboard = signal<Dashboard>(reconcileDashboard(createDemoDashboard()));
-  readonly loading = signal(true);
-  readonly apiMode = signal<'connecting' | 'live' | 'demo'>('connecting');
-  readonly notice = signal('');
+  readonly dashboard = this.refreshStore.dashboard;
+  readonly loading = this.refreshStore.loading;
+  readonly refreshing = this.refreshStore.refreshing;
+  readonly mutationPending = this.refreshStore.mutationPending;
+  readonly apiMode = this.refreshStore.apiMode;
+  readonly notice = this.refreshStore.notice;
+  readonly stale = this.refreshStore.stale;
+  readonly updatedLabel = this.refreshStore.updatedLabel;
+  readonly kpiAnnouncement = this.refreshStore.kpiAnnouncement;
   readonly selectedScheduleFilter = signal<'day' | 'week' | 'list'>('day');
-  readonly selectedScheduleDate = signal<Date>(startOfDay(new Date()));
+  readonly selectedScheduleDate = signal<Date | null>(null);
+  readonly effectiveScheduleDate = computed(() => resolveInitialScheduleDate(this.dashboard().appointments, this.selectedScheduleDate()));
   readonly selectedProvider = signal('all');
   readonly selectedService = signal('all');
   readonly selectedStatus = signal('all');
@@ -160,11 +165,17 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   readonly claimPayerFilter = signal('all');
   readonly claimSearch = signal('');
   readonly notificationPreferences = signal<NotificationPreference[]>(INITIAL_PREFERENCES.map(item => ({ ...item })));
-  readonly portfolioScenario = signal<'portfolio' | 'live'>('portfolio');
   readonly proofLayerOpen = signal(defaultProofLayerOpen());
-  readonly kpiAnnouncement = signal('');
 
   readonly view = computed(() => VIEW_META[this.activeView()]);
+  readonly scenario = this.scenarioController.scenario;
+  readonly currentScenarioStep = this.scenarioController.currentStep;
+  readonly scenarioActionLabel = this.scenarioController.actionLabel;
+  readonly canMutateScenario = this.scenarioController.canMutate;
+  readonly scenarioComplete = computed(() => this.scenario().completedSteps === this.scenario().totalSteps);
+  readonly scenarioAppointmentId = computed(() => this.scenario().appointmentId);
+  readonly scenarioClinicalNoteId = computed(() => this.scenario().clinicalNoteId);
+  readonly scenarioClaimId = computed(() => this.scenario().claimId);
   readonly metrics = computed<MetricSignal[]>(() => buildMetricSignals(this.dashboard()));
   readonly pipeline = computed<PipelineStage[]>(() => buildPipelineStages(this.dashboard()));
   readonly riskDistribution = computed<RiskSlice[]>(() => buildRiskDistribution(this.dashboard()));
@@ -172,9 +183,21 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   readonly auditTelemetry = computed(() => buildAuditTelemetry(this.dashboard()));
   readonly spectrumBars = computed(() => this.auditTelemetry().spectrum);
   readonly auditEvents = computed(() => this.dashboard().audit.slice(0, 12));
-  readonly scheduleDateLabel = computed(() => this.selectedScheduleDate());
+  readonly scheduleDateLabel = computed(() => this.effectiveScheduleDate());
+  readonly outboxState = computed(() => {
+    if (this.apiMode() !== 'live') return { label: 'Preview only', detail: 'No delivery state is fabricated', tone: 'violet' as const };
+    if (this.dashboard().outbox.pendingMessages > 0) return { label: 'Pending publication', detail: `${this.dashboard().outbox.pendingMessages} message${this.dashboard().outbox.pendingMessages === 1 ? '' : 's'} waiting`, tone: 'amber' as const };
+    if (this.dashboard().outbox.publishedMessages > 0) return { label: 'Published', detail: `${this.dashboard().outbox.publishedMessages} broker-confirmed messages`, tone: 'green' as const };
+    return { label: 'No scenario events yet', detail: 'Complete a persisted step to create proof', tone: 'cyan' as const };
+  });
+  readonly systemState = computed(() => {
+    if (this.stale()) return { label: 'Stale snapshot', tone: 'amber' as const };
+    if (this.apiMode() === 'live') return { label: 'Live API', tone: 'green' as const };
+    if (this.apiMode() === 'connecting') return { label: 'Connecting', tone: 'cyan' as const };
+    return { label: 'Synthetic preview', tone: 'violet' as const };
+  });
 
-  readonly appointmentsForSelectedDate = computed(() => this.dashboard().appointments.filter(item => sameLocalDay(item.startsAt, this.selectedScheduleDate())));
+  readonly appointmentsForSelectedDate = computed(() => this.dashboard().appointments.filter(item => sameLocalDay(item.startsAt, this.effectiveScheduleDate())));
   readonly providerOptions = computed(() => [...new Set(this.appointmentsForSelectedDate().map(item => item.clinician))].sort());
   readonly serviceOptions = computed(() => [...new Set(this.appointmentsForSelectedDate().map(item => item.service))].sort());
   readonly statusOptions = computed(() => [...new Set(this.appointmentsForSelectedDate().map(item => item.status))].sort());
@@ -187,15 +210,15 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   readonly filteredScheduleDashboard = computed(() => reconcileDashboard({
     ...this.dashboard(),
     appointments: this.filteredScheduleAppointments()
-  }, this.selectedScheduleDate()));
-  readonly scheduleTelemetry = computed(() => buildScheduleTelemetry(this.filteredScheduleDashboard(), this.selectedScheduleDate()));
-  readonly clinicianLoad = computed(() => buildClinicianLoad(this.filteredScheduleDashboard(), this.selectedScheduleDate()));
+  }, this.effectiveScheduleDate()));
+  readonly scheduleTelemetry = computed(() => buildScheduleTelemetry(this.filteredScheduleDashboard(), this.effectiveScheduleDate()));
+  readonly clinicianLoad = computed(() => buildClinicianLoad(this.filteredScheduleDashboard(), this.effectiveScheduleDate()));
   readonly providerRows = computed(() => this.clinicianLoad().map(item => item.name));
   readonly noShowRiskAppointments = computed(() => this.filteredScheduleAppointments()
     .filter(item => ['Scheduled', 'NoShow', 'Cancelled'].includes(item.status))
     .slice(0, 3));
   readonly weekSummary = computed(() => Array.from({ length: 7 }, (_, index) => {
-    const date = new Date(this.selectedScheduleDate());
+    const date = new Date(this.effectiveScheduleDate());
     date.setDate(date.getDate() + index);
     const appointments = this.dashboard().appointments.filter(item => sameLocalDay(item.startsAt, date));
     const capacity = new Set(appointments.map(item => item.clinician)).size * 7;
@@ -270,10 +293,12 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   });
   readonly topClaims = computed(() => this.filteredClaims().slice(0, 8));
   readonly claimTableRows = computed<ClaimTableRow[]>(() => this.topClaims().map((claim, index) => {
-    const appointment = this.dashboard().appointments[index];
+    const appointment = claim.id === this.scenarioClaimId()
+      ? this.dashboard().appointments.find(item => item.id === this.scenarioAppointmentId())
+      : this.dashboard().appointments[index];
     return {
       claim,
-      patient: appointment?.patientDisplayName ?? 'Synthetic record',
+      patient: appointment?.patientDisplayName ?? 'Fictional record',
       appointmentAt: appointment?.startsAt,
       clinician: appointment?.clinician ?? 'Revenue cycle'
     };
@@ -310,24 +335,27 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   })));
   readonly auditSummary = computed(() => {
     const telemetry = this.auditTelemetry();
+    const outbox = this.dashboard().outbox;
+    const categoryCount = (label: string) => telemetry.categories.find(item => item.label === label)?.count ?? 0;
     return [
-      { label: 'Events today', value: `${telemetry.eventsToday}`, detail: 'Current payload', tone: 'cyan' as const },
-      { label: 'Signals / min', value: `${telemetry.signalsPerMinute}`, detail: 'Derived throughput', tone: 'violet' as const },
-      { label: 'Error rate', value: `${telemetry.errorRate}%`, detail: `${telemetry.flaggedEvents} flagged`, tone: 'amber' as const },
-      { label: 'Delivery rate', value: `${telemetry.deliveryRate}%`, detail: `${telemetry.deliveryEvents} delivery events`, tone: 'green' as const },
-      { label: 'Flagged events', value: `${telemetry.flaggedEvents}`, detail: 'Needs review', tone: 'coral' as const },
-      { label: 'Lag (p95)', value: `${telemetry.lagP95Seconds}s`, detail: 'Derived signal lag', tone: 'cyan' as const }
+      { label: 'Audit events', value: `${telemetry.eventsToday}`, detail: 'Current persisted snapshot', tone: 'cyan' as const },
+      { label: 'Appointment events', value: `${categoryCount('Appointments')}`, detail: 'Persisted transitions', tone: 'blue' as const },
+      { label: 'Documentation events', value: `${categoryCount('Documentation')}`, detail: 'Persisted transitions', tone: 'violet' as const },
+      { label: 'Claim events', value: `${categoryCount('Claims')}`, detail: 'Persisted transitions', tone: 'amber' as const },
+      { label: 'Outbox published', value: `${outbox.publishedMessages}`, detail: 'Broker-confirmed messages', tone: 'green' as const },
+      { label: 'Outbox pending', value: `${outbox.pendingMessages}`, detail: outbox.pendingMessages ? 'Waiting for publication' : 'Queue clear', tone: outbox.pendingMessages ? 'amber' as const : 'green' as const }
     ];
   });
   readonly auditCards = computed(() => {
     const telemetry = this.auditTelemetry();
     const signed = this.documentationTelemetry().signed;
     const claimEvents = telemetry.categories.find(item => item.label === 'Claims')?.count ?? 0;
+    const outbox = this.dashboard().outbox;
     return [
-      { title: 'Outbox delivery', value: `${telemetry.deliveryRate}%`, detail: 'Delivered', tone: 'cyan' as const },
-      { title: 'Flagged events', value: `${telemetry.flaggedEvents}`, detail: 'Needs review', tone: 'coral' as const },
+      { title: 'Outbox publication', value: `${outbox.publishedMessages}/${outbox.totalMessages}`, detail: this.outboxState().label, tone: this.outboxState().tone },
+      { title: 'Pending messages', value: `${outbox.pendingMessages}`, detail: outbox.pendingMessages ? 'Retrying safely' : 'Queue clear', tone: outbox.pendingMessages ? 'amber' as const : 'green' as const },
       { title: 'Note signatures', value: `${signed}`, detail: 'Signed', tone: 'green' as const },
-      { title: 'Claim status changes', value: `${claimEvents}`, detail: 'Events', tone: 'blue' as const }
+      { title: 'Claim status changes', value: `${claimEvents}`, detail: 'Audited events', tone: 'blue' as const }
     ];
   });
 
@@ -337,23 +365,20 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     .map((item, index) => ({
       patient: item.patientDisplayName,
       requested: new Date(item.startsAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }),
-      opening: `${index + 1} available slot${index === 0 ? '' : 's'}`
+      opening: `${index + 1} confirmation${index === 0 ? '' : 's'} pending`
     })));
 
   readonly integrationHealth = computed(() => {
     const live = this.apiMode() === 'live';
+    const outbox = this.dashboard().outbox;
     const notificationsEnabled = this.notificationPreferences().filter(item => item.state).length;
     return [
-      { name: 'PracticeOps API', detail: live ? 'Live dashboard endpoint' : 'Local synthetic fallback', state: live ? 'Healthy' : 'Demo', tone: live ? 'cyan' as const : 'violet' as const },
-      { name: 'Claims gateway', detail: `${this.dashboard().metrics.claimsAtRisk} claims monitored`, state: 'Healthy', tone: 'violet' as const },
-      { name: 'Audit pipeline', detail: `${this.auditTelemetry().eventsToday} events loaded`, state: 'Healthy', tone: 'cyan' as const },
-      { name: 'Notification service', detail: `${notificationsEnabled}/${this.notificationPreferences().length} preferences enabled`, state: notificationsEnabled > 0 ? 'Healthy' : 'Paused', tone: notificationsEnabled > 0 ? 'green' as const : 'amber' as const }
+      { name: 'PracticeOps API', detail: live ? this.updatedLabel() : 'Static fictional preview', state: this.systemState().label, tone: this.systemState().tone },
+      { name: 'PostgreSQL snapshot', detail: live ? 'Dashboard query completed' : 'Unavailable in preview mode', state: live ? 'Reachable' : 'Not connected', tone: live ? 'cyan' as const : 'violet' as const },
+      { name: 'Transactional outbox', detail: `${outbox.publishedMessages} published · ${outbox.pendingMessages} pending`, state: this.outboxState().label, tone: this.outboxState().tone },
+      { name: 'Local preferences', detail: `${notificationsEnabled}/${this.notificationPreferences().length} enabled in this browser`, state: 'Browser-local', tone: notificationsEnabled > 0 ? 'green' as const : 'amber' as const }
     ];
   });
-
-  constructor() {
-    this.load();
-  }
 
   ngAfterViewInit(): void {
     if (this.atmosphereCanvas) {
@@ -370,19 +395,26 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     this.activeView.set(view);
   }
 
-  selectPortfolioScenario(mode: 'portfolio' | 'live'): void {
-    this.portfolioScenario.set(mode);
-    if (mode === 'portfolio') {
-      this.applyDashboard(createDemoDashboard(), 'demo');
-      this.notice.set('Portfolio scenario active. All records are fictional and designed to demonstrate the full workflow.');
-      return;
-    }
-    if (this.liveDashboard) {
-      this.applyDashboard(this.liveDashboard, 'live');
-      this.notice.set('Live API data active. Switch back to Portfolio scenario for the curated demo day.');
-      return;
-    }
-    this.notice.set('Live API data is unavailable. Portfolio scenario remains active.');
+  refresh(): void {
+    this.refreshStore.refresh();
+  }
+
+  startScenario(): void {
+    this.selectedScheduleDate.set(null);
+    this.selectView(this.scenarioController.start());
+  }
+
+  resetScenario(): void {
+    this.selectedScheduleDate.set(null);
+    this.selectView(this.scenarioController.reset());
+  }
+
+  continueScenario(): void {
+    this.selectView(this.scenarioController.performCurrentAction());
+  }
+
+  openScenarioWorkspace(): void {
+    this.selectView(this.scenarioController.openCurrentWorkspace());
   }
 
   toggleProofLayer(): void {
@@ -398,7 +430,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   }
 
   shiftScheduleDate(days: number): void {
-    const next = new Date(this.selectedScheduleDate());
+    const next = new Date(this.effectiveScheduleDate());
     next.setDate(next.getDate() + days);
     this.selectedScheduleDate.set(startOfDay(next));
   }
@@ -435,28 +467,6 @@ export class AppComponent implements AfterViewInit, OnDestroy {
 
   toggleNotification(index: number): void {
     this.notificationPreferences.update(items => items.map((item, itemIndex) => itemIndex === index ? { ...item, state: !item.state } : item));
-  }
-
-  load(): void {
-    this.loading.set(true);
-    this.apiMode.set('connecting');
-    this.notice.set('');
-
-    this.http.get<Dashboard>('/api/dashboard').subscribe({
-      next: value => {
-        this.liveDashboard = value;
-        if (this.portfolioScenario() === 'portfolio') {
-          this.applyDashboard(createDemoDashboard(), 'demo');
-          this.notice.set('Portfolio scenario active. Live API data is available to inspect.');
-        } else {
-          this.applyDashboard(value, 'live');
-        }
-      },
-      error: () => {
-        this.applyDashboard(createDemoDashboard(), 'demo');
-        this.notice.set('API offline. Showing the complete local synthetic dataset.');
-      }
-    });
   }
 
   statusLabel(value: string): string {
@@ -504,29 +514,5 @@ export class AppComponent implements AfterViewInit, OnDestroy {
 
   trackAppointment(index: number, appointment: Appointment): string {
     return appointment.id || `${index}`;
-  }
-
-  private applyDashboard(value: Dashboard, mode: 'live' | 'demo'): void {
-    const reference = value.appointments[0] ? new Date(value.appointments[0].startsAt) : new Date();
-    const reconciled = reconcileDashboard(value, reference);
-    this.announceMetricChanges(this.dashboard().metrics, reconciled.metrics);
-    this.dashboard.set(reconciled);
-    this.selectedScheduleDate.set(startOfDay(reference));
-    this.selectedProvider.set('all');
-    this.selectedService.set('all');
-    this.selectedStatus.set('all');
-    this.apiMode.set(mode);
-    this.loading.set(false);
-  }
-
-  private announceMetricChanges(previous: DashboardMetrics, current: DashboardMetrics): void {
-    const changed = [
-      ['Appointments today', previous.appointmentsToday, current.appointmentsToday],
-      ['Unsigned notes', previous.unsignedNotes, current.unsignedNotes],
-      ['Claims at risk', previous.claimsAtRisk, current.claimsAtRisk],
-      ['Team utilization', previous.teamUtilization, current.teamUtilization]
-    ].filter(([, before, after]) => before !== after)
-      .map(([label, , after]) => `${label}: ${after}`);
-    this.kpiAnnouncement.set(changed.length ? `Operational metrics updated. ${changed.join(', ')}.` : '');
   }
 }

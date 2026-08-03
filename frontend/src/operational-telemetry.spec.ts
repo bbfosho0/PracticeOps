@@ -68,13 +68,16 @@ describe('PracticeOps operational telemetry', () => {
     expect(telemetry.completionRate).toBe(71);
   });
 
-  it('derives audit KPIs, categories, and spectrum from audit events', () => {
+  it('derives audit KPIs, categories, and a timestamp histogram from audit events', () => {
     const dashboard = reconcileDashboard(createDemoDashboard(now), now);
     const telemetry = buildAuditTelemetry(dashboard);
+    const populatedBuckets = telemetry.spectrum.filter(height => height > 0);
 
     expect(telemetry.eventsToday).toBe(dashboard.audit.length);
     expect(telemetry.categories.reduce((sum, category) => sum + category.count, 0)).toBe(dashboard.audit.length);
     expect(telemetry.spectrum.length).toBe(72);
-    expect(telemetry.spectrum.every(height => height >= 20 && height <= 96)).toBeTrue();
+    expect(populatedBuckets.length).toBeGreaterThan(0);
+    expect(populatedBuckets.length).toBeLessThanOrEqual(dashboard.audit.length);
+    expect(telemetry.spectrum.every(height => height === 0 || (height >= 20 && height <= 97))).toBeTrue();
   });
 });

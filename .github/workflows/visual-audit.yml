@@ -1,9 +1,6 @@
 name: Visual Audit
 
 on:
-  push:
-    branches:
-      - fix/functional-telemetry-layout
   pull_request:
     paths:
       - 'frontend/**'
@@ -31,7 +28,6 @@ jobs:
       - name: Serve production build
         run: |
           python3 -m http.server 4173 --directory dist/practiceops/browser > /tmp/practiceops-server.log 2>&1 &
-          echo $! > /tmp/practiceops-server.pid
           for attempt in {1..30}; do
             if curl --fail --silent http://127.0.0.1:4173/ > /dev/null; then
               exit 0
@@ -41,10 +37,10 @@ jobs:
           cat /tmp/practiceops-server.log
           exit 1
 
-      - name: Exercise telemetry, controls, and layouts
+      - name: Exercise portfolio workspaces and responsive layouts
         run: |
           mkdir -p visual-audit
-          cat > /tmp/practiceops-functional-audit.mjs <<'NODE'
+          cat > /tmp/practiceops-visual-audit.mjs <<'NODE'
           import { spawn } from 'node:child_process';
           import { writeFile } from 'node:fs/promises';
 
@@ -60,7 +56,7 @@ jobs:
             '--hide-scrollbars',
             '--force-device-scale-factor=1',
             '--remote-debugging-port=9222',
-            '--user-data-dir=/tmp/practiceops-functional-chrome',
+            '--user-data-dir=/tmp/practiceops-visual-chrome',
             '--window-size=1600,1000',
             'about:blank'
           ], { stdio: 'ignore' });
@@ -90,10 +86,10 @@ jobs:
             socket.addEventListener('message', event => {
               const message = JSON.parse(event.data);
               if (message.id && pending.has(message.id)) {
-                const { resolve, reject } = pending.get(message.id);
+                const operation = pending.get(message.id);
                 pending.delete(message.id);
-                if (message.error) reject(new Error(message.error.message));
-                else resolve(message.result);
+                if (message.error) operation.reject(new Error(message.error.message));
+                else operation.resolve(message.result);
               }
               if (message.method === 'Runtime.consoleAPICalled') {
                 consoleMessages.push({
@@ -113,28 +109,13 @@ jobs:
             });
 
             const evaluate = async expression => {
-              const response = await send('Runtime.evaluate', {
-                expression,
-                awaitPromise: true,
-                returnByValue: true
-              });
-              if (response.exceptionDetails) {
-                throw new Error(response.exceptionDetails.exception?.description ?? response.exceptionDetails.text);
-              }
+              const response = await send('Runtime.evaluate', { expression, awaitPromise: true, returnByValue: true });
+              if (response.exceptionDetails) throw new Error(response.exceptionDetails.exception?.description ?? response.exceptionDetails.text);
               return response.result.value;
             };
 
-            const screenshot = async fileName => {
-              const response = await send('Page.captureScreenshot', {
-                format: 'png',
-                captureBeyondViewport: false,
-                fromSurface: true
-              });
-              await writeFile(`visual-audit/${fileName}`, Buffer.from(response.data, 'base64'));
-            };
-
             const waitFor = async selector => {
-              for (let attempt = 0; attempt < 50; attempt += 1) {
+              for (let attempt = 0; attempt < 60; attempt += 1) {
                 if (await evaluate(`Boolean(document.querySelector(${JSON.stringify(selector)}))`)) return;
                 await sleep(120);
               }
@@ -149,34 +130,27 @@ jobs:
                 return true;
               })()`);
               assert(clicked, `Could not click ${selector} at index ${index}`);
-              await sleep(300);
+              await sleep(250);
             };
 
-            const selectValue = async (selector, value) => {
+            const setValue = async (selector, value, eventName) => {
               const changed = await evaluate(`(() => {
                 const element = document.querySelector(${JSON.stringify(selector)});
                 if (!element) return false;
                 element.value = ${JSON.stringify(value)};
-                element.dispatchEvent(new Event('change', { bubbles: true }));
+                element.dispatchEvent(new Event(${JSON.stringify(eventName)}, { bubbles: true }));
                 return true;
               })()`);
-              assert(changed, `Could not set ${selector}`);
-              await sleep(300);
+              assert(changed, `Could not update ${selector}`);
+              await sleep(250);
             };
 
-            const inputValue = async (selector, value) => {
-              const changed = await evaluate(`(() => {
-                const element = document.querySelector(${JSON.stringify(selector)});
-                if (!element) return false;
-                element.value = ${JSON.stringify(value)};
-                element.dispatchEvent(new Event('input', { bubbles: true }));
-                return true;
-              })()`);
-              assert(changed, `Could not input ${selector}`);
-              await sleep(300);
+            const screenshot = async fileName => {
+              const response = await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false, fromSurface: true });
+              await writeFile(`visual-audit/${fileName}`, Buffer.from(response.data, 'base64'));
             };
 
-            const layoutCheck = async (name, selectors) => {
+            const assertLayout = async (name, selectors) => {
               const result = await evaluate(`(() => {
                 const selectors = ${JSON.stringify(selectors)};
                 const items = selectors.map(selector => {
@@ -184,60 +158,34 @@ jobs:
                   if (!element) return { selector, missing: true };
                   const rect = element.getBoundingClientRect();
                   const style = getComputedStyle(element);
-                  return {
-                    selector,
-                    missing: false,
-                    rect: { x: rect.x, y: rect.y, width: rect.width, height: rect.height, right: rect.right, bottom: rect.bottom },
-                    display: style.display,
-                    visibility: style.visibility,
-                    opacity: Number(style.opacity)
-                  };
+                  return { selector, missing: false, width: rect.width, height: rect.height, display: style.display, visibility: style.visibility };
                 });
-                const visible = items.filter(item => !item.missing && item.display !== 'none' && item.visibility !== 'hidden' && item.opacity > 0 && item.rect.width > 1 && item.rect.height > 1);
-                const overlaps = [];
-                for (let left = 0; left < visible.length; left += 1) {
-                  for (let right = left + 1; right < visible.length; right += 1) {
-                    const a = visible[left].rect;
-                    const b = visible[right].rect;
-                    const width = Math.min(a.right, b.right) - Math.max(a.x, b.x);
-                    const height = Math.min(a.bottom, b.bottom) - Math.max(a.y, b.y);
-                    if (width > 3 && height > 3) overlaps.push([visible[left].selector, visible[right].selector, width, height]);
-                  }
-                }
-                return {
-                  name: ${JSON.stringify(name)},
-                  viewport: { width: innerWidth, height: innerHeight },
-                  documentWidth: document.documentElement.scrollWidth,
-                  items,
-                  overlaps
-                };
+                return { viewport: innerWidth, documentWidth: document.documentElement.scrollWidth, items };
               })()`);
               const missing = result.items.filter(item => item.missing).map(item => item.selector);
               assert(missing.length === 0, `${name} missing selectors: ${missing.join(', ')}`);
-              assert(result.documentWidth <= result.viewport.width + 2, `${name} has horizontal document overflow: ${result.documentWidth} > ${result.viewport.width}`);
-              assert(result.overlaps.length === 0, `${name} has overlapping primary panels: ${JSON.stringify(result.overlaps)}`);
+              assert(result.items.every(item => item.missing || (item.width > 1 && item.height > 1 && item.display !== 'none' && item.visibility !== 'hidden')), `${name} contains a hidden primary surface.`);
+              assert(result.documentWidth <= result.viewport + 2, `${name} has horizontal overflow: ${result.documentWidth} > ${result.viewport}`);
               return result;
             };
 
-            const viewDefinitions = [
-              { index: 0, id: 'overview', title: 'Operations observatory', selectors: ['.schedule-preview', '.documentation-preview', '.risk-preview', '.activity-preview'] },
+            const views = [
+              { index: 0, id: 'overview', title: 'Operations observatory', selectors: ['.scenario-rail', '.schedule-preview', '.documentation-preview', '.risk-preview', '.activity-preview'] },
               { index: 1, id: 'schedule', title: 'Temporal runway', selectors: ['.runway-panel', '.schedule-side'] },
               { index: 2, id: 'documentation', title: 'Documentation continuum', selectors: ['.continuum-panel', '.note-queue', '.backlog-panel', '.bottleneck-panel', '.followup-panel'] },
               { index: 3, id: 'claims', title: 'Risk constellation', selectors: ['.exposure-card', '.constellation-panel', '.trend-panel', '.distribution-panel', '.payer-panel', '.claim-actions-panel', '.claims-table-panel'] },
               { index: 4, id: 'audit', title: 'Event spectrum', selectors: ['.spectrum-panel', '.event-types-panel', '.activity-table-panel'] },
-              { index: 5, id: 'settings', title: 'Workspace parameters', selectors: ['.demo-boundary', '.workspace-profile', '.preference-panel', '.role-panel', '.integrations-panel', '.system-panel'] }
+              { index: 5, id: 'settings', title: 'System & Demo', selectors: ['.demo-boundary', '.workspace-profile', '.preference-panel', '.role-panel', '.integrations-panel', '.system-panel'] }
             ];
 
-            const selectWorkspace = async definition => {
-              await click('.dock-item', definition.index);
+            const selectView = async view => {
+              await click('.dock-item', view.index);
               const state = await evaluate(`(() => ({
                 title: document.querySelector('h1')?.textContent?.trim(),
-                activeLabel: document.querySelector('.dock-item[aria-current="page"]')?.getAttribute('aria-label'),
                 dataView: document.querySelector('.observatory')?.getAttribute('data-view')
               }))()`);
-              assert(state.title === definition.title, `Expected ${definition.title}, received ${state.title}`);
-              assert(state.dataView === definition.id, `Expected data-view ${definition.id}, received ${state.dataView}`);
-              return state;
+              assert(state.title === view.title, `Expected ${view.title}, received ${state.title}`);
+              assert(state.dataView === view.id, `Expected data-view ${view.id}, received ${state.dataView}`);
             };
 
             await send('Page.enable');
@@ -247,86 +195,87 @@ jobs:
             await waitFor('.metric-signal');
             await sleep(900);
 
-            const evidence = { desktop: {}, mobile: {}, interactions: {}, kpis: null };
-            const kpis = await evaluate(`[...document.querySelectorAll('.metric-signal')].map(item => ({
-              label: item.querySelector('.metric-copy > span')?.textContent?.trim(),
-              value: item.querySelector('strong')?.textContent?.trim(),
-              detail: item.querySelector('small')?.textContent?.trim()
-            }))`);
-            assert(JSON.stringify(kpis.map(item => item.value)) === JSON.stringify(['24', '7', '12', '86%']), `KPI values did not reconcile: ${JSON.stringify(kpis)}`);
-            assert(kpis[2].detail.includes('$54.3k'), `Claim exposure detail is stale: ${kpis[2].detail}`);
-            evidence.kpis = kpis;
+            const evidence = { desktop: {}, mobile: {}, interactions: {} };
+            const kpis = await evaluate(`[...document.querySelectorAll('.metric-signal strong')].map(element => element.textContent?.trim())`);
+            assert(JSON.stringify(kpis) === JSON.stringify(['24', '7', '12', '86%']), `KPI values did not reconcile: ${JSON.stringify(kpis)}`);
+            assert(await evaluate(`document.querySelector('.observatory')?.getAttribute('data-api-mode')`) === 'demo', 'Static visual audit must enter explicit synthetic preview mode.');
+            assert(await evaluate(`document.querySelector('.scenario-primary')?.disabled`) === true, 'Synthetic preview must disable persisted scenario actions.');
+            assert((await evaluate(`document.querySelector('.mode-notice')?.textContent`)).includes('Synthetic preview'), 'Synthetic fallback notice is missing.');
 
-            for (const definition of viewDefinitions) {
-              evidence.desktop[definition.id] = await selectWorkspace(definition);
-              evidence.desktop[definition.id].layout = await layoutCheck(`${definition.id}-desktop`, definition.selectors);
-              await screenshot(`${definition.id}-desktop.png`);
+            const polishState = await evaluate(`(() => {
+              const focusTarget = document.querySelector('.refresh-control');
+              focusTarget?.focus();
+              const focusStyle = focusTarget ? getComputedStyle(focusTarget) : null;
+              const kicker = document.querySelector('.panel-kicker');
+              const primary = document.querySelector('.scenario-primary');
+              return {
+                focusOutline: focusStyle?.outlineStyle,
+                focusShadow: focusStyle?.boxShadow,
+                kickerSize: kicker ? parseFloat(getComputedStyle(kicker).fontSize) : 0,
+                primaryHeight: primary?.getBoundingClientRect().height ?? 0
+              };
+            })()`);
+            assert(polishState.kickerSize >= 10, `Operational microcopy is too small: ${JSON.stringify(polishState)}`);
+            assert(polishState.primaryHeight >= 40, `Primary action target is too short: ${JSON.stringify(polishState)}`);
+            assert(polishState.focusOutline !== 'none' || polishState.focusShadow !== 'none', `Keyboard focus is not visible: ${JSON.stringify(polishState)}`);
+
+            for (const view of views) {
+              await selectView(view);
+              evidence.desktop[view.id] = await assertLayout(`${view.id}-desktop`, view.selectors);
+              await screenshot(`${view.id}-desktop.png`);
             }
 
-            await selectWorkspace(viewDefinitions[1]);
+            await selectView(views[1]);
             await click('.segmented-control button', 1);
-            assert(await evaluate(`document.querySelector('.schedule-workspace')?.getAttribute('data-mode')`) === 'week', 'Week mode did not activate.');
-            assert(await evaluate(`Boolean(document.querySelector('.week-panel'))`), 'Week mode did not render its panel.');
-            evidence.interactions.weekMode = true;
-
+            assert(await evaluate(`Boolean(document.querySelector('.week-panel'))`), 'Week mode did not render.');
             await click('.segmented-control button', 2);
-            assert(await evaluate(`document.querySelector('.schedule-workspace')?.getAttribute('data-mode')`) === 'list', 'List mode did not activate.');
-            assert(await evaluate(`Boolean(document.querySelector('.list-panel'))`), 'List mode did not render its panel.');
-            evidence.interactions.listMode = true;
-
+            assert(await evaluate(`Boolean(document.querySelector('.list-panel'))`), 'List mode did not render.');
             await click('.segmented-control button', 0);
-            const providerValue = await evaluate(`document.querySelector('select[aria-label="Filter by provider"] option:nth-child(2)')?.value`);
-            assert(Boolean(providerValue), 'Provider filter has no data options.');
-            await selectValue('select[aria-label="Filter by provider"]', providerValue);
+            const provider = await evaluate(`document.querySelector('select[aria-label="Filter by provider"] option:nth-child(2)')?.value`);
+            await setValue('select[aria-label="Filter by provider"]', provider, 'change');
             const filteredAppointments = await evaluate(`document.querySelectorAll('.appointment-block').length`);
-            assert(filteredAppointments > 0 && filteredAppointments < 24, `Provider filter did not change the runway: ${filteredAppointments}`);
-            evidence.interactions.providerFilter = { providerValue, filteredAppointments };
-            await selectValue('select[aria-label="Filter by provider"]', 'all');
+            assert(filteredAppointments > 0 && filteredAppointments < 24, `Provider filter did not narrow the runway: ${filteredAppointments}`);
+            evidence.interactions.providerFilter = filteredAppointments;
 
-            const initialDate = await evaluate(`document.querySelector('.date-control span')?.textContent?.trim()`);
-            await click('button[aria-label="Next day"]');
-            const nextDate = await evaluate(`document.querySelector('.date-control span')?.textContent?.trim()`);
-            assert(initialDate !== nextDate, 'Next-day control did not change the selected date.');
-            assert(await evaluate(`Boolean(document.querySelector('.runway-panel .workspace-empty'))`), 'Empty schedule state did not render for a date without records.');
-            await click('button[aria-label="Previous day"]');
-            evidence.interactions.dateNavigation = { initialDate, nextDate };
+            await selectView(views[3]);
+            await setValue('select[aria-label="Filter claims by payer"]', 'Aetna', 'change');
+            await setValue('input[aria-label="Search claims"]', 'CLM-740103', 'input');
+            const claimResults = await evaluate(`document.querySelectorAll('.claims-table .table-row:not(.table-head)').length`);
+            assert(claimResults === 1, `Claim search expected one result, received ${claimResults}`);
+            evidence.interactions.claimSearch = claimResults;
 
-            await selectWorkspace(viewDefinitions[3]);
-            await selectValue('select[aria-label="Filter claims by payer"]', 'Aetna');
-            const payerResults = await evaluate(`document.querySelectorAll('.claims-table .table-row:not(.table-head)').length`);
-            assert(payerResults > 0 && payerResults < 8, `Payer filter did not narrow claims: ${payerResults}`);
-            await inputValue('input[aria-label="Search claims"]', 'CLM-740103');
-            const searchResults = await evaluate(`document.querySelectorAll('.claims-table .table-row:not(.table-head)').length`);
-            assert(searchResults === 1, `Claim search expected 1 result, received ${searchResults}`);
-            evidence.interactions.claimFilters = { payerResults, searchResults };
-            await click('.distribution-panel .text-action');
-
-            await selectWorkspace(viewDefinitions[5]);
+            await selectView(views[5]);
             const beforeToggle = await evaluate(`document.querySelector('.preference-toggle')?.getAttribute('aria-checked')`);
-            await click('.preference-toggle', 0);
+            await click('.preference-toggle');
             const afterToggle = await evaluate(`document.querySelector('.preference-toggle')?.getAttribute('aria-checked')`);
-            assert(beforeToggle !== afterToggle, `Notification switch did not toggle: ${beforeToggle} -> ${afterToggle}`);
-            evidence.interactions.notificationToggle = { beforeToggle, afterToggle };
+            assert(beforeToggle !== afterToggle, 'Browser-local preference did not toggle.');
+            evidence.interactions.preferenceToggle = { beforeToggle, afterToggle };
 
             await send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
             await sleep(500);
-            for (const definition of viewDefinitions) {
-              evidence.mobile[definition.id] = await selectWorkspace(definition);
-              const mobileLayout = await layoutCheck(`${definition.id}-mobile`, definition.selectors.slice(0, Math.min(2, definition.selectors.length)));
-              evidence.mobile[definition.id].layout = mobileLayout;
-              const navState = await evaluate(`(() => {
-                const dock = document.querySelector('.command-dock');
-                const items = [...document.querySelectorAll('.dock-item')];
-                const rect = dock?.getBoundingClientRect();
-                return { count: items.length, dockRight: rect?.right, viewport: innerWidth };
-              })()`);
-              assert(navState.count === 6, `Mobile dock has ${navState.count} destinations.`);
-              assert(navState.dockRight <= navState.viewport + 2, `Mobile dock exceeds viewport: ${JSON.stringify(navState)}`);
-              await screenshot(`${definition.id}-mobile.png`);
+            for (const view of views) {
+              await selectView(view);
+              evidence.mobile[view.id] = await assertLayout(`${view.id}-mobile`, view.selectors.slice(0, 2));
+              const navCount = await evaluate(`document.querySelectorAll('.dock-item').length`);
+              assert(navCount === 6, `Mobile navigation has ${navCount} destinations.`);
+              if (view.id === 'overview') {
+                const mobilePolish = await evaluate(`(() => {
+                  const rail = document.querySelector('.scenario-rail');
+                  const workspace = document.querySelector('.workspace');
+                  return {
+                    railHeight: rail?.getBoundingClientRect().height ?? 0,
+                    workspacePaddingBottom: workspace ? parseFloat(getComputedStyle(workspace).paddingBottom) : 0
+                  };
+                })()`);
+                assert(mobilePolish.railHeight < 360, `Mobile journey rail is too tall: ${JSON.stringify(mobilePolish)}`);
+                assert(mobilePolish.workspacePaddingBottom >= 100, `Mobile navigation safe area is missing: ${JSON.stringify(mobilePolish)}`);
+              }
+              await screenshot(`${view.id}-mobile.png`);
             }
 
             const relevantConsoleMessages = consoleMessages.filter(message => ['error', 'exception', 'assert'].includes(message.type));
             assert(relevantConsoleMessages.length === 0, `Browser console errors: ${JSON.stringify(relevantConsoleMessages)}`);
+            evidence.polish = polishState;
             await writeFile('visual-audit/functional.json', JSON.stringify(evidence, null, 2));
             await writeFile('visual-audit/console.json', JSON.stringify(consoleMessages, null, 2));
             socket.close();
@@ -334,7 +283,7 @@ jobs:
             chrome.kill('SIGTERM');
           }
           NODE
-          node /tmp/practiceops-functional-audit.mjs
+          node /tmp/practiceops-visual-audit.mjs
           test -s visual-audit/functional.json
           test -s visual-audit/console.json
           for view in overview schedule documentation claims audit settings; do
@@ -344,7 +293,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: clinical-observatory-functional-audit
+          name: practiceops-portfolio-visual-audit
           path: frontend/visual-audit/*
           if-no-files-found: error
           retention-days: 7

@@ -29,3 +29,104 @@ jobs:
       - run: npm ci
       - run: npm run test -- --watch=false
       - run: npm run build
+
+  portfolio-journey:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Start PostgreSQL, RabbitMQ, and API
+        run: docker compose up --build --detach
+
+      - name: Wait for API readiness
+        run: |
+          for attempt in {1..60}; do
+            if curl --fail --silent http://127.0.0.1:8081/health/ready > /dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          docker compose ps
+          docker compose logs api
+          exit 1
+
+      - name: Exercise persisted employer journey
+        run: |
+          python3 <<'PY'
+          import json
+          import time
+          import urllib.request
+
+          base = 'http://127.0.0.1:8081'
+
+          def request(path, method='GET', payload=None):
+              data = None if payload is None else json.dumps(payload).encode('utf-8')
+              req = urllib.request.Request(
+                  base + path,
+                  data=data,
+                  method=method,
+                  headers={'Content-Type': 'application/json'} if data else {})
+              with urllib.request.urlopen(req, timeout=20) as response:
+                  return json.load(response)
+
+          dashboard = request('/api/demo/reset', 'POST', {})
+          scenario = dashboard['scenario']
+          assert scenario['completedSteps'] == 0, scenario
+          assert scenario['totalSteps'] == 5, scenario
+          assert dashboard['metrics']['appointmentsToday'] == 24, dashboard['metrics']
+          assert dashboard['metrics']['unsignedNotes'] == 7, dashboard['metrics']
+          assert dashboard['metrics']['claimsAtRisk'] == 12, dashboard['metrics']
+          assert len(dashboard['audit']) == 12, len(dashboard['audit'])
+          assert dashboard['outbox']['totalMessages'] == 0, dashboard['outbox']
+
+          actor = 'Portfolio acceptance test'
+          transitions = [
+              (f"/api/appointments/{scenario['appointmentId']}/status", 'Confirmed', 1),
+              (f"/api/notes/{scenario['clinicalNoteId']}/status", 'InReview', 2),
+              (f"/api/notes/{scenario['clinicalNoteId']}/status", 'Signed', 3),
+              (f"/api/claims/{scenario['claimId']}/status", 'ReadyForSubmission', 4),
+              (f"/api/claims/{scenario['claimId']}/status", 'Submitted', 5),
+          ]
+
+          for path, status, expected_steps in transitions:
+              request(path, 'POST', {'status': status, 'actor': actor})
+              dashboard = request('/api/dashboard')
+              assert dashboard['scenario']['completedSteps'] == expected_steps, dashboard['scenario']
+
+          assert dashboard['scenario']['currentStepId'] == 'inspect-proof', dashboard['scenario']
+          assert dashboard['scenario']['currentWorkspace'] == 'audit', dashboard['scenario']
+          assert dashboard['metrics']['unsignedNotes'] == 6, dashboard['metrics']
+          assert dashboard['metrics']['claimsAtRisk'] == 11, dashboard['metrics']
+          assert len(dashboard['audit']) == 17, len(dashboard['audit'])
+          assert dashboard['outbox']['totalMessages'] == 5, dashboard['outbox']
+
+          for _ in range(30):
+              dashboard = request('/api/dashboard')
+              if dashboard['outbox']['publishedMessages'] == 5:
+                  break
+              time.sleep(1)
+
+          assert dashboard['outbox']['pendingMessages'] == 0, dashboard['outbox']
+          assert dashboard['outbox']['publishedMessages'] == 5, dashboard['outbox']
+          assert dashboard['scenario']['completionPercent'] == 100, dashboard['scenario']
+          print(json.dumps({
+              'scenario': dashboard['scenario'],
+              'metrics': dashboard['metrics'],
+              'outbox': dashboard['outbox'],
+              'auditCount': len(dashboard['audit'])
+          }, indent=2))
+          PY
+
+      - name: Verify RabbitMQ routing proof
+        run: |
+          docker compose exec -T rabbitmq rabbitmqctl list_queues name messages --quiet |
+            grep -E '^practiceops\.portfolio\.audit[[:space:]]+5$'
+
+      - name: Print service logs on failure
+        if: failure()
+        run: docker compose logs
+
+      - name: Stop acceptance stack
+        if: always()
+        run: docker compose down --volumes --remove-orphans
