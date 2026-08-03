@@ -40,6 +40,34 @@ describe('ScheduleFiltersComponent', () => {
     expect(providers).toEqual(['Dr. B']);
   });
 
+  it('emits status changes from the status filter', () => {
+    const fixture = render();
+    const statuses: string[] = [];
+    fixture.componentInstance.statusChanged.subscribe(status => statuses.push(status));
+    const status = (fixture.nativeElement as HTMLElement).querySelector(
+      'select[aria-label="Filter by status"]'
+    ) as HTMLSelectElement;
+
+    status.value = 'Confirmed';
+    status.dispatchEvent(new Event('change'));
+
+    expect(statuses).toEqual(['Confirmed']);
+  });
+
+  it('emits service changes from the visit-type filter', () => {
+    const fixture = render();
+    const services: string[] = [];
+    fixture.componentInstance.serviceChanged.subscribe(service => services.push(service));
+    const service = (fixture.nativeElement as HTMLElement).querySelector(
+      'select[aria-label="Filter by visit type"]'
+    ) as HTMLSelectElement;
+
+    service.value = 'Therapy';
+    service.dispatchEvent(new Event('change'));
+
+    expect(services).toEqual(['Therapy']);
+  });
+
   it('exposes the selected list mode through pressed state', () => {
     const fixture = render('list');
     const buttons = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('.segmented-control button'));

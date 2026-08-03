@@ -104,6 +104,35 @@ describe('ScheduleWorkspaceComponent', () => {
     expect(filtered.map(appointment => appointment.id)).toEqual([second.id]);
   });
 
+  it('forwards child control outputs through the workspace boundary', () => {
+    const fixture = render('day');
+    const dateShifts: number[] = [];
+    const modes: string[] = [];
+    const statuses: string[] = [];
+    const providers: string[] = [];
+    const services: string[] = [];
+    fixture.componentInstance.dateShifted.subscribe(value => dateShifts.push(value));
+    fixture.componentInstance.modeChanged.subscribe(value => modes.push(value));
+    fixture.componentInstance.statusChanged.subscribe(value => statuses.push(value));
+    fixture.componentInstance.providerChanged.subscribe(value => providers.push(value));
+    fixture.componentInstance.serviceChanged.subscribe(value => services.push(value));
+    const host = fixture.nativeElement as HTMLElement;
+
+    (host.querySelector('button[aria-label="Next day"]') as HTMLButtonElement).click();
+    (Array.from(host.querySelectorAll('.segmented-control button')).find(
+      button => button.textContent?.trim() === 'List'
+    ) as HTMLButtonElement).click();
+    changeSelect(host, 'Filter by status', appointments[0].status);
+    changeSelect(host, 'Filter by provider', appointments[0].clinician);
+    changeSelect(host, 'Filter by visit type', appointments[0].service);
+
+    expect(dateShifts).toEqual([1]);
+    expect(modes).toEqual(['list']);
+    expect(statuses).toEqual([appointments[0].status]);
+    expect(providers).toEqual([appointments[0].clinician]);
+    expect(services).toEqual([appointments[0].service]);
+  });
+
   it('retains the workspace and side-telemetry grids in component-scoped CSS', () => {
     render('day');
 
@@ -121,4 +150,10 @@ function componentStyleRule(selector: string): CSSStyleDeclaration | undefined {
     }
   }
   return undefined;
+}
+
+function changeSelect(host: HTMLElement, label: string, value: string): void {
+  const select = host.querySelector(`select[aria-label="${label}"]`) as HTMLSelectElement;
+  select.value = value;
+  select.dispatchEvent(new Event('change'));
 }
