@@ -34,10 +34,10 @@ jobs:
             @angular/animations@20.2.0 \
             @angular/platform-browser-dynamic@20.2.0
           npm install --save-dev --save-exact --legacy-peer-deps \
-            @storybook/angular@10.5.6 \
-            @storybook/addon-a11y@10.5.6 \
-            @storybook/addon-essentials@10.5.6 \
-            @storybook/test@10.5.6 \
+            @storybook/angular@9.0.15 \
+            @storybook/addon-a11y@9.0.15 \
+            @storybook/addon-essentials@9.0.15 \
+            @storybook/test@9.0.15 \
             @playwright/test@1.55.0
           npm pkg set scripts.storybook="storybook dev -p 6006"
           npm pkg set scripts.build-storybook="storybook build"
