@@ -30,6 +30,7 @@ import {
 } from './operational-telemetry';
 import { AtmosphereRenderer } from './atmosphere-renderer';
 import { MetricValueMotionDirective } from './metric-value-motion.directive';
+import { RiskTopologyComponent } from './risk-topology.component';
 import { OperationalRefreshStore } from './operational-refresh.store';
 import { PortfolioScenarioController } from './portfolio-scenario.controller';
 import { resolveInitialScheduleDate } from './schedule-date';
@@ -133,9 +134,9 @@ function defaultProofLayerOpen(): boolean {
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CurrencyPipe, DatePipe, DecimalPipe, MetricValueMotionDirective],
+  imports: [CurrencyPipe, DatePipe, DecimalPipe, MetricValueMotionDirective, RiskTopologyComponent],
   templateUrl: './app.component.html',
-  styleUrls: ['./app.component.css', './app.component.workspaces.css', './portfolio-showcase.css'],
+  styleUrls: ['./app.component.css', './app.component.workspaces.css', './portfolio-showcase.css', './tailwind-structure.css'],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class AppComponent implements AfterViewInit, OnDestroy {

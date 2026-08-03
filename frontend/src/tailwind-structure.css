@@ -1,0 +1,115 @@
+@reference "./styles.css";
+
+:host {
+  @apply block min-h-screen font-sans text-white;
+}
+
+.workspace {
+  @apply px-4 pb-16 pt-5 sm:px-6 2xl:px-8 3xl:px-10;
+}
+
+.workspace-header {
+  @apply rounded-panel border border-white/5 bg-ink/30 p-4 shadow-panel backdrop-blur-md sm:p-5;
+}
+
+.header-copy h1 {
+  @apply font-display text-3xl leading-none tracking-[-0.025em] text-white sm:text-4xl;
+}
+
+.header-copy p {
+  @apply max-w-3xl text-sm leading-6 text-muted;
+}
+
+.header-actions,
+.scenario-actions {
+  @apply gap-2.5;
+}
+
+.glass-panel {
+  @apply rounded-panel border border-white/10 bg-ink/75 shadow-observatory backdrop-blur-xl;
+}
+
+.panel-header {
+  @apply gap-3;
+}
+
+.panel-kicker,
+.eyebrow {
+  @apply text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-cyan/75;
+}
+
+.panel-subtitle {
+  @apply text-xs text-muted;
+}
+
+.signal-strip {
+  @apply gap-4;
+}
+
+.metric-signal {
+  @apply rounded-panel border border-white/10 bg-ink/65 p-4 shadow-panel backdrop-blur-lg transition duration-200 ease-out;
+}
+
+.metric-signal:hover {
+  translate: 0 -2px;
+  border-color: rgb(25 217 255 / 0.22);
+}
+
+.metric-copy > span {
+  @apply text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-muted;
+}
+
+.metric-copy strong {
+  @apply tabular-nums tracking-[-0.04em] text-white;
+}
+
+.metric-copy small {
+  @apply leading-5 text-muted;
+}
+
+:where(.refresh-control, .scenario-primary, .scenario-secondary, .text-action, .segmented-control button) {
+  @apply rounded-control border border-white/10 transition duration-150 ease-out;
+}
+
+:where(.refresh-control, .scenario-primary, .scenario-secondary, .text-action, .segmented-control button):focus-visible {
+  @apply outline-none ring-2 ring-cyan/70 ring-offset-2 ring-offset-obsidian;
+}
+
+:where(.refresh-control, .scenario-secondary, .segmented-control button):hover:not(:disabled) {
+  @apply border-cyan/25 bg-white/5;
+}
+
+.scenario-primary {
+  @apply border-cyan/35 bg-cyan/10 shadow-[0_0_24px_rgb(25_217_255_/_0.1)];
+}
+
+:where(.live-pill, .demo-pill, .status-chip) {
+  @apply rounded-full border border-white/10 bg-white/[0.035] px-2.5 py-1 text-xs font-medium;
+}
+
+.schedule-row,
+.activity-row {
+  @apply rounded-xl transition duration-150 ease-out;
+}
+
+.schedule-row:hover,
+.activity-row:hover {
+  @apply bg-white/[0.035];
+}
+
+.mode-notice {
+  @apply rounded-control border border-warning/20 bg-warning/[0.06] shadow-panel;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .metric-signal,
+  :where(.refresh-control, .scenario-primary, .scenario-secondary, .text-action, .segmented-control button),
+  .schedule-row,
+  .activity-row {
+    transition-duration: 1ms;
+  }
+
+  .metric-signal:hover {
+    translate: none;
+  }
+}

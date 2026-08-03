@@ -107,7 +107,7 @@
 
             <article class="glass-panel risk-preview">
               <header class="panel-header"><span class="panel-kicker">Claims risk topology</span><button type="button" class="text-action warning" (click)="selectView('claims')">{{ dashboard().metrics.claimsAtRisk }} at risk</button></header>
-              <div class="risk-radar"><span class="radar-ring ring-one"></span><span class="radar-ring ring-two"></span><span class="radar-ring ring-three"></span><span class="radar-axis axis-x"></span><span class="radar-axis axis-y"></span><span class="risk-core"><strong>{{ dashboard().metrics.claimsAtRisk }}</strong><small>At risk</small></span>@for (slice of riskDistribution(); track slice.label) { <span class="risk-node node-{{ $index + 1 }}" [attr.data-tone]="slice.tone"><i></i><b>{{ slice.label }}</b><small>{{ slice.count }}</small></span> }</div>
+              <app-risk-topology [slices]="riskDistribution()" [totalAtRisk]="dashboard().metrics.claimsAtRisk"></app-risk-topology>
             </article>
 
             <article class="glass-panel activity-preview">

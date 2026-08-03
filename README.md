@@ -68,7 +68,7 @@ PracticeOps is intentionally a modular monolith. It keeps local development and 
 | Persistence | Entity Framework Core, PostgreSQL |
 | Messaging | RabbitMQ.Client, transactional outbox |
 | Frontend | Angular 20, TypeScript, standalone components, signals, RxJS |
-| Visual system | CSS gradients, backdrop filters, SVG, WebGL2 atmosphere, responsive grid |
+| Visual system | Tailwind CSS v4 structure and tokens, custom CSS, inline SVG, WebGL2 atmosphere |
 | API quality | OpenAPI, RFC 9457 Problem Details, health checks |
 | Testing | xUnit domain/reset/scenario tests, Jasmine model/refresh/action tests |
 | Delivery | Docker Compose, GitHub Actions, responsive visual audit |
@@ -160,7 +160,7 @@ AGENTS.md                                  Engineering conventions
 - Code-first implementation guide: [`docs/design/clinical-observatory-code-first.md`](docs/design/clinical-observatory-code-first.md)
 - Browser source of truth: [`frontend/src/app.component.html`](frontend/src/app.component.html) and the styles under [`frontend/src`](frontend/src)
 
-The browser implementation is the final source of truth for materials, lighting, motion, responsiveness, and accessibility. Figma remains the editable layout and interaction blueprint.
+The browser implementation is the final source of truth for materials, lighting, motion, responsiveness, and accessibility. Tailwind provides structural tokens and reusable layout rules, while custom CSS, inline SVG, and WebGL preserve the Clinical Observatory effects. Figma remains the editable layout and interaction blueprint.
 
 ## Important boundary
 
