@@ -41,20 +41,14 @@ jobs:
           PY
           python scripts/apply-final-polish.py
 
-      - name: Remove one-time automation
+      - name: Keep workflow changes for connector-managed cleanup
         run: |
-          python3 <<'PY'
-          from pathlib import Path
-          path = Path('.github/workflows/ci.yml')
-          content = path.read_text()
-          start = content.index('  # BEGIN ONE-TIME FINAL POLISH APPLICATOR\n')
-          end = content.index('  # END ONE-TIME FINAL POLISH APPLICATOR\n') + len('  # END ONE-TIME FINAL POLISH APPLICATOR\n')
-          path.write_text(content[:start] + content[end:])
-          PY
+          git checkout -- .github/workflows/ci.yml
+          git checkout -- .github/workflows/visual-audit.yml
+          git checkout -- .github/workflows/apply-final-polish.yml
           rm scripts/apply-final-polish.py
-          rm .github/workflows/apply-final-polish.yml
 
-      - name: Commit audited refinements
+      - name: Commit audited application refinements
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
