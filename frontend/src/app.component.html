@@ -26,8 +26,12 @@
       <div class="brand-lockup"><span class="product-name">PracticeOps</span><span class="product-divider"></span><span class="product-context">Clinical Observatory</span></div>
       <div class="header-copy"><span class="eyebrow">{{ view().eyebrow }}</span><h1>{{ view().title }}</h1><p>{{ view().description }}</p></div>
       <div class="header-actions">
+        <div class="portfolio-control" role="group" aria-label="Portfolio data source">
+          <button type="button" [class.active]="portfolioScenario() === 'portfolio'" [attr.aria-pressed]="portfolioScenario() === 'portfolio'" (click)="selectPortfolioScenario('portfolio')">Portfolio scenario</button>
+          <button type="button" [class.active]="portfolioScenario() === 'live'" [attr.aria-pressed]="portfolioScenario() === 'live'" (click)="selectPortfolioScenario('live')">Live API</button>
+        </div>
         <span class="live-pill" [attr.data-tone]="view().tone"><span class="live-dot"></span>{{ view().liveLabel }}</span>
-        <span class="demo-pill">Synthetic demo</span><span class="avatar" aria-label="Yoshi Gomez">YG</span>
+        <span class="demo-pill">Portfolio mode</span><span class="avatar" aria-label="Yoshi Gomez">YG</span>
       </div>
     </header>
 
@@ -160,7 +164,7 @@
 
           <article class="glass-panel claims-table-panel"><header class="table-toolbar"><div><span class="panel-kicker">Claims at risk</span><small>{{ filteredClaims().length }} results</small></div><div class="claim-filters"><select aria-label="Filter claims by risk" [value]="claimRiskFilter()" (change)="setClaimRisk($any($event.target).value)"><option value="all">All risk types</option>@for (slice of riskDistribution(); track slice.label) { <option [value]="slice.label">{{ slice.label }}</option> }</select><select aria-label="Filter claims by payer" [value]="claimPayerFilter()" (change)="setClaimPayer($any($event.target).value)"><option value="all">All payers</option>@for (payer of payerOptions(); track payer) { <option [value]="payer">{{ payer }}</option> }</select><input type="search" aria-label="Search claims" placeholder="Search claims" [value]="claimSearch()" (input)="setClaimSearch($any($event.target).value)"></div></header>
             <div class="data-table claims-table" role="table" aria-label="Claims at risk"><div class="table-row table-head" role="row"><span>Claim #</span><span>Patient</span><span>DOS</span><span>Payer</span><span>Risk type</span><span>Risk reason</span><span>Exposure</span><span>Days</span><span>Status</span><span>Owner</span></div>
-              @for (claim of topClaims(); track claim.id) { <div class="table-row" role="row"><strong>{{ claim.number }}</strong><span>{{ dashboard().appointments[$index].patientDisplayName }}</span><span>{{ dashboard().appointments[$index].startsAt | date:'MM/dd/yy' }}</span><span>{{ claim.payer }}</span><span>{{ riskLabel(claim) }}</span><span>{{ claim.riskReason }}</span><b>{{ claim.amount | currency:'USD':'symbol':'1.0-0' }}</b><span>{{ 18 - $index * 3 }}</span><span class="status-text" [attr.data-tone]="tone(claim.status)">{{ statusLabel(claim.status) }}</span><span>{{ dashboard().appointments[$index].clinician }}</span></div> } @empty { <div class="workspace-empty table-empty"><strong>No claims match the current filters.</strong><small>Clear the search or choose a different payer or risk type.</small></div> }
+              @for (row of claimTableRows(); track row.claim.id) { <div class="table-row" role="row"><strong>{{ row.claim.number }}</strong><span>{{ row.patient }}</span><span>{{ row.appointmentAt ? (row.appointmentAt | date:'MM/dd/yy') : '—' }}</span><span>{{ row.claim.payer }}</span><span>{{ riskLabel(row.claim) }}</span><span>{{ row.claim.riskReason }}</span><b>{{ row.claim.amount | currency:'USD':'symbol':'1.0-0' }}</b><span>{{ 18 - $index * 3 }}</span><span class="status-text" [attr.data-tone]="tone(row.claim.status)">{{ statusLabel(row.claim.status) }}</span><span>{{ row.clinician }}</span></div> } @empty { <div class="workspace-empty table-empty"><strong>No claims match the current filters.</strong><small>Clear the search or choose a different payer or risk type.</small></div> }
             </div>
           </article>
         }
@@ -188,6 +192,20 @@
       }
 
       <footer class="system-footer"><div><span class="system-dot"></span><strong>All systems operational</strong></div><div><span>Data freshness</span><strong>{{ apiMode() === 'live' ? 'Live API' : 'Local synthetic data' }}</strong></div><div><span>Practice</span><strong>Mindful Health Partners</strong></div><div><span>Signals monitored</span><strong>{{ activeView() === 'audit' ? '8 / 8' : '3 / 3' }}</strong></div></footer>
+
+      <aside class="portfolio-proof" [class.is-collapsed]="!proofLayerOpen()" aria-label="Operator's proof layer">
+        <header><div><span class="panel-kicker">Operator's proof layer</span><strong>{{ proofLayerOpen() ? 'How this demo was built' : 'Portfolio proof' }}</strong></div><button type="button" [attr.aria-expanded]="proofLayerOpen()" (click)="toggleProofLayer()">{{ proofLayerOpen() ? 'Collapse' : 'Expand' }}</button></header>
+        @if (proofLayerOpen()) {
+          <p>Explore the same fictional operating day through product, engineering, and interface decisions.</p>
+          <button type="button" class="walk-system" (click)="showProofInWorkspace('schedule')">Walk the system <span>→</span></button>
+          <div class="proof-list">
+            <button type="button" (click)="showProofInWorkspace('schedule')"><span>01</span><div><strong>Domain workflows</strong><small>Appointments, documentation, and claims remain separate operational journeys.</small></div></button>
+            <button type="button" (click)="showProofInWorkspace('claims')"><span>02</span><div><strong>Data integrity</strong><small>Metrics, topology, and risk exposure reconcile directly with the displayed records.</small></div></button>
+            <button type="button" (click)="showProofInWorkspace('audit')"><span>03</span><div><strong>Event delivery</strong><small>State transitions write an auditable outbox before asynchronous delivery.</small></div></button>
+            <button type="button" (click)="showProofInWorkspace('settings')"><span>04</span><div><strong>Interface system</strong><small>Signals, responsive layouts, focus states, and reduced motion are built into the product.</small></div></button>
+          </div>
+        }
+      </aside>
     }
   </main>
 </div>

@@ -69,6 +69,13 @@ interface NoteQueueItem {
   tone: SignalTone;
 }
 
+interface ClaimTableRow {
+  claim: Claim;
+  patient: string;
+  appointmentAt?: string;
+  clinician: string;
+}
+
 interface NotificationPreference {
   label: string;
   cadence: string;
@@ -123,11 +130,12 @@ function hoursSince(value: string, reference: Date): number {
   standalone: true,
   imports: [CurrencyPipe, DatePipe, DecimalPipe],
   templateUrl: './app.component.html',
-  styleUrls: ['./app.component.css', './app.component.workspaces.css'],
+  styleUrls: ['./app.component.css', './app.component.workspaces.css', './portfolio-showcase.css'],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class AppComponent implements AfterViewInit, OnDestroy {
   private readonly http = inject(HttpClient);
+  private liveDashboard?: Dashboard;
   private atmosphereRenderer?: AtmosphereRenderer;
   @ViewChild('atmosphereCanvas') private readonly atmosphereCanvas?: ElementRef<HTMLCanvasElement>;
 
@@ -146,6 +154,8 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   readonly claimPayerFilter = signal('all');
   readonly claimSearch = signal('');
   readonly notificationPreferences = signal<NotificationPreference[]>(INITIAL_PREFERENCES.map(item => ({ ...item })));
+  readonly portfolioScenario = signal<'portfolio' | 'live'>('portfolio');
+  readonly proofLayerOpen = signal(true);
 
   readonly view = computed(() => VIEW_META[this.activeView()]);
   readonly metrics = computed<MetricSignal[]>(() => buildMetricSignals(this.dashboard()));
@@ -252,6 +262,15 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     });
   });
   readonly topClaims = computed(() => this.filteredClaims().slice(0, 8));
+  readonly claimTableRows = computed<ClaimTableRow[]>(() => this.topClaims().map((claim, index) => {
+    const appointment = this.dashboard().appointments[index];
+    return {
+      claim,
+      patient: appointment?.patientDisplayName ?? 'Synthetic record',
+      appointmentAt: appointment?.startsAt,
+      clinician: appointment?.clinician ?? 'Revenue cycle'
+    };
+  }));
   readonly payerOptions = computed(() => [...new Set(this.dashboard().claims.map(item => item.payer))].sort());
   readonly claimTrendBars = computed(() => {
     const values = this.dashboard().claims.map(item => item.amount);
@@ -344,6 +363,29 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     this.activeView.set(view);
   }
 
+  selectPortfolioScenario(mode: 'portfolio' | 'live'): void {
+    this.portfolioScenario.set(mode);
+    if (mode === 'portfolio') {
+      this.applyDashboard(createDemoDashboard(), 'demo');
+      this.notice.set('Portfolio scenario active. All records are fictional and designed to demonstrate the full workflow.');
+      return;
+    }
+    if (this.liveDashboard) {
+      this.applyDashboard(this.liveDashboard, 'live');
+      this.notice.set('Live API data active. Switch back to Portfolio scenario for the curated demo day.');
+      return;
+    }
+    this.notice.set('Live API data is unavailable. Portfolio scenario remains active.');
+  }
+
+  toggleProofLayer(): void {
+    this.proofLayerOpen.update(value => !value);
+  }
+
+  showProofInWorkspace(view: ViewId): void {
+    this.selectView(view);
+  }
+
   selectScheduleFilter(filter: 'day' | 'week' | 'list'): void {
     this.selectedScheduleFilter.set(filter);
   }
@@ -394,7 +436,15 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     this.notice.set('');
 
     this.http.get<Dashboard>('/api/dashboard').subscribe({
-      next: value => this.applyDashboard(value, 'live'),
+      next: value => {
+        this.liveDashboard = value;
+        if (this.portfolioScenario() === 'portfolio') {
+          this.applyDashboard(createDemoDashboard(), 'demo');
+          this.notice.set('Portfolio scenario active. Live API data is available to inspect.');
+        } else {
+          this.applyDashboard(value, 'live');
+        }
+      },
       error: () => {
         this.applyDashboard(createDemoDashboard(), 'demo');
         this.notice.set('API offline. Showing the complete local synthetic dataset.');
