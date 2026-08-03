@@ -1,4 +1,5 @@
 import { CurrencyPipe, DatePipe, DecimalPipe } from '@angular/common';
+import { AutoAnimateDirective } from './auto-animate.directive';
 import { AfterViewInit, ChangeDetectionStrategy, Component, ElementRef, OnDestroy, ViewChild, computed, inject, signal } from '@angular/core';
 import {
   Appointment,
@@ -30,6 +31,8 @@ import {
 } from './operational-telemetry';
 import { AtmosphereRenderer } from './atmosphere-renderer';
 import { MetricValueMotionDirective } from './metric-value-motion.directive';
+import { ObservatoryViewMotionDirective } from './observatory-view-motion.directive';
+import { RiskTopologyComponent } from './risk-topology.component';
 import { OperationalRefreshStore } from './operational-refresh.store';
 import { PortfolioScenarioController } from './portfolio-scenario.controller';
 import { resolveInitialScheduleDate } from './schedule-date';
@@ -133,9 +136,9 @@ function defaultProofLayerOpen(): boolean {
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CurrencyPipe, DatePipe, DecimalPipe, MetricValueMotionDirective],
+  imports: [CurrencyPipe, DatePipe, DecimalPipe, MetricValueMotionDirective, RiskTopologyComponent, AutoAnimateDirective, ObservatoryViewMotionDirective],
   templateUrl: './app.component.html',
-  styleUrls: ['./app.component.css', './app.component.workspaces.css', './portfolio-showcase.css'],
+  styleUrls: ['./app.component.css', './app.component.workspaces.css', './portfolio-showcase.css', './tailwind-structure.css'],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class AppComponent implements AfterViewInit, OnDestroy {
