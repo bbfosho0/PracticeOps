@@ -1,4 +1,4 @@
-import type { ApiMode } from '../../operational-refresh.store';
+import type { ApiMode } from '../../runtime-model';
 import { Dashboard, ViewId, createDemoDashboard } from '../../dashboard-model';
 import { WorkspaceViewMetadata, WORKSPACE_VIEW_METADATA } from '../../app.component';
 

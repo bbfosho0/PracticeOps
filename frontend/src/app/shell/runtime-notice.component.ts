@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
-import { ApiMode } from '../../operational-refresh.store';
+import { ApiMode } from '../../runtime-model';
 
 @Component({
   selector: 'section[appRuntimeNotice]',

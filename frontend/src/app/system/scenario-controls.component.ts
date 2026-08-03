@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import { AutoAnimateDirective } from '../../auto-animate.directive';
 import { PortfolioScenario, PortfolioScenarioStep, ViewId } from '../../dashboard-model';
-import { ApiMode } from '../../operational-refresh.store';
+import { ApiMode } from '../../runtime-model';
 
 @Component({
   selector: 'section[appScenarioControls]',

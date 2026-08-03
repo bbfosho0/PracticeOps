@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import { ViewId } from '../../dashboard-model';
 import { ObservatoryViewMotionDirective } from '../../observatory-view-motion.directive';
-import { ApiMode } from '../../operational-refresh.store';
+import { ApiMode } from '../../runtime-model';
 import { CommandDockComponent, WorkspaceNavItem } from './command-dock.component';
 import { RuntimeNoticeComponent } from './runtime-notice.component';
 import { RuntimeStatus, WorkspaceHeaderComponent, WorkspaceViewMetadata } from './workspace-header.component';

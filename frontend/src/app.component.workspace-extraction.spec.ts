@@ -6,7 +6,9 @@ import { OperationalRefreshStore } from './operational-refresh.store';
 import { PortfolioScenarioController } from './portfolio-scenario.controller';
 
 describe('AppComponent workspace extraction', () => {
-  const dashboard = createDemoDashboard(new Date('2026-08-03T15:00:00.000Z'));
+  const fixtureReferenceTime = new Date('2026-08-03T15:00:00.000Z');
+  const dashboard = createDemoDashboard(fixtureReferenceTime);
+  const runtimeReference = signal(fixtureReferenceTime);
   const refreshStore = {
     dashboard: signal(dashboard),
     loading: signal(false),
@@ -16,6 +18,7 @@ describe('AppComponent workspace extraction', () => {
     notice: signal('Live API data refreshed.'),
     stale: signal(false),
     updatedLabel: signal('Updated just now'),
+    referenceTime: runtimeReference,
     kpiAnnouncement: signal('Operational metrics refreshed.'),
     refresh: jasmine.createSpy('refresh')
   };
@@ -30,13 +33,16 @@ describe('AppComponent workspace extraction', () => {
     openCurrentWorkspace: () => dashboard.scenario.currentWorkspace
   };
 
-  beforeEach(() => TestBed.configureTestingModule({
-    providers: [
-      provideZonelessChangeDetection(),
-      { provide: OperationalRefreshStore, useValue: refreshStore },
-      { provide: PortfolioScenarioController, useValue: scenarioController }
-    ]
-  }));
+  beforeEach(() => {
+    runtimeReference.set(fixtureReferenceTime);
+    TestBed.configureTestingModule({
+      providers: [
+        provideZonelessChangeDetection(),
+        { provide: OperationalRefreshStore, useValue: refreshStore },
+        { provide: PortfolioScenarioController, useValue: scenarioController }
+      ]
+    });
+  });
 
   it('composes overview and schedule through focused workspace components', () => {
     const fixture = TestBed.createComponent(AppComponent);
@@ -63,6 +69,20 @@ describe('AppComponent workspace extraction', () => {
     expect(host.querySelector('div[appDocumentationWorkspace]')).not.toBeNull();
     expect(host.querySelector('section[appDocumentationPipeline]')).not.toBeNull();
     expect(host.querySelector('article[appDocumentationQueue]')).not.toBeNull();
+  });
+
+  it('refreshes documentation ages from the root runtime reference', () => {
+    const fixture = TestBed.createComponent(AppComponent);
+    fixture.componentInstance.selectView('documentation');
+    fixture.detectChanges();
+    const host = fixture.nativeElement as HTMLElement;
+
+    expect(host.querySelector('.note-row time')?.textContent?.trim()).toBe('1h');
+
+    runtimeReference.set(new Date('2026-08-04T15:00:00.000Z'));
+    fixture.detectChanges();
+
+    expect(host.querySelector('.note-row time')?.textContent?.trim()).toBe('1d');
   });
 
   it('composes claims through focused filter and table components', () => {
@@ -114,5 +134,43 @@ describe('AppComponent workspace extraction', () => {
     const host = fixture.nativeElement as HTMLElement;
     expect(host.querySelector('section[appScenarioControls]')).not.toBeNull();
     expect(host.querySelector('div[appSystemWorkspace]')).not.toBeNull();
+  });
+
+  it('does not retain workspace-only declarations in the root style scope', () => {
+    const fixture = TestBed.createComponent(AppComponent);
+    fixture.detectChanges();
+    const observatory = (fixture.nativeElement as HTMLElement).querySelector('.observatory') as HTMLElement;
+    const rootScope = observatory.getAttributeNames().find(name => name.startsWith('_ngcontent')) ?? '';
+    const parsedStyleSheets = Array.from(document.styleSheets).map(styleSheet => {
+      try {
+        return Array.from(styleSheet.cssRules)
+          .filter((rule): rule is CSSStyleRule => rule instanceof CSSStyleRule)
+          .map(rule => rule.selectorText)
+          .filter(selector => selector.includes(rootScope));
+      } catch {
+        return [];
+      }
+    });
+    const rootSelectors = (parsedStyleSheets.find(selectors =>
+      selectors.some(selector => selector.includes('.aurora-primary'))
+    ) ?? []).join(' ');
+
+    for (const workspaceSelector of [
+      '.panel-header',
+      '.panel-subtitle',
+      '.text-action',
+      '.live-label',
+      '.signal-orb',
+      '.activity-icon',
+      '.legend-dot',
+      '.health-orb',
+      '.pipeline',
+      '.pipeline-stage',
+      '.stage-label',
+      '.pipeline-orb',
+      '.pipeline-link'
+    ]) {
+      expect(rootSelectors).withContext(`${workspaceSelector} must be owned by its extracted component`).not.toContain(workspaceSelector);
+    }
   });
 });

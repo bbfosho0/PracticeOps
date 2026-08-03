@@ -37,10 +37,24 @@ describe('AuditWorkspaceComponent', () => {
 
   it('labels synthetic audit records as preview data without fabricating persistence', () => {
     const host = render('demo');
+    const text = host.textContent ?? '';
 
+    expect(text).toContain('Synthetic preview snapshot');
+    expect(text).toContain('Preview transitions');
+    expect(text).toContain('Preview delivery state');
+    expect(text).toContain('Preview activity stream');
     expect(host.querySelector('.spectrum-panel')?.textContent).toContain('Synthetic preview');
     expect(host.querySelector('.activity-table-panel')?.textContent).toContain('Preview records');
     expect(host.querySelector('.audit-table')?.textContent).toContain('Synthetic fixture');
-    expect(host.querySelector('.audit-table')?.textContent).toContain('Preview');
+    for (const fabricatedClaim of [
+      'Current persisted snapshot',
+      'Persisted transitions',
+      'Broker-confirmed messages',
+      'Authoritative',
+      'Immutable activity stream',
+      'PostgreSQL records'
+    ]) {
+      expect(text).not.toContain(fabricatedClaim);
+    }
   });
 });

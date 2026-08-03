@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
 import { ViewId } from '../../dashboard-model';
-import { ApiMode } from '../../operational-refresh.store';
+import { ApiMode } from '../../runtime-model';
 
 export interface WorkspaceNavItem {
   readonly id: ViewId;

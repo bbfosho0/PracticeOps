@@ -4,8 +4,8 @@ import { Observable, Subscription, finalize } from 'rxjs';
 import { Dashboard, DashboardMetrics, createDemoDashboard } from './dashboard-model';
 import { reconcileDashboard } from './operational-telemetry';
 import { PracticeOpsApiService } from './practiceops-api.service';
+import { ApiMode } from './runtime-model';
 
-export type ApiMode = 'connecting' | 'live' | 'demo';
 type RefreshReason = 'initial' | 'manual' | 'poll' | 'mutation' | 'reset' | 'recovery';
 
 export function shouldPollOperationalData(mode: ApiMode, hidden: boolean): boolean {
@@ -30,6 +30,7 @@ export class OperationalRefreshStore implements OnDestroy {
   private relativeTimeTimer?: number;
   private refreshQueued = false;
   private readonly clock = signal(new Date());
+  readonly referenceTime = this.clock.asReadonly();
   private readonly visibilityListener = () => {
     this.clock.set(new Date());
     if (typeof document !== 'undefined' && shouldPollOperationalData(this.apiMode(), document.hidden))

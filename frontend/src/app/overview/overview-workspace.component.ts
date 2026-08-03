@@ -13,7 +13,7 @@ import {
   toneForStatus
 } from '../../dashboard-model';
 import { AutoAnimateDirective } from '../../auto-animate.directive';
-import { ApiMode } from '../../operational-refresh.store';
+import { ApiMode } from '../../runtime-model';
 import { AuditTelemetry, DocumentationTelemetry } from '../../operational-telemetry';
 import { RiskTopologyComponent } from '../claims/risk-topology.component';
 import { MetricSignalStripComponent } from './metric-signal-strip.component';

@@ -75,7 +75,7 @@ export class DocumentationWorkspaceComponent {
   readonly telemetry = input.required<Readonly<DocumentationTelemetry>>();
   readonly notes = input.required<readonly ClinicalNote[]>();
   readonly scenarioClinicalNoteId = input.required<string>();
-  readonly referenceTime = input<Date>(new Date());
+  readonly referenceTime = input.required<Date>();
   readonly noteQueue = computed(() => buildDocumentationQueue(this.notes(), this.referenceTime()));
   readonly priorityFollowUps = computed(() => buildDocumentationFollowUps(this.telemetry()));
   readonly documentationHealth = computed(() => buildDocumentationHealth(this.telemetry()));

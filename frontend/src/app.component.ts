@@ -168,6 +168,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   readonly notice = this.refreshStore.notice;
   readonly stale = this.refreshStore.stale;
   readonly updatedLabel = this.refreshStore.updatedLabel;
+  readonly runtimeReference = this.refreshStore.referenceTime;
   readonly kpiAnnouncement = this.refreshStore.kpiAnnouncement;
   readonly selectedScheduleFilter = signal<'day' | 'week' | 'list'>('day');
   readonly selectedScheduleDate = signal<Date | null>(null);

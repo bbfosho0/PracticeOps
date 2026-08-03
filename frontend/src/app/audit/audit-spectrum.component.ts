@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 import { SignalTone } from '../../dashboard-model';
-import { ApiMode } from '../../operational-refresh.store';
+import { ApiMode } from '../../runtime-model';
 
 @Component({
   selector: 'article[appAuditSpectrum]',

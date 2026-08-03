@@ -59,7 +59,7 @@
 
         @case ('documentation') {
           <div appDocumentationWorkspace [pipeline]="pipeline()" [telemetry]="documentationTelemetry()"
-            [notes]="dashboard().notes" [scenarioClinicalNoteId]="scenarioClinicalNoteId()"></div>
+            [notes]="dashboard().notes" [scenarioClinicalNoteId]="scenarioClinicalNoteId()" [referenceTime]="runtimeReference()"></div>
         }
 
         @case ('claims') {

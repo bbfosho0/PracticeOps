@@ -1,4 +1,4 @@
-<header class="panel-header"><div><span class="panel-kicker">Immutable activity stream</span><span class="live-label"><i></i>{{ apiMode() === 'live' ? 'PostgreSQL records' : 'Preview records' }}</span></div></header>
+<header class="panel-header"><div><span class="panel-kicker">{{ apiMode() === 'live' ? 'Immutable activity stream' : 'Preview activity stream' }}</span><span class="live-label"><i></i>{{ apiMode() === 'live' ? 'PostgreSQL records' : 'Preview records' }}</span></div></header>
 <div class="data-table audit-table" role="table" aria-label="Audit activity">
   <div class="table-row table-head" role="row"><span>Time</span><span>Event</span><span>Entity</span><span>Source</span><span>Details</span><span>Status</span><span>Actor</span></div>
   @for (event of events(); track event.id) {
