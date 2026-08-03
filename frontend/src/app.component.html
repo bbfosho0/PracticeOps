@@ -1,5 +1,6 @@
 <div class="observatory" [attr.data-view]="activeView()">
   <div class="atmosphere" aria-hidden="true">
+    <canvas #atmosphereCanvas class="atmosphere-canvas"></canvas>
     <span class="aurora aurora-primary"></span>
     <span class="aurora aurora-secondary"></span>
     <span class="horizon"></span>

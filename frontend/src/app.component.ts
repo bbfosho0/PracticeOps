@@ -1,6 +1,6 @@
 import { CurrencyPipe, DatePipe, DecimalPipe } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { AfterViewInit, ChangeDetectionStrategy, Component, ElementRef, OnDestroy, ViewChild, computed, inject, signal } from '@angular/core';
 import {
   Appointment,
   AuditEvent,
@@ -31,6 +31,7 @@ import {
   buildScheduleTelemetry,
   reconcileDashboard
 } from './operational-telemetry';
+import { AtmosphereRenderer } from './atmosphere-renderer';
 
 interface NavItem {
   id: ViewId;
@@ -125,8 +126,10 @@ function hoursSince(value: string, reference: Date): number {
   styleUrls: ['./app.component.css', './app.component.workspaces.css'],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class AppComponent {
+export class AppComponent implements AfterViewInit, OnDestroy {
   private readonly http = inject(HttpClient);
+  private atmosphereRenderer?: AtmosphereRenderer;
+  @ViewChild('atmosphereCanvas') private readonly atmosphereCanvas?: ElementRef<HTMLCanvasElement>;
 
   readonly nav = NAV_ITEMS;
   readonly activeView = signal<ViewId>('overview');
@@ -324,6 +327,17 @@ export class AppComponent {
 
   constructor() {
     this.load();
+  }
+
+  ngAfterViewInit(): void {
+    if (this.atmosphereCanvas) {
+      this.atmosphereRenderer = new AtmosphereRenderer(this.atmosphereCanvas.nativeElement);
+      this.atmosphereRenderer.start();
+    }
+  }
+
+  ngOnDestroy(): void {
+    this.atmosphereRenderer?.destroy();
   }
 
   selectView(view: ViewId): void {
