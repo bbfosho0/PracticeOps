@@ -11,6 +11,19 @@ const PERSISTENT_SURFACES = new Set([
   'sr-only'
 ]);
 
+function isMotionSurface(element: HTMLElement): boolean {
+  return !Array.from(PERSISTENT_SURFACES).some(className => element.classList.contains(className));
+}
+
+export function resolveWorkspaceMotionSurfaces(workspace: HTMLElement): HTMLElement[] {
+  return Array.from(workspace.children)
+    .filter((child): child is HTMLElement => child instanceof HTMLElement)
+    .flatMap(child => child.hasAttribute('data-workspace-motion-root')
+      ? Array.from(child.children).filter((surface): surface is HTMLElement => surface instanceof HTMLElement)
+      : [child])
+    .filter(isMotionSurface);
+}
+
 @Directive({
   selector: '[appObservatoryViewMotion]',
   standalone: true
@@ -93,9 +106,7 @@ export class ObservatoryViewMotionDirective implements OnChanges, OnDestroy {
   }
 
   private currentViewSurfaces(): HTMLElement[] {
-    return Array.from(this.element.nativeElement.children)
-      .filter((child): child is HTMLElement => child instanceof HTMLElement)
-      .filter(child => !Array.from(PERSISTENT_SURFACES).some(className => child.classList.contains(className)));
+    return resolveWorkspaceMotionSurfaces(this.element.nativeElement);
   }
 
   private targets(): HTMLElement[] {

@@ -1,0 +1,11 @@
+<div class="date-control"><button type="button" aria-label="Previous day" (click)="dateShifted.emit(-1)">‹</button><span>{{ selectedDate() | date:'MMMM d, y' }}</span><button type="button" aria-label="Next day" (click)="dateShifted.emit(1)">›</button></div>
+<div class="segmented-control" aria-label="Schedule view">
+  <button type="button" [class.active]="mode() === 'day'" [attr.aria-pressed]="mode() === 'day'" (click)="modeChanged.emit('day')">Day</button>
+  <button type="button" [class.active]="mode() === 'week'" [attr.aria-pressed]="mode() === 'week'" (click)="modeChanged.emit('week')">Week</button>
+  <button type="button" [class.active]="mode() === 'list'" [attr.aria-pressed]="mode() === 'list'" (click)="modeChanged.emit('list')">List</button>
+</div>
+<div class="filter-row">
+  <label><span class="sr-only">Status</span><select aria-label="Filter by status" [value]="selectedStatus()" (change)="statusChanged.emit($any($event.target).value)"><option value="all">All statuses</option>@for (status of statusOptions(); track status) { <option [value]="status">{{ statusLabel(status) }}</option> }</select></label>
+  <label><span class="sr-only">Provider</span><select aria-label="Filter by provider" [value]="selectedProvider()" (change)="providerChanged.emit($any($event.target).value)"><option value="all">All providers</option>@for (provider of providerOptions(); track provider) { <option [value]="provider">{{ provider }}</option> }</select></label>
+  <label><span class="sr-only">Visit type</span><select aria-label="Filter by visit type" [value]="selectedService()" (change)="serviceChanged.emit($any($event.target).value)"><option value="all">All visit types</option>@for (service of serviceOptions(); track service) { <option [value]="service">{{ service }}</option> }</select></label>
+</div>

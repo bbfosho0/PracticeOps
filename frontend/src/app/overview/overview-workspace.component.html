@@ -1,0 +1,50 @@
+<p class="sr-only" role="status" aria-live="polite" aria-atomic="true">{{ kpiAnnouncement() }}</p>
+<section appMetricSignalStrip [metrics]="metrics()"></section>
+
+<section class="overview-grid">
+  <article class="glass-panel schedule-preview">
+    <header class="panel-header">
+      <div><span class="panel-kicker">Today’s schedule</span><span class="panel-subtitle">Authoritative records</span></div>
+      <button type="button" class="text-action" (click)="navigationRequested.emit('schedule')">View schedule <span>→</span></button>
+    </header>
+    <div class="schedule-list" auto-animate>
+      @for (appointment of appointments(); track appointment.id) {
+        <div class="schedule-row" [class.scenario-record]="appointment.id === scenarioAppointmentId()">
+          <time>{{ appointment.startsAt | date:'shortTime' }}</time>
+          <span class="row-signal" [attr.data-tone]="tone(appointment.status)"></span>
+          <span class="mini-avatar" [attr.data-tone]="tone(appointment.status)">{{ initials(appointment.patientDisplayName) }}</span>
+          <div class="row-primary"><strong>{{ appointment.patientDisplayName }}</strong><small>{{ appointment.service }} · {{ appointment.clinician }}</small></div>
+          <span class="status-chip" [attr.data-tone]="tone(appointment.status)">{{ statusLabel(appointment.status) }}</span>
+        </div>
+      }
+    </div>
+  </article>
+
+  <article class="glass-panel documentation-preview">
+    <header class="panel-header">
+      <div><span class="panel-kicker">Documentation readiness</span><span class="panel-subtitle">{{ documentationTelemetry().unsigned }} unsigned</span></div>
+      <button type="button" class="text-action" (click)="navigationRequested.emit('documentation')">View documentation <span>→</span></button>
+    </header>
+    <div class="pipeline compact-pipeline">
+      @for (stage of pipeline(); track stage.label) {
+        <div class="pipeline-stage" [attr.data-tone]="stage.tone"><span class="stage-label">{{ stage.label }}</span><span class="pipeline-orb">{{ stage.value }}</span></div>
+        @if (!$last) { <span class="pipeline-link" [attr.data-tone]="stage.tone"></span> }
+      }
+    </div>
+    <div class="energy-track"><span></span></div><div class="readiness-footer"><span>Capture</span><span>Review</span><span>Signature</span><span>QA</span><span>Billing ready</span></div>
+  </article>
+
+  <article class="glass-panel risk-preview">
+    <header class="panel-header"><span class="panel-kicker">Claims risk topology</span><button type="button" class="text-action warning" (click)="navigationRequested.emit('claims')">{{ claimsAtRisk() }} at risk</button></header>
+    <app-risk-topology [slices]="riskDistribution()" [totalAtRisk]="claimsAtRisk()"></app-risk-topology>
+  </article>
+
+  <article class="glass-panel activity-preview">
+    <header class="panel-header"><span class="panel-kicker">Recent persisted activity</span><span class="live-label"><i></i>{{ apiMode() === 'live' ? 'API snapshot' : 'Preview data' }}</span></header>
+    <div class="activity-list" auto-animate>
+      @for (event of auditEvents(); track event.id) {
+        <div class="activity-row"><span class="activity-icon" [attr.data-tone]="eventTone(event, $index)"></span><div><strong>{{ event.action }}</strong><small>{{ event.summary }}</small></div><time>{{ event.occurredAt | date:'shortTime' }}</time></div>
+      }
+    </div>
+  </article>
+</section>

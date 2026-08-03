@@ -1,0 +1,38 @@
+<section appScheduleFilters
+  [selectedDate]="selectedDate()" [mode]="mode()"
+  [statusOptions]="statusOptions()" [providerOptions]="providerOptions()" [serviceOptions]="serviceOptions()"
+  [selectedStatus]="selectedStatus()" [selectedProvider]="selectedProvider()" [selectedService]="selectedService()"
+  (dateShifted)="dateShifted.emit($event)" (modeChanged)="modeChanged.emit($event)"
+  (statusChanged)="statusChanged.emit($event)" (providerChanged)="providerChanged.emit($event)" (serviceChanged)="serviceChanged.emit($event)">
+</section>
+
+<section class="schedule-workspace" auto-animate [attr.data-mode]="mode()">
+  @if (mode() === 'day') {
+    <article appTemporalRunway [appointments]="appointments()" [clinicianLoad]="clinicianLoad()" [runwayBlocks]="runwayBlocks()" [scenarioAppointmentId]="scenarioAppointmentId()"></article>
+  } @else if (mode() === 'week') {
+    <article class="glass-panel runway-panel week-panel">
+      <header class="panel-header"><span class="panel-kicker">Seven-day capacity</span><small>{{ telemetry().appointments }} appointments on selected day</small></header>
+      <div class="week-grid">@for (day of weekSummary(); track $index) { <article><time>{{ day.date | date:'EEE, MMM d' }}</time><strong>{{ day.appointments }}</strong><small>appointments</small><div class="load-track"><i [style.width.%]="day.utilization"></i></div><b>{{ day.utilization }}% utilized</b></article> }</div>
+    </article>
+  } @else {
+    <article class="glass-panel runway-panel list-panel">
+      <header class="panel-header"><span class="panel-kicker">Appointment list</span><small>{{ appointments().length }} results</small></header>
+      @if (appointments().length) {
+        <div class="schedule-list full-list" auto-animate>
+          @for (appointment of appointments(); track appointment.id) {
+            <div class="schedule-row" [class.scenario-record]="appointment.id === scenarioAppointmentId()"><time>{{ appointment.startsAt | date:'shortTime' }}</time><span class="row-signal" [attr.data-tone]="tone(appointment.status)"></span><span class="mini-avatar" [attr.data-tone]="tone(appointment.status)">{{ initials(appointment.patientDisplayName) }}</span><div class="row-primary"><strong>{{ appointment.patientDisplayName }}</strong><small>{{ appointment.service }} · {{ appointment.clinician }}</small></div><span class="status-chip" [attr.data-tone]="tone(appointment.status)">{{ statusLabel(appointment.status) }}</span></div>
+          }
+        </div>
+      } @else {
+        <div class="workspace-empty"><strong>No appointments match this date and filter set.</strong><small>Change the date or clear a filter to see appointments.</small></div>
+      }
+    </article>
+  }
+
+  <aside class="schedule-side">
+    <article class="glass-panel side-panel clinician-load"><header class="panel-header"><span class="panel-kicker">Clinician load</span></header>@for (clinician of clinicianLoad(); track clinician.name) { <div class="load-row"><span>{{ clinician.name }}</span><div class="load-track"><i [style.width.%]="clinician.utilization"></i></div><strong>{{ clinician.utilization }}%</strong></div> }<span class="load-orbit">{{ telemetry().capacityPercent }}%</span></article>
+    <article class="glass-panel side-panel no-show-risk"><header class="panel-header"><span class="panel-kicker">Schedule exceptions</span></header><div class="risk-score"><strong>{{ telemetry().noShowRisk }}%</strong></div><div class="risk-names">@for (appointment of noShowRiskAppointments(); track appointment.id) { <span><b>{{ appointment.patientDisplayName }}</b> {{ appointment.startsAt | date:'shortTime' }} · {{ statusLabel(appointment.status) }}</span> } @empty { <span>No schedule exceptions in this view.</span> }</div></article>
+    <article class="glass-panel side-panel waitlist-panel"><header class="panel-header"><span class="panel-kicker">Confirmation queue</span></header>@for (item of waitlist(); track item.patient) { <div class="waitlist-row"><span>{{ item.patient }} <small>{{ item.requested }}</small></span><strong>{{ item.opening }}</strong></div> } @empty { <div class="workspace-empty compact"><small>No scheduled confirmations.</small></div> }</article>
+    <div class="side-split"><article class="glass-panel micro-panel"><span class="panel-kicker">Reminder model</span><strong>{{ telemetry().reminders.text }} Text&nbsp;&nbsp;{{ telemetry().reminders.email }} Email<br>{{ telemetry().reminders.call }} Call</strong><small>Derived preview, not a delivery service</small></article><article class="glass-panel micro-panel"><span class="panel-kicker">Capacity</span><strong>{{ telemetry().capacityPercent }}% used<br>{{ telemetry().availableSlots }} slots available</strong></article></div>
+  </aside>
+</section>

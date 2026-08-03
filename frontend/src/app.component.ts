@@ -18,11 +18,14 @@ import {
   clampPercent,
   formatCompactCurrency,
   humanizeStatus,
-  initials,
   riskCategory,
   toneForStatus
 } from './dashboard-model';
 import {
+  AuditTelemetry,
+  ClinicianLoadMetric,
+  DocumentationTelemetry,
+  ScheduleTelemetry,
   actionLabel,
   actionTone,
   buildAuditTelemetry,
@@ -32,14 +35,15 @@ import {
   reconcileDashboard
 } from './operational-telemetry';
 import { AtmosphereRenderer } from './atmosphere-renderer';
-import { MetricValueMotionDirective } from './metric-value-motion.directive';
-import { RiskTopologyComponent } from './risk-topology.component';
 import { OperationalRefreshStore } from './operational-refresh.store';
 import { PortfolioScenarioController } from './portfolio-scenario.controller';
 import { resolveInitialScheduleDate } from './schedule-date';
 import { ObservatoryShellComponent } from './app/shell/observatory-shell.component';
 import { WorkspaceNavItem } from './app/shell/command-dock.component';
 import { WorkspaceViewMetadata } from './app/shell/workspace-header.component';
+import { OverviewWorkspaceComponent } from './app/overview/overview-workspace.component';
+import { ScheduleWorkspaceComponent, filterScheduleAppointments } from './app/schedule/schedule-workspace.component';
+import { RunwayBlock } from './app/schedule/temporal-runway.component';
 
 export type { WorkspaceNavItem } from './app/shell/command-dock.component';
 export type { WorkspaceViewMetadata } from './app/shell/workspace-header.component';
@@ -64,6 +68,8 @@ export interface OverviewWorkspaceInput extends WorkspaceInput {
   readonly metrics: readonly MetricSignal[];
   readonly pipeline: readonly PipelineStage[];
   readonly riskDistribution: readonly RiskSlice[];
+  readonly documentationTelemetry: DocumentationTelemetry;
+  readonly auditTelemetry: AuditTelemetry;
 }
 
 export interface ScheduleWorkspaceInput extends WorkspaceInput {
@@ -73,6 +79,12 @@ export interface ScheduleWorkspaceInput extends WorkspaceInput {
   readonly providerOptions: readonly string[];
   readonly serviceOptions: readonly string[];
   readonly statusOptions: readonly string[];
+  readonly selectedProvider: string;
+  readonly selectedService: string;
+  readonly selectedStatus: string;
+  readonly telemetry: ScheduleTelemetry;
+  readonly clinicianLoad: readonly ClinicianLoadMetric[];
+  readonly runwayBlocks: readonly RunwayBlock[];
 }
 
 export interface DocumentationWorkspaceInput extends WorkspaceInput {
@@ -90,18 +102,6 @@ export interface AuditWorkspaceInput extends WorkspaceInput {
 
 export interface SystemWorkspaceInput extends WorkspaceInput {
   readonly activeView: ViewId;
-}
-
-interface RunwayBlock {
-  id: string;
-  patient: string;
-  clinician: string;
-  service: string;
-  status: string;
-  time: string;
-  row: number;
-  column: string;
-  tone: SignalTone;
 }
 
 interface NoteQueueItem {
@@ -176,7 +176,7 @@ function defaultProofLayerOpen(): boolean {
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CurrencyPipe, DatePipe, DecimalPipe, MetricValueMotionDirective, RiskTopologyComponent, AutoAnimateDirective, ObservatoryShellComponent],
+  imports: [CurrencyPipe, DatePipe, DecimalPipe, AutoAnimateDirective, ObservatoryShellComponent, OverviewWorkspaceComponent, ScheduleWorkspaceComponent],
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.css', './app.component.workspaces.css', './portfolio-showcase.css', './tailwind-structure.css'],
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -244,11 +244,10 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   readonly providerOptions = computed(() => [...new Set(this.appointmentsForSelectedDate().map(item => item.clinician))].sort());
   readonly serviceOptions = computed(() => [...new Set(this.appointmentsForSelectedDate().map(item => item.service))].sort());
   readonly statusOptions = computed(() => [...new Set(this.appointmentsForSelectedDate().map(item => item.status))].sort());
-  readonly filteredScheduleAppointments = computed(() => this.appointmentsForSelectedDate().filter(item => {
-    const providerMatches = this.selectedProvider() === 'all' || item.clinician === this.selectedProvider();
-    const serviceMatches = this.selectedService() === 'all' || item.service === this.selectedService();
-    const statusMatches = this.selectedStatus() === 'all' || item.status === this.selectedStatus();
-    return providerMatches && serviceMatches && statusMatches;
+  readonly filteredScheduleAppointments = computed(() => filterScheduleAppointments(this.appointmentsForSelectedDate(), {
+    provider: this.selectedProvider(),
+    service: this.selectedService(),
+    status: this.selectedStatus()
   }));
   readonly filteredScheduleDashboard = computed(() => reconcileDashboard({
     ...this.dashboard(),
@@ -520,10 +519,6 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     return toneForStatus(value);
   }
 
-  initials(value: string): string {
-    return initials(value);
-  }
-
   riskLabel(claim: Claim): string {
     return riskCategory(claim.riskReason);
   }
@@ -538,15 +533,6 @@ export class AppComponent implements AfterViewInit, OnDestroy {
 
   round(value: number): number {
     return Math.round(value);
-  }
-
-  eventTone(event: AuditEvent, index: number): SignalTone {
-    const normalized = `${event.action} ${event.summary}`.toLowerCase();
-    if (normalized.includes('flag') || normalized.includes('error') || normalized.includes('denied')) return 'coral';
-    if (normalized.includes('claim')) return 'amber';
-    if (normalized.includes('note') || normalized.includes('documentation')) return 'violet';
-    if (normalized.includes('appoint')) return 'cyan';
-    return index % 2 === 0 ? 'green' : 'blue';
   }
 
   ageLabel(hours: number): string {
