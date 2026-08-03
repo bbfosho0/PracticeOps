@@ -6,6 +6,9 @@ namespace PracticeOps.Api;
 
 public sealed class OutboxDispatcher(IServiceScopeFactory scopeFactory, IConfiguration configuration, ILogger<OutboxDispatcher> logger) : BackgroundService
 {
+    private const string ExchangeName = "practiceops.events";
+    private const string PortfolioAuditQueue = "practiceops.portfolio.audit";
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         while (!stoppingToken.IsCancellationRequested)
@@ -14,9 +17,13 @@ public sealed class OutboxDispatcher(IServiceScopeFactory scopeFactory, IConfigu
             {
                 await DispatchBatchAsync(stoppingToken);
             }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+            {
+                break;
+            }
             catch (Exception exception)
             {
-                logger.LogWarning(exception, "Outbox dispatch failed; messages remain pending for retry.");
+                logger.LogWarning(exception, "Outbox publication failed; messages remain pending for retry.");
             }
 
             await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
@@ -28,8 +35,8 @@ public sealed class OutboxDispatcher(IServiceScopeFactory scopeFactory, IConfigu
         await using var scope = scopeFactory.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<PracticeOpsDbContext>();
         var messages = await db.OutboxMessages
-            .Where(x => x.ProcessedAt == null)
-            .OrderBy(x => x.OccurredAt)
+            .Where(message => message.ProcessedAt == null)
+            .OrderBy(message => message.OccurredAt)
             .Take(25)
             .ToListAsync(cancellationToken);
         if (messages.Count == 0) return;
@@ -42,13 +49,47 @@ public sealed class OutboxDispatcher(IServiceScopeFactory scopeFactory, IConfigu
         };
 
         await using var connection = await factory.CreateConnectionAsync(cancellationToken);
-        await using var channel = await connection.CreateChannelAsync(cancellationToken: cancellationToken);
-        await channel.ExchangeDeclareAsync("practiceops.events", ExchangeType.Topic, durable: true, autoDelete: false, cancellationToken: cancellationToken);
+        var channelOptions = new CreateChannelOptions(
+            publisherConfirmationsEnabled: true,
+            publisherConfirmationTrackingEnabled: true);
+        await using var channel = await connection.CreateChannelAsync(channelOptions, cancellationToken);
+
+        await channel.ExchangeDeclareAsync(
+            exchange: ExchangeName,
+            type: ExchangeType.Topic,
+            durable: true,
+            autoDelete: false,
+            cancellationToken: cancellationToken);
+        await channel.QueueDeclareAsync(
+            queue: PortfolioAuditQueue,
+            durable: true,
+            exclusive: false,
+            autoDelete: false,
+            arguments: null,
+            cancellationToken: cancellationToken);
+        await channel.QueueBindAsync(
+            queue: PortfolioAuditQueue,
+            exchange: ExchangeName,
+            routingKey: "#",
+            arguments: null,
+            cancellationToken: cancellationToken);
 
         foreach (var message in messages)
         {
-            var properties = new BasicProperties { Persistent = true, ContentType = "application/json", MessageId = message.Id.ToString(), Type = message.EventType };
-            await channel.BasicPublishAsync("practiceops.events", message.EventType, mandatory: true, properties, Encoding.UTF8.GetBytes(message.Payload), cancellationToken);
+            var properties = new BasicProperties
+            {
+                Persistent = true,
+                ContentType = "application/json",
+                MessageId = message.Id.ToString(),
+                Type = message.EventType
+            };
+            await channel.BasicPublishAsync(
+                exchange: ExchangeName,
+                routingKey: message.EventType,
+                mandatory: true,
+                basicProperties: properties,
+                body: Encoding.UTF8.GetBytes(message.Payload),
+                cancellationToken: cancellationToken);
             message.ProcessedAt = DateTimeOffset.UtcNow;
         }
 
