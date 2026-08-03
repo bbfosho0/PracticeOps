@@ -40,7 +40,7 @@
   stroke-width: 1.6;
   stroke-linecap: round;
   stroke-dasharray: 8 11;
-  animation: topology-flow 8s linear infinite;
+  will-change: opacity, stroke-dashoffset;
 }
 
 .topology-connections path[data-tone='violet'],
@@ -122,9 +122,6 @@
   @apply font-semibold text-white/85;
 }
 
-@keyframes topology-flow {
-  to { stroke-dashoffset: -38; }
-}
 
 @keyframes topology-breathe {
   50% { opacity: 0.56; transform: scale(1.08); transform-origin: 320px 180px; }

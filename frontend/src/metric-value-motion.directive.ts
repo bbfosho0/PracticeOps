@@ -1,8 +1,10 @@
 import { Directive, ElementRef, Input, OnChanges, OnDestroy, SimpleChanges } from '@angular/core';
+import { gsap } from 'gsap';
+import { metricMotionDuration, resolveMotionProfile } from './motion-policy';
 
 /**
  * Keeps KPI updates legible by interpolating only genuine value changes.
- * Decorative motion remains in CSS, while this directive owns the text value.
+ * GSAP owns the numeric tween while CSS owns the visual update treatment.
  */
 @Directive({
   selector: '[appMetricValueMotion]',
@@ -12,9 +14,10 @@ export class MetricValueMotionDirective implements OnChanges, OnDestroy {
   @Input('appMetricValueMotion') value = 0;
   @Input() metricSuffix = '';
 
-  private frameId?: number;
+  private tween?: gsap.core.Tween;
   private clearUpdateId?: number;
   private renderedValue?: number;
+  private readonly proxy = { value: 0 };
 
   constructor(private readonly element: ElementRef<HTMLElement>) {}
 
@@ -22,7 +25,12 @@ export class MetricValueMotionDirective implements OnChanges, OnDestroy {
     if (!changes['value'] && !changes['metricSuffix']) return;
 
     const nextValue = this.value;
-    if (this.renderedValue === undefined || this.prefersReducedMotion()) {
+    const profile = resolveMotionProfile(
+      this.prefersReducedMotion(),
+      typeof window !== 'undefined' && window.matchMedia('(max-width: 760px)').matches
+    );
+
+    if (this.renderedValue === undefined || !profile.enabled) {
       this.cancelAnimation();
       this.render(nextValue);
       return;
@@ -33,32 +41,33 @@ export class MetricValueMotionDirective implements OnChanges, OnDestroy {
       return;
     }
 
-    this.animate(this.renderedValue, nextValue);
+    this.animate(this.renderedValue, nextValue, metricMotionDuration(this.renderedValue, nextValue, profile));
   }
 
   ngOnDestroy(): void {
     this.cancelAnimation();
   }
 
-  private animate(from: number, to: number): void {
+  private animate(from: number, to: number, duration: number): void {
     this.cancelAnimation();
-    const startedAt = performance.now();
-    const duration = Math.min(720, Math.max(360, Math.abs(to - from) * 18));
+    this.proxy.value = from;
     this.element.nativeElement.classList.add('is-updating');
 
-    const tick = (now: number): void => {
-      const progress = Math.min(1, (now - startedAt) / duration);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      this.render(Math.round(from + (to - from) * eased));
-      if (progress < 1) {
-        this.frameId = requestAnimationFrame(tick);
-        return;
+    this.tween = gsap.to(this.proxy, {
+      value: to,
+      duration,
+      ease: 'power3.out',
+      overwrite: true,
+      onUpdate: () => this.render(Math.round(this.proxy.value)),
+      onComplete: () => {
+        this.render(to);
+        this.element.nativeElement.classList.remove('is-updating');
+        this.clearUpdateId = window.setTimeout(
+          () => this.element.nativeElement.classList.remove('is-updating'),
+          160
+        );
       }
-      this.element.nativeElement.classList.remove('is-updating');
-      this.clearUpdateId = window.setTimeout(() => this.element.nativeElement.classList.remove('is-updating'), 160);
-    };
-
-    this.frameId = requestAnimationFrame(tick);
+    });
   }
 
   private render(value: number): void {
@@ -71,9 +80,9 @@ export class MetricValueMotionDirective implements OnChanges, OnDestroy {
   }
 
   private cancelAnimation(): void {
-    if (this.frameId !== undefined) cancelAnimationFrame(this.frameId);
+    this.tween?.kill();
+    this.tween = undefined;
     if (this.clearUpdateId !== undefined) window.clearTimeout(this.clearUpdateId);
-    this.frameId = undefined;
     this.clearUpdateId = undefined;
     this.element.nativeElement.classList.remove('is-updating');
   }
