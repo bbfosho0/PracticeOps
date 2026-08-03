@@ -5,6 +5,8 @@ import {
   Appointment,
   AuditEvent,
   Claim,
+  ClinicalNote,
+  Dashboard,
   MetricSignal,
   PipelineStage,
   RiskSlice,
@@ -37,19 +39,67 @@ import { OperationalRefreshStore } from './operational-refresh.store';
 import { PortfolioScenarioController } from './portfolio-scenario.controller';
 import { resolveInitialScheduleDate } from './schedule-date';
 
-interface NavItem {
+export interface WorkspaceNavItem {
   id: ViewId;
   label: string;
   shortLabel: string;
   icon: string;
 }
 
-interface ViewMeta {
+export interface WorkspaceViewMetadata {
   eyebrow: string;
   title: string;
   description: string;
   liveLabel: string;
   tone: SignalTone;
+}
+
+export interface WorkspaceRuntimeInput {
+  readonly mode: 'connecting' | 'live' | 'demo';
+  readonly notice: string;
+  readonly loading: boolean;
+  readonly refreshing: boolean;
+  readonly mutationPending: boolean;
+  readonly stale: boolean;
+  readonly readOnly: boolean;
+  readonly updatedLabel: string;
+}
+
+export interface WorkspaceInput {
+  readonly dashboard: Dashboard;
+  readonly runtime: WorkspaceRuntimeInput;
+}
+
+export interface OverviewWorkspaceInput extends WorkspaceInput {
+  readonly metrics: readonly MetricSignal[];
+  readonly pipeline: readonly PipelineStage[];
+  readonly riskDistribution: readonly RiskSlice[];
+}
+
+export interface ScheduleWorkspaceInput extends WorkspaceInput {
+  readonly appointments: readonly Appointment[];
+  readonly selectedDate: Date;
+  readonly selectedFilter: 'day' | 'week' | 'list';
+  readonly providerOptions: readonly string[];
+  readonly serviceOptions: readonly string[];
+  readonly statusOptions: readonly string[];
+}
+
+export interface DocumentationWorkspaceInput extends WorkspaceInput {
+  readonly notes: readonly ClinicalNote[];
+}
+
+export interface ClaimsWorkspaceInput extends WorkspaceInput {
+  readonly claims: readonly Claim[];
+  readonly riskDistribution: readonly RiskSlice[];
+}
+
+export interface AuditWorkspaceInput extends WorkspaceInput {
+  readonly auditEvents: readonly AuditEvent[];
+}
+
+export interface SystemWorkspaceInput extends WorkspaceInput {
+  readonly activeView: ViewId;
 }
 
 interface RunwayBlock {
@@ -86,7 +136,7 @@ interface NotificationPreference {
   state: boolean;
 }
 
-const NAV_ITEMS: NavItem[] = [
+export const WORKSPACE_NAV_ITEMS: readonly WorkspaceNavItem[] = [
   { id: 'overview', label: 'Overview', shortLabel: 'Overview', icon: 'M4 12a8 8 0 1 0 16 0 8 8 0 1 0-16 0Zm4.5 0a3.5 3.5 0 1 1 7 0 3.5 3.5 0 1 1-7 0Z' },
   { id: 'schedule', label: 'Schedule', shortLabel: 'Schedule', icon: 'M5 4h14a1 1 0 0 1 1 1v14H4V5a1 1 0 0 1 1-1Zm2-2v4m10-4v4M4 9h16' },
   { id: 'documentation', label: 'Documentation', shortLabel: 'Docs', icon: 'M7 3h8l3 3v15H6V4a1 1 0 0 1 1-1Zm7 0v4h4M9 11h6M9 15h6M9 19h4' },
@@ -95,7 +145,7 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'settings', label: 'System & Demo', shortLabel: 'System', icon: 'M12 8.5A3.5 3.5 0 1 0 12 15.5 3.5 3.5 0 1 0 12 8.5Zm0-5 1.2 2.3 2.6.5 1.8-1.8 1.9 1.9-1.8 1.8.5 2.6 2.3 1.2v2.7l-2.3 1.2-.5 2.6 1.8 1.8-1.9 1.9-1.8-1.8-2.6.5L12 20.5H9.3l-1.2-2.3-2.6-.5-1.8 1.8-1.9-1.9 1.8-1.8-.5-2.6L.8 12V9.3l2.3-1.2.5-2.6-1.8-1.8 1.9-1.9 1.8 1.8 2.6-.5L9.3.8H12Z' }
 ];
 
-const VIEW_META: Record<ViewId, ViewMeta> = {
+export const WORKSPACE_VIEW_METADATA: Readonly<Record<ViewId, WorkspaceViewMetadata>> = {
   overview: { eyebrow: 'Operational command workspace', title: 'Operations observatory', description: 'Current visibility across schedule, documentation, claim risk, and persisted activity.', liveLabel: 'Operational snapshot', tone: 'cyan' },
   schedule: { eyebrow: 'Operational command workspace', title: 'Temporal runway', description: 'Coordinate fictional appointments, confirmation exceptions, and clinician capacity.', liveLabel: 'Schedule state', tone: 'cyan' },
   documentation: { eyebrow: 'Operational command workspace', title: 'Documentation continuum', description: 'Move fictional notes from capture through review, signature, and billing readiness.', liveLabel: 'Documentation state', tone: 'violet' },
@@ -147,7 +197,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   private atmosphereRenderer?: AtmosphereRenderer;
   @ViewChild('atmosphereCanvas') private readonly atmosphereCanvas?: ElementRef<HTMLCanvasElement>;
 
-  readonly nav = NAV_ITEMS;
+  readonly nav = WORKSPACE_NAV_ITEMS;
   readonly activeView = signal<ViewId>('overview');
   readonly dashboard = this.refreshStore.dashboard;
   readonly loading = this.refreshStore.loading;
@@ -170,7 +220,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   readonly notificationPreferences = signal<NotificationPreference[]>(INITIAL_PREFERENCES.map(item => ({ ...item })));
   readonly proofLayerOpen = signal(defaultProofLayerOpen());
 
-  readonly view = computed(() => VIEW_META[this.activeView()]);
+  readonly view = computed(() => WORKSPACE_VIEW_METADATA[this.activeView()]);
   readonly scenario = this.scenarioController.scenario;
   readonly currentScenarioStep = this.scenarioController.currentStep;
   readonly scenarioActionLabel = this.scenarioController.actionLabel;
