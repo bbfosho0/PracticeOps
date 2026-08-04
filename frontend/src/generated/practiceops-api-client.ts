@@ -399,12 +399,12 @@ export interface Appointment {
 }
 
 export enum AppointmentStatus {
-    _0 = 0,
-    _1 = 1,
-    _2 = 2,
-    _3 = 3,
-    _4 = 4,
-    _5 = 5,
+    Scheduled = "Scheduled",
+    Confirmed = "Confirmed",
+    CheckedIn = "CheckedIn",
+    InSession = "InSession",
+    Completed = "Completed",
+    Cancelled = "Cancelled",
 }
 
 export interface AppointmentStatusStatusRequest {
@@ -433,12 +433,12 @@ export interface Claim {
 }
 
 export enum ClaimStatus {
-    _0 = 0,
-    _1 = 1,
-    _2 = 2,
-    _3 = 3,
-    _4 = 4,
-    _5 = 5,
+    Draft = "Draft",
+    ReadyForSubmission = "ReadyForSubmission",
+    Submitted = "Submitted",
+    NeedsReview = "NeedsReview",
+    Paid = "Paid",
+    Denied = "Denied",
 }
 
 export interface ClaimStatusStatusRequest {
@@ -474,9 +474,9 @@ export interface DashboardSnapshot {
 }
 
 export enum NoteStatus {
-    _0 = 0,
-    _1 = 1,
-    _2 = 2,
+    Draft = "Draft",
+    InReview = "InReview",
+    Signed = "Signed",
 }
 
 export interface NoteStatusStatusRequest {
