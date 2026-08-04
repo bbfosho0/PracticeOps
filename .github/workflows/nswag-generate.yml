@@ -48,7 +48,10 @@ jobs:
 
       - name: Generate Angular client
         working-directory: backend/PracticeOps.Api
-        run: dotnet nswag run nswag.json
+        run: |
+          NSWAG_DLL="$(find "$HOME/.nuget/packages/nswag.consolecore/14.4.0/tools/net8.0" -name 'dotnet-nswag.dll' -print -quit)"
+          test -n "$NSWAG_DLL"
+          dotnet "$NSWAG_DLL" run nswag.json
 
       - name: Verify generated client exists
         run: |
