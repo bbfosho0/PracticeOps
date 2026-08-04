@@ -205,6 +205,14 @@ function parseStringUnion<T extends string>(values: readonly T[], value: string,
 }
 
 function applicationTransportError(error: unknown): unknown {
+  if (isGeneratedProblemDetails(error)) {
+    return new HttpErrorResponse({
+      error,
+      status: error.status,
+      statusText: typeof error['statusText'] === 'string' ? error['statusText'] : 'Unknown Error'
+    });
+  }
+
   if (!(error instanceof ApiException)) {
     return error;
   }
@@ -214,6 +222,16 @@ function applicationTransportError(error: unknown): unknown {
     status: error.status,
     statusText: error.message
   });
+}
+
+function isGeneratedProblemDetails(error: unknown): error is Record<string, unknown> & {
+  status: number;
+  detail: string;
+} {
+  return typeof error === 'object'
+    && error !== null
+    && typeof (error as Record<string, unknown>)['status'] === 'number'
+    && typeof (error as Record<string, unknown>)['detail'] === 'string';
 }
 
 function required<T>(value: T | null | undefined, path: string): T {

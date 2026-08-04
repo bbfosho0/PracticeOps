@@ -200,6 +200,29 @@ describe('PracticeOpsApiAdapter', () => {
     });
   });
 
+  it('normalizes the plain problem-detail object emitted by generated NSwag failures', done => {
+    const problemDetail = {
+      status: 409,
+      statusText: 'Conflict',
+      response: '{"detail":"The generated transition is invalid."}',
+      error: 'Conflict',
+      detail: 'The generated transition is invalid.'
+    };
+    client.updateClaimStatus.and.returnValue(throwError(() => problemDetail));
+
+    adapter.transitionClaim('claim-id', 'Submitted').subscribe({
+      next: () => fail('Expected the generated problem detail to propagate.'),
+      error: received => {
+        expect(received instanceof HttpErrorResponse).toBeTrue();
+        expect(received.status).toBe(409);
+        expect(received.statusText).toBe('Conflict');
+        expect(received.error).toBe(problemDetail);
+        expect(received.error.detail).toBe('The generated transition is invalid.');
+        done();
+      }
+    });
+  });
+
   it('fails loudly when a required generated dashboard field is absent', done => {
     const { generated: snapshot } = dashboardContract();
     snapshot.metrics = undefined;
