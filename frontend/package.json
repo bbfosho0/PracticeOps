@@ -10,7 +10,11 @@
     "build-storybook": "ng run practiceops:build-storybook",
     "test-storybook": "test-storybook --url http://127.0.0.1:6006 --maxWorkers=2",
     "api:generate": "node ../scripts/generate-api-client.mjs",
-    "api:check": "node ../scripts/generate-api-client.mjs --check"
+    "api:check": "node ../scripts/generate-api-client.mjs --check",
+    "test:e2e": "playwright test",
+    "e2e": "playwright test",
+    "e2e:ui": "playwright test --ui",
+    "e2e:install": "playwright install --with-deps chromium"
   },
   "dependencies": {
     "@angular/animations": "20.2.0",
@@ -31,6 +35,8 @@
     "@angular-devkit/build-angular": "20.2.0",
     "@angular/cli": "20.2.0",
     "@angular/compiler-cli": "20.2.0",
+    "@axe-core/playwright": "4.12.1",
+    "@playwright/test": "1.62.1",
     "@storybook/addon-a11y": "9.0.15",
     "@storybook/angular": "9.0.15",
     "@storybook/test-runner": "0.23.0",

@@ -7,11 +7,13 @@ export default defineConfig({
   timeout: 45_000,
   expect: { timeout: 12_000 },
   fullyParallel: false,
+  workers: 2,
   forbidOnly: isCi,
   retries: isCi ? 1 : 0,
   reporter: isCi
     ? [['list'], ['html', { outputFolder: 'playwright-report', open: 'never' }]]
     : 'list',
+  outputDir: 'test-results',
   use: {
     baseURL: 'http://127.0.0.1:4200',
     trace: 'retain-on-failure',
@@ -42,7 +44,7 @@ export default defineConfig({
       use: {
         ...devices['Desktop Chrome'],
         viewport: { width: 1440, height: 1000 },
-        reducedMotion: 'reduce'
+        contextOptions: { reducedMotion: 'reduce' }
       }
     }
   ]
