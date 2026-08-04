@@ -8,7 +8,9 @@
     "test": "ng test --watch=false --browsers=ChromeHeadless",
     "storybook": "ng run practiceops:storybook",
     "build-storybook": "ng run practiceops:build-storybook",
-    "test-storybook": "test-storybook --url http://127.0.0.1:6006 --maxWorkers=2"
+    "test-storybook": "test-storybook --url http://127.0.0.1:6006 --maxWorkers=2",
+    "api:generate": "node ../scripts/generate-api-client.mjs",
+    "api:check": "node ../scripts/generate-api-client.mjs --check"
   },
   "dependencies": {
     "@angular/animations": "20.2.0",
