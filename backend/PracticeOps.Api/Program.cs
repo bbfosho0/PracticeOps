@@ -44,11 +44,15 @@ app.MapHealthChecks("/health/ready", new() { Predicate = check => check.Tags.Con
 app.MapGet("/api/dashboard", async (PracticeOpsDbContext db, CancellationToken ct) =>
     Results.Ok(await DashboardSnapshotBuilder.BuildAsync(db, ct)))
     .WithName("GetDashboard")
+    .Produces<DashboardSnapshot>(StatusCodes.Status200OK)
+    .ProducesProblem(StatusCodes.Status500InternalServerError)
     .WithOpenApi();
 
 app.MapPost("/api/demo/reset", async (PracticeOpsDbContext db, CancellationToken ct) =>
     Results.Ok(await DemoResetService.ResetAsync(db, DateTimeOffset.UtcNow, ct)))
     .WithName("ResetPortfolioDemo")
+    .Produces<DashboardSnapshot>(StatusCodes.Status200OK)
+    .ProducesProblem(StatusCodes.Status500InternalServerError)
     .WithOpenApi();
 
 app.MapPost("/api/appointments/{id:guid}/status", async (Guid id, StatusRequest<AppointmentStatus> request, PracticeOpsDbContext db, CancellationToken ct) =>
@@ -58,7 +62,13 @@ app.MapPost("/api/appointments/{id:guid}/status", async (Guid id, StatusRequest<
     AddAuditAndEvent(db, request.Actor, "AppointmentStatusChanged", "Appointment", id, $"Appointment moved to {request.Status}.", new { id, request.Status });
     await db.SaveChangesAsync(ct);
     return Results.Ok(entity);
-}).WithName("UpdateAppointmentStatus").WithOpenApi();
+})
+    .WithName("UpdateAppointmentStatus")
+    .Produces<Appointment>(StatusCodes.Status200OK)
+    .ProducesProblem(StatusCodes.Status404NotFound)
+    .ProducesProblem(StatusCodes.Status409Conflict)
+    .ProducesProblem(StatusCodes.Status500InternalServerError)
+    .WithOpenApi();
 
 app.MapPost("/api/notes/{id:guid}/status", async (Guid id, StatusRequest<NoteStatus> request, PracticeOpsDbContext db, CancellationToken ct) =>
 {
@@ -67,7 +77,13 @@ app.MapPost("/api/notes/{id:guid}/status", async (Guid id, StatusRequest<NoteSta
     AddAuditAndEvent(db, request.Actor, "ClinicalNoteStatusChanged", "ClinicalNote", id, $"Clinical note moved to {request.Status}.", new { id, request.Status });
     await db.SaveChangesAsync(ct);
     return Results.Ok(entity);
-}).WithName("UpdateClinicalNoteStatus").WithOpenApi();
+})
+    .WithName("UpdateClinicalNoteStatus")
+    .Produces<ClinicalNote>(StatusCodes.Status200OK)
+    .ProducesProblem(StatusCodes.Status404NotFound)
+    .ProducesProblem(StatusCodes.Status409Conflict)
+    .ProducesProblem(StatusCodes.Status500InternalServerError)
+    .WithOpenApi();
 
 app.MapPost("/api/claims/{id:guid}/status", async (Guid id, StatusRequest<ClaimStatus> request, PracticeOpsDbContext db, CancellationToken ct) =>
 {
@@ -76,7 +92,13 @@ app.MapPost("/api/claims/{id:guid}/status", async (Guid id, StatusRequest<ClaimS
     AddAuditAndEvent(db, request.Actor, "ClaimStatusChanged", "Claim", id, $"Claim moved to {request.Status}.", new { id, request.Status });
     await db.SaveChangesAsync(ct);
     return Results.Ok(entity);
-}).WithName("UpdateClaimStatus").WithOpenApi();
+})
+    .WithName("UpdateClaimStatus")
+    .Produces<Claim>(StatusCodes.Status200OK)
+    .ProducesProblem(StatusCodes.Status404NotFound)
+    .ProducesProblem(StatusCodes.Status409Conflict)
+    .ProducesProblem(StatusCodes.Status500InternalServerError)
+    .WithOpenApi();
 
 await using (var scope = app.Services.CreateAsyncScope())
 {
