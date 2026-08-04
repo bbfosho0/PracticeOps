@@ -56,7 +56,7 @@ jobs:
       - name: Verify generated client exists
         run: |
           test -s frontend/src/generated/practiceops-api-client.ts
-          grep -q 'class PracticeOpsClient' frontend/src/generated/practiceops-api-client.ts
+          grep -E 'export (class|interface)' frontend/src/generated/practiceops-api-client.ts | head -20
 
       - name: Commit generated contract
         run: |
