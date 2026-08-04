@@ -48,7 +48,7 @@ jobs:
 
       - name: Generate Angular client
         working-directory: backend/PracticeOps.Api
-        run: dotnet nswag run nswag.json
+        run: dotnet nswag run nswag.json /runtime:Net80
 
       - name: Verify generated client exists
         run: |
