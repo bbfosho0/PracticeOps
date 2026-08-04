@@ -19,9 +19,14 @@ Keep business rules inside domain/application classes, not controllers or Angula
 ```bash
 dotnet test PracticeOps.sln
 npm --prefix frontend ci
-npm --prefix frontend test -- --watch=false
+npm --prefix frontend run api:check
+npm --prefix frontend run test -- --watch=false
 npm --prefix frontend run build
+npm --prefix frontend run build-storybook
+npm --prefix frontend run test:e2e
 ```
+
+`api:check` requires Docker. `test-storybook` additionally requires the built Storybook to be served at `http://127.0.0.1:6006`. Synthetic Playwright is the default; live Playwright requires the Docker API stack plus `PRACTICEOPS_E2E_LIVE=1`.
 
 ## Change rules
 
@@ -30,3 +35,4 @@ npm --prefix frontend run build
 - Preserve Problem Details responses for API failures.
 - Prefer focused modules over generic utility folders.
 - Update README setup instructions when commands or environment variables change.
+- Treat `frontend/src/generated` as machine-owned; keep handwritten mapping and application policy in the adapter and stores.

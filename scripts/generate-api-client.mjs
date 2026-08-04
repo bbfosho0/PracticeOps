@@ -86,9 +86,10 @@ function writeContractComposeFile() {
         image: 'rabbitmq:4-management-alpine',
         healthcheck: {
           test: ['CMD', 'rabbitmq-diagnostics', '-q', 'ping'],
-          interval: '2s',
+          interval: '5s',
           timeout: '5s',
-          retries: 30
+          retries: 20,
+          start_period: '10s'
         }
       },
       api: {

@@ -6,9 +6,17 @@ on:
       - 'frontend/**'
       - '.github/workflows/visual-audit.yml'
 
+permissions:
+  contents: read
+
+concurrency:
+  group: practiceops-visual-audit-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   functional-ui:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     defaults:
       run:
         working-directory: frontend
@@ -28,7 +36,7 @@ jobs:
       - name: Serve production build
         run: |
           python3 -m http.server 4173 --directory dist/practiceops/browser > /tmp/practiceops-server.log 2>&1 &
-          for attempt in {1..30}; do
+          for _attempt in {1..30}; do
             if curl --fail --silent http://127.0.0.1:4173/ > /dev/null; then
               exit 0
             fi
@@ -291,9 +299,11 @@ jobs:
             test -s "visual-audit/${view}-mobile.png"
           done
 
-      - uses: actions/upload-artifact@v4
+      - name: Upload visual diagnostics on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
         with:
           name: practiceops-portfolio-visual-audit
           path: frontend/visual-audit/*
-          if-no-files-found: error
+          if-no-files-found: ignore
           retention-days: 7

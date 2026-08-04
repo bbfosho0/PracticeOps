@@ -32,12 +32,12 @@
 - Produces: `createDashboardFixture()`, `createLiveRuntimeFixture()`, `createSyntheticRuntimeFixture()`, and frozen fixture types reused by Storybook and component tests.
 - Produces: exported view metadata and workspace input-model interfaces required by later extraction tasks.
 
-- [ ] Write failing tests asserting fixtures are deterministic, deeply independent between calls, and contain the complete six-workspace scenario dataset.
-- [ ] Run `npm --prefix frontend test -- --watch=false` and confirm the new test fails because the fixture module does not exist.
-- [ ] Implement fixture factories using existing fictional baseline data and explicit cloning.
-- [ ] Export shared workspace view metadata and typed input models without changing runtime behavior.
-- [ ] Run all frontend tests and production build.
-- [ ] Commit with `test: add deterministic PracticeOps UI fixtures`.
+- [x] Write failing tests asserting fixtures are deterministic, deeply independent between calls, and contain the complete six-workspace scenario dataset.
+- [x] Run `npm --prefix frontend test -- --watch=false` and confirm the new test fails because the fixture module does not exist.
+- [x] Implement fixture factories using existing fictional baseline data and explicit cloning.
+- [x] Export shared workspace view metadata and typed input models without changing runtime behavior.
+- [x] Run all frontend tests and production build.
+- [x] Commit with `test: add deterministic PracticeOps UI fixtures`.
 
 ### Task 2: Extract the shell and shared runtime components
 
@@ -57,11 +57,11 @@
 - `RuntimeNoticeComponent`: consumes mode, notice, stale state, and retry availability; emits `retryRequested`.
 - `ObservatoryShellComponent`: composes persistent shell surfaces and projects the active workspace.
 
-- [ ] Write component tests for selection events, runtime labels, retry events, and accessible names.
-- [ ] Extract markup without changing CSS selectors or rendered hierarchy used by motion and visual audits.
-- [ ] Keep atmosphere rendering and application services at the top-level coordinator.
-- [ ] Run frontend tests and production build.
-- [ ] Commit with `refactor: extract PracticeOps application shell`.
+- [x] Write component tests for selection events, runtime labels, retry events, and accessible names.
+- [x] Extract markup without changing CSS selectors or rendered hierarchy used by motion and visual audits.
+- [x] Keep atmosphere rendering and application services at the top-level coordinator.
+- [x] Run frontend tests and production build.
+- [x] Commit with `refactor: extract PracticeOps application shell`.
 
 ### Task 3: Extract overview and schedule workspaces
 
@@ -79,11 +79,11 @@
 - Overview receives metrics, pipeline, risk distribution, documentation telemetry, audit telemetry, and navigation callbacks.
 - Schedule receives appointments, selected date, mode, filter options, selected filters, telemetry, clinician load, and runway blocks; emits filter and mode changes.
 
-- [ ] Write tests for empty, populated, filtered, day, week, and list states.
-- [ ] Extract pure filtering or view-model logic into focused exported functions when component tests would otherwise require private implementation access.
-- [ ] Preserve AutoAnimate attachment points and GSAP workspace-motion boundaries.
-- [ ] Run all frontend tests and production build.
-- [ ] Commit with `refactor: extract overview and schedule workspaces`.
+- [x] Write tests for empty, populated, filtered, day, week, and list states.
+- [x] Extract pure filtering or view-model logic into focused exported functions when component tests would otherwise require private implementation access.
+- [x] Preserve AutoAnimate attachment points and GSAP workspace-motion boundaries.
+- [x] Run all frontend tests and production build.
+- [x] Commit with `refactor: extract overview and schedule workspaces`.
 
 ### Task 4: Extract documentation, claims, audit, and system workspaces
 
@@ -99,11 +99,11 @@
 - No workspace imports `OperationalRefreshStore` or `PortfolioScenarioController` directly.
 - Root coordinator maps service state to workspace inputs and output handlers.
 
-- [ ] Write tests for populated, empty, mutation-pending, synthetic-disabled, stale, and completed scenario states.
-- [ ] Extract components one workspace at a time and run the complete frontend suite after each extraction.
-- [ ] Reduce `AppComponent` to navigation, shared services, top-level derived state, and event handlers.
-- [ ] Run production build and existing responsive visual audit.
-- [ ] Commit with `refactor: decompose remaining PracticeOps workspaces`.
+- [x] Write tests for populated, empty, mutation-pending, synthetic-disabled, stale, and completed scenario states.
+- [x] Extract components one workspace at a time and run the complete frontend suite after each extraction.
+- [x] Reduce `AppComponent` to navigation, shared services, top-level derived state, and event handlers.
+- [x] Run production build and existing responsive visual audit.
+- [x] Commit with `refactor: decompose remaining PracticeOps workspaces`.
 
 ### Task 5: Add Storybook and isolated state coverage
 
@@ -119,12 +119,12 @@
 - Adds scripts: `storybook`, `build-storybook`, and `test-storybook`.
 - Stories consume deterministic factories from Task 1 and never call the live API.
 
-- [ ] Initialize the current Angular-compatible Storybook release and configure application styles, fonts, and providers.
-- [ ] Add accessibility and interaction-test support.
-- [ ] Add the approved state matrix for metric strip, runtime notice, claims, schedule, and scenario controls.
-- [ ] Add play-function tests for filters, view-mode changes, retry events, and mutation events.
-- [ ] Run Storybook build and component tests.
-- [ ] Commit with `test: add Storybook component-state workshop`.
+- [x] Initialize the current Angular-compatible Storybook release and configure application styles, fonts, and providers.
+- [x] Add accessibility and interaction-test support.
+- [x] Add the approved state matrix for metric strip, runtime notice, claims, schedule, and scenario controls.
+- [x] Add play-function tests for filters, view-mode changes, retry events, and mutation events.
+- [x] Run Storybook build and component tests.
+- [x] Commit with `test: add Storybook component-state workshop`.
 
 ### Task 6: Generate and isolate the OpenAPI client
 
@@ -140,13 +140,13 @@
 - `PracticeOpsApiAdapter` preserves existing application-facing method signatures and error semantics.
 - NSwag-generated classes remain internal to the adapter.
 
-- [ ] Write adapter contract tests using a fake generated client.
-- [ ] Configure NSwag to generate an Angular-compatible TypeScript client from the ASP.NET Core OpenAPI document.
-- [ ] Generate and commit the client.
-- [ ] Replace direct transport calls with the adapter without changing store behavior.
-- [ ] Add `api:generate` and `api:check` scripts, where `api:check` fails on generated diffs.
-- [ ] Run backend build/tests, frontend tests, and frontend production build.
-- [ ] Commit with `feat: generate frontend client from OpenAPI`.
+- [x] Write adapter contract tests using a fake generated client.
+- [x] Configure NSwag to generate an Angular-compatible TypeScript client from the ASP.NET Core OpenAPI document.
+- [x] Generate and commit the client.
+- [x] Replace direct transport calls with the adapter without changing store behavior.
+- [x] Add `api:generate` and `api:check` scripts, where `api:check` fails on generated diffs.
+- [x] Run backend build/tests, frontend tests, and frontend production build.
+- [x] Commit with `feat: generate frontend client from OpenAPI`.
 
 ### Task 7: Add Playwright workflow and responsive verification
 
@@ -163,13 +163,13 @@
 - Adds scripts: `e2e`, `e2e:ui`, and `e2e:install`.
 - Defines desktop 1440x1000, tablet 900x1100, mobile 390x844, and reduced-motion projects.
 
-- [ ] Add synthetic-preview tests with the API intentionally unavailable.
-- [ ] Add live scenario tests covering reset, persisted actions, refresh across workspaces, audit events, and outbox truth.
-- [ ] Add claims filtering and schedule mode tests.
-- [ ] Add mobile overflow, keyboard navigation, accessible-name, axe, and reduced-motion assertions.
-- [ ] Configure traces and screenshots on failure.
-- [ ] Run all Playwright projects against local services.
-- [ ] Commit with `test: add Playwright workflow verification`.
+- [x] Add synthetic-preview tests with the API intentionally unavailable.
+- [x] Add live scenario tests covering reset, persisted actions, refresh across workspaces, audit events, and outbox truth.
+- [x] Add claims filtering and schedule mode tests.
+- [x] Add mobile overflow, keyboard navigation, accessible-name, axe, and reduced-motion assertions.
+- [x] Configure traces and screenshots on failure.
+- [x] Run all Playwright projects against local services.
+- [x] Commit with `test: add Playwright workflow verification`.
 
 ### Task 8: Integrate CI, documentation, and final verification
 
@@ -183,10 +183,10 @@
 - CI gates frontend unit tests, Storybook build/tests, generated-client no-diff check, backend tests/formatting, and Playwright workflows.
 - Failure artifacts include Playwright traces and screenshots.
 
-- [ ] Add cached deterministic CI jobs without duplicating existing exact-head protections.
-- [ ] Document the component architecture, Storybook commands, API generation, and Playwright workflow.
-- [ ] Document which tests require Docker services.
-- [ ] Run `dotnet restore`, build, tests, and formatting verification.
-- [ ] Run `npm ci`, frontend tests, frontend build, Storybook build/tests, API generation check, and Playwright.
-- [ ] Review the complete branch for visual regressions, generated-code leakage, duplicate motion ownership, and stale documentation.
-- [ ] Commit with `chore: complete PracticeOps modernization verification`.
+- [x] Add cached deterministic CI jobs without duplicating existing exact-head protections.
+- [x] Document the component architecture, Storybook commands, API generation, and Playwright workflow.
+- [x] Document which tests require Docker services.
+- [x] Run `dotnet restore`, build, tests, and formatting verification.
+- [x] Run `npm ci`, frontend tests, frontend build, Storybook build/tests, API generation check, and Playwright.
+- [x] Review the complete branch for visual regressions, generated-code leakage, duplicate motion ownership, and stale documentation.
+- [x] Commit with `chore: complete PracticeOps modernization verification`.
