@@ -1,9 +1,9 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Injectable, OnDestroy, computed, inject, signal } from '@angular/core';
 import { Observable, Subscription, finalize } from 'rxjs';
+import { PracticeOpsApiAdapter } from './app/api/practiceops-api.adapter';
 import { Dashboard, DashboardMetrics, createDemoDashboard } from './dashboard-model';
 import { reconcileDashboard } from './operational-telemetry';
-import { PracticeOpsApiService } from './practiceops-api.service';
 import { ApiMode } from './runtime-model';
 
 type RefreshReason = 'initial' | 'manual' | 'poll' | 'mutation' | 'reset' | 'recovery';
@@ -23,7 +23,7 @@ export function relativeRefreshLabel(value: Date | null, now = new Date()): stri
 
 @Injectable({ providedIn: 'root' })
 export class OperationalRefreshStore implements OnDestroy {
-  private readonly api = inject(PracticeOpsApiService);
+  private readonly api = inject(PracticeOpsApiAdapter);
   private inFlight?: Subscription;
   private mutationSubscription?: Subscription;
   private pollTimer?: number;
