@@ -18,6 +18,8 @@ test.describe('synthetic preview', () => {
     await openSyntheticPreview(page);
     await expect(page.getByText(/Synthetic preview — API unavailable/i).first()).toBeVisible();
     await expect(page.getByText(/This preview remains read-only/i)).toBeVisible();
+    await expect(page.getByText('Synthetic preview records', { exact: true })).toBeVisible();
+    await expect(page.getByText('Authoritative records', { exact: true })).toHaveCount(0);
     await expectScenarioProgress(page, 0);
 
     await expect(page.getByRole('button', { name: 'Start / reset' })).toBeDisabled();
@@ -25,7 +27,12 @@ test.describe('synthetic preview', () => {
 
     for (const workspace of workspaces) await openWorkspace(page, workspace);
 
+    await openWorkspace(page, workspaces.find(workspace => workspace.id === 'settings')!);
     await expect(page.getByText('Read-only preview', { exact: true })).toBeVisible();
+    await expect(page.getByText('Preview-only status', { exact: true })).toBeVisible();
+    await expect(page.getByText('Derived from preview records', { exact: true })).toBeVisible();
+    await expect(page.getByText('Authoritative status', { exact: true })).toHaveCount(0);
+    await expect(page.getByText('Derived from live records', { exact: true })).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Reset fictional scenario' })).toBeDisabled();
 
     await openWorkspace(page, workspaces.find(workspace => workspace.id === 'audit')!);

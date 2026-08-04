@@ -62,18 +62,39 @@ test.describe('live persisted employer journey', () => {
     await expect(auditTable).toContainText('ClaimStatusChanged');
     await expect(auditTable).toContainText('Persisted');
 
+    await expect.poll(async () => {
+      const response = await page.request.get('/api/dashboard');
+      if (!response.ok()) return { completedSteps: -1, total: -1, published: -1, pending: -1 };
+      const dashboard = await response.json() as LiveDashboard;
+      return {
+        completedSteps: dashboard.scenario.completedSteps,
+        total: dashboard.outbox.totalMessages,
+        published: dashboard.outbox.publishedMessages,
+        pending: dashboard.outbox.pendingMessages
+      };
+    }, {
+      message: 'The real outbox must reach its terminal broker-confirmed state.',
+      timeout: 30_000,
+      intervals: [250, 500, 1_000]
+    }).toEqual({ completedSteps: 5, total: 5, published: 5, pending: 0 });
+
     const dashboardResponse = await page.request.get('/api/dashboard');
     expect(dashboardResponse.ok()).toBeTruthy();
     const persisted = await dashboardResponse.json() as LiveDashboard;
     expect(persisted.scenario).toMatchObject({ completedSteps: 5, totalSteps: 5 });
-    expect(persisted.outbox.totalMessages).toBe(5);
-    expect(persisted.outbox.publishedMessages + persisted.outbox.pendingMessages).toBe(5);
+    expect(persisted.outbox).toMatchObject({ totalMessages: 5, publishedMessages: 5, pendingMessages: 0 });
+
+    const refreshResponse = page.waitForResponse(response => response.request().method() === 'GET' && response.url().endsWith('/api/dashboard'));
+    await page.getByRole('button', { name: 'Refresh', exact: true }).click();
+    expect((await refreshResponse).ok(), 'Visible refresh must load the terminal outbox snapshot.').toBeTruthy();
 
     await openWorkspace(page, workspaces.find(workspace => workspace.id === 'settings')!);
-    await expect(systemValue(page, 'Scenario progress')).toHaveText('5/5 steps');
-    await expect(systemValue(page, 'Outbox total')).toHaveText('5');
-    await expect(systemValue(page, 'Published')).toHaveText(String(persisted.outbox.publishedMessages));
-    await expect(systemValue(page, 'Pending')).toHaveText(String(persisted.outbox.pendingMessages));
+    await expect(page.getByText('Authoritative status', { exact: true })).toBeVisible();
+    await expect(page.getByText('Derived from live records', { exact: true })).toBeVisible();
+    await expect(systemValue(page, 'scenario-progress')).toHaveText('5/5 steps');
+    await expect(systemValue(page, 'outbox-total')).toHaveText('5');
+    await expect(systemValue(page, 'outbox-published')).toHaveText(String(persisted.outbox.publishedMessages));
+    await expect(systemValue(page, 'outbox-pending')).toHaveText(String(persisted.outbox.pendingMessages));
 
     await page.reload();
     expect(await waitForRuntime(page)).toBe('live');
@@ -94,6 +115,35 @@ test.describe('live persisted employer journey', () => {
     expect(baseline.scenario.completedSteps).toBe(0);
     expect(baseline.outbox).toMatchObject({ totalMessages: 0, publishedMessages: 0, pendingMessages: 0 });
   });
+
+  test('persists one scenario action when reduced motion is enabled', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'reduced-motion', 'The persisted reduced-motion check runs in its dedicated project.');
+
+    const readiness = await page.request.get('/health/ready');
+    expect(readiness.ok()).toBeTruthy();
+    const setup = await page.request.post('/api/demo/reset');
+    expect(setup.ok()).toBeTruthy();
+
+    await page.goto('/');
+    expect(await waitForRuntime(page)).toBe('live');
+    expect(await page.evaluate(() => matchMedia('(prefers-reduced-motion: reduce)').matches)).toBeTruthy();
+
+    const resetResponse = page.waitForResponse(response => response.request().method() === 'POST' && response.url().endsWith('/api/demo/reset'));
+    await page.getByRole('button', { name: 'Start / reset' }).click();
+    expect((await resetResponse).ok()).toBeTruthy();
+    await expectScenarioProgress(page, 0);
+
+    await completeCurrentStep(page, 20);
+    const persistedResponse = await page.request.get('/api/dashboard');
+    expect(persistedResponse.ok()).toBeTruthy();
+    const persisted = await persistedResponse.json() as LiveDashboard;
+    expect(persisted.scenario.completedSteps).toBe(1);
+
+    const restoreResponse = page.waitForResponse(response => response.request().method() === 'POST' && response.url().endsWith('/api/demo/reset'));
+    await page.getByRole('button', { name: 'Start / reset' }).click();
+    expect((await restoreResponse).ok()).toBeTruthy();
+    await expectScenarioProgress(page, 0);
+  });
 });
 
 async function completeCurrentStep(page: import('@playwright/test').Page, expectedProgress: number): Promise<void> {
@@ -104,8 +154,6 @@ async function completeCurrentStep(page: import('@playwright/test').Page, expect
   await expect(page.getByRole('button', { name: expectedProgress === 100 ? 'Inspect proof' : 'Complete current step' })).toBeEnabled();
 }
 
-function systemValue(page: import('@playwright/test').Page, label: string) {
-  return page.locator('.system-panel .system-fields > div')
-    .filter({ has: page.getByText(label, { exact: true }) })
-    .locator('strong');
+function systemValue(page: import('@playwright/test').Page, field: 'scenario-progress' | 'outbox-total' | 'outbox-published' | 'outbox-pending') {
+  return page.getByTestId(`system-${field}`);
 }

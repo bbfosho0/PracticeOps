@@ -35,21 +35,49 @@ test('every workspace is accessible and contained at the configured viewport', a
   }
 });
 
-test('keyboard navigation exposes focus, aria-current, progress, and live status', async ({ page }) => {
+test('keyboard navigation exposes focus, aria-current, progress, and live status', async ({ page }, testInfo) => {
   await openSyntheticPreview(page);
 
-  const schedule = page.getByRole('button', { name: 'Schedule', exact: true });
-  await tabTo(page, schedule);
-  await expectVisibleFocus(schedule);
+  for (const workspace of workspaces) {
+    const destination = page.getByRole('button', { name: workspace.navName, exact: true });
+    await tabTo(page, destination);
+    await expectVisibleFocus(destination);
+    await page.keyboard.press('Enter');
+    await expect(destination).toHaveAttribute('aria-current', 'page');
+    await expect(page.locator('.observatory')).toHaveAttribute('data-view', workspace.id);
+  }
+
+  const overviewDestination = page.getByRole('button', { name: 'Overview', exact: true });
+  await tabTo(page, overviewDestination);
+  await expectVisibleFocus(overviewDestination);
   await page.keyboard.press('Enter');
-  await expect(schedule).toHaveAttribute('aria-current', 'page');
-  await expect(page.locator('.observatory')).toHaveAttribute('data-view', 'schedule');
+  await expect(overviewDestination).toHaveAttribute('aria-current', 'page');
+  await expect(page.locator('.observatory')).toHaveAttribute('data-view', 'overview');
+
+  if (testInfo.project.name === 'mobile') {
+    await expect(page.locator('.scenario-steps')).toBeHidden();
+  } else {
+    for (const step of [
+      'Resolve the schedule exception',
+      'Submit the delayed note',
+      'Complete the documentation',
+      'Clear the claim risk',
+      'Advance the claim'
+    ]) {
+      const stepControl = page.getByRole('button', { name: step, exact: true });
+      await tabTo(page, stepControl);
+      await expectVisibleFocus(stepControl);
+    }
+  }
 
   const openCurrentWorkspace = page.getByRole('button', { name: 'Open current workspace' });
   await tabTo(page, openCurrentWorkspace);
   await expectVisibleFocus(openCurrentWorkspace);
   await page.keyboard.press('Enter');
   await expect(page.locator('.observatory')).toHaveAttribute('data-view', 'schedule');
+  await expect(page.getByRole('button', { name: 'Schedule', exact: true })).toHaveAttribute('aria-current', 'page');
+  await expect(page.getByRole('button', { name: 'Start / reset' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Live API required' })).toBeDisabled();
 
   await expectScenarioProgress(page, 0);
   await expect(page.getByRole('progressbar', { name: 'Scenario progress' })).toHaveAttribute('aria-valuemax', '100');

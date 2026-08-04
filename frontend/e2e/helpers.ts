@@ -87,6 +87,7 @@ export async function tabTo(page: Page, target: Locator, limit = 80): Promise<vo
 
 export async function expectVisibleFocus(target: Locator): Promise<void> {
   await expect(target).toBeFocused();
+  await expect(target).toBeInViewport();
   const indicator = await target.evaluate(element => {
     const style = getComputedStyle(element);
     return {

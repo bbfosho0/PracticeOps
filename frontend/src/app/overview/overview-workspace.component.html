@@ -4,7 +4,7 @@
 <section class="overview-grid">
   <article class="glass-panel schedule-preview">
     <header class="panel-header">
-      <div><span class="panel-kicker">Today’s schedule</span><span class="panel-subtitle">Authoritative records</span></div>
+      <div><span class="panel-kicker">Today’s schedule</span><span class="panel-subtitle">{{ apiMode() === 'live' ? 'Authoritative records' : 'Synthetic preview records' }}</span></div>
       <button type="button" class="text-action" (click)="navigationRequested.emit('schedule')">View schedule <span>→</span></button>
     </header>
     <div class="schedule-list" auto-animate>

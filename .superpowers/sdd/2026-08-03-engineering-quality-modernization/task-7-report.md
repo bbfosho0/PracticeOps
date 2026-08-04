@@ -33,6 +33,15 @@ Complete on `feat/engineering-quality-modernization`. Playwright now provides pe
 - The persisted Docker volume initially returned dashboard HTTP 409 because its fictional scenario rows were absent. The live test now uses the explicitly permitted reset endpoint only for deterministic setup before exercising the visible Start/reset control.
 - Subsequent live failures were resilient-selector findings: the scenario appointment is outside the day runway's 18-row display window, and `Published` appears in several panels. The test now switches visibly to List and scopes outbox assertions to the System proof fields.
 
+## Review follow-up
+
+- The live workflow now condition-polls the real dashboard until the five-step outbox reaches `5 total / 5 published / 0 pending`, then triggers the visible header Refresh and waits for that dashboard response before comparing rendered System proof. It uses no arbitrary sleeps.
+- System proof assertions use stable `data-testid` values named for the four business fields. These repeated, non-interactive label/value rows have no unique accessible role, so a test ID is more resilient and more explicit than the previous `.system-panel .system-fields > div` structural selector.
+- Overview and System truth labels are now mode-aware: synthetic mode says `Synthetic preview records`, `Preview-only status`, and `Derived from preview records`; live mode retains `Authoritative records`, `Authoritative status`, and `Derived from live records`.
+- Keyboard coverage now activates every command-dock destination and verifies visible focus, `aria-current`, and the rendered view. Desktop, tablet, and reduced-motion projects also traverse all five visible scenario-step controls; mobile explicitly proves the intentionally hidden step list and traverses the available `Open current workspace` action.
+- The reduced-motion live project now starts/resets through the visible UI, persists one real scenario transition, independently confirms it through the API, and restores the zero-progress baseline.
+- Review RED evidence was intentional and focused: synthetic truth failed on the missing preview label; the live test reached terminal synchronization and then failed on the missing semantic test ID; the expanded keyboard test exposed that scenario steps are hidden outside Overview and at the mobile breakpoint. Each failed Playwright run retained its trace, screenshot, and video as configured.
+
 ## Verification
 
 - `npm --prefix frontend ci` — passed; 1,521 packages installed.
@@ -40,8 +49,9 @@ Complete on `feat/engineering-quality-modernization`. Playwright now provides pe
 - `npm --prefix frontend test -- --watch=false` — passed, 109/109.
 - `npm --prefix frontend run build` — passed; production bundle generated.
 - `dotnet test PracticeOps.sln --no-restore` — passed, 18/18.
-- `npm --prefix frontend run test:e2e` — passed across desktop, tablet, mobile, and reduced-motion: 17 passed, 7 intentional skips, 0 failed in 1.8 minutes. The skips are the stateful live journey outside its dedicated invocation and the reduced-motion-only assertion outside that project.
-- `PRACTICEOPS_E2E_LIVE=1 npx playwright test --project=desktop --grep="live persisted employer journey"` — passed, 1/1; test body completed in 14.1 seconds.
+- `npm --prefix frontend run test:e2e` — passed across desktop, tablet, mobile, and reduced-motion: 17 passed, 11 intentional skips, 0 failed in 1.8 minutes. The skips are the two opt-in stateful live checks outside their dedicated invocations and the reduced-motion-only assertion outside that project.
+- `PRACTICEOPS_E2E_LIVE=1 npx playwright test --project=desktop --grep="persists all five transitions"` — passed, 1/1; test body completed in 15.7 seconds.
+- `PRACTICEOPS_E2E_LIVE=1 npx playwright test --project=reduced-motion --grep="persists one scenario action"` — passed, 1/1; test body completed in 3.2 seconds.
 - Docker readiness — PostgreSQL and RabbitMQ healthy, API readiness HTTP 200 on port 8081. The final live test restored zero scenario progress and zero outbox messages.
 - `git diff --check` — passed before the final report/commit gate.
 
