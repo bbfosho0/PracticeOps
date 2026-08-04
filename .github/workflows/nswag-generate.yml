@@ -1,4 +1,4 @@
-name: NSwag Generate
+name: API Contract Drift
 
 on:
   workflow_dispatch:
@@ -7,72 +7,32 @@ on:
       - '.config/dotnet-tools.json'
       - 'backend/PracticeOps.Api/**'
       - 'docker-compose.yml'
+      - 'frontend/package.json'
+      - 'frontend/package-lock.json'
+      - 'frontend/src/generated/**'
+      - 'scripts/generate-api-client.mjs'
       - '.github/workflows/nswag-generate.yml'
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  generate:
-    if: github.actor != 'github-actions[bot]'
+  contract-drift:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: feat/engineering-quality-modernization
-          fetch-depth: 0
 
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.x
 
-      - name: Restore pinned tools
-        run: dotnet tool restore
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
 
-      - name: Start API contract stack
-        run: docker compose up --build --detach postgres rabbitmq api
-
-      - name: Export OpenAPI document
-        run: |
-          for attempt in {1..60}; do
-            if curl --fail --silent http://127.0.0.1:8081/swagger/v1/swagger.json \
-              --output backend/PracticeOps.Api/openapi.json; then
-              exit 0
-            fi
-            sleep 2
-          done
-          docker compose ps
-          docker compose logs api
-          exit 1
-
-      - name: Generate Angular client
-        working-directory: backend/PracticeOps.Api
-        run: |
-          NSWAG_DLL="$(find "$HOME/.nuget/packages/nswag.consolecore/14.4.0/tools/net8.0" -name 'dotnet-nswag.dll' -print -quit)"
-          test -n "$NSWAG_DLL"
-          dotnet "$NSWAG_DLL" run nswag.json
-
-      - name: Verify generated client exists
-        run: test -s frontend/src/generated/practiceops-api-client.ts
-
-      - name: Commit generated contract
-        run: |
-          rm -f backend/PracticeOps.Api/openapi.json
-          git config user.name github-actions[bot]
-          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add frontend/src/generated/practiceops-api-client.ts
-          if git diff --cached --quiet; then
-            echo 'Generated client is already current.'
-            exit 0
-          fi
-          git commit -m 'build: generate PracticeOps OpenAPI client'
-          git push origin HEAD:feat/engineering-quality-modernization
-
-      - name: Print service logs on failure
-        if: failure()
-        run: docker compose logs
-
-      - name: Stop contract stack
-        if: always()
-        run: docker compose down --volumes --remove-orphans
+      - run: dotnet tool restore
+      - run: npm --prefix frontend ci
+      - run: npm --prefix frontend run api:check

@@ -1,6 +1,6 @@
 {
   "runtime": "Net80",
-  "defaultVariables": null,
+  "defaultVariables": "ClientOutput=../../frontend/src/generated/practiceops-api-client.ts",
   "documentGenerator": {
     "fromDocument": {
       "url": "openapi.json",
@@ -64,7 +64,7 @@
       "templateDirectory": null,
       "serviceHost": null,
       "serviceSchemes": null,
-      "output": "../../frontend/src/generated/practiceops-api-client.ts",
+      "output": "$(ClientOutput)",
       "newLineBehavior": "Lf"
     }
   }

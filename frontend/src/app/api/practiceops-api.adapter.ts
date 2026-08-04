@@ -1,13 +1,27 @@
+import { HttpErrorResponse } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { Observable, map } from 'rxjs';
+import { Observable, catchError, map, throwError } from 'rxjs';
 import {
+  ApiException,
+  Appointment as GeneratedAppointment,
   AppointmentStatus,
+  AuditEntry as GeneratedAuditEntry,
+  Claim as GeneratedClaim,
   ClaimStatus,
+  ClinicalNote as GeneratedClinicalNote,
   DashboardSnapshot,
   NoteStatus,
   PracticeOpsClient
 } from '../../generated/practiceops-api-client';
-import { Dashboard } from '../../dashboard-model';
+import {
+  Appointment,
+  AuditEvent,
+  Claim,
+  ClinicalNote,
+  Dashboard,
+  ScenarioStepState,
+  ViewId
+} from '../../dashboard-model';
 
 const PORTFOLIO_ACTOR = 'Portfolio reviewer';
 
@@ -16,32 +30,47 @@ export class PracticeOpsApiAdapter {
   private readonly client = inject(PracticeOpsClient);
 
   loadDashboard(): Observable<Dashboard> {
-    return this.client.getDashboard().pipe(map(snapshot => mapDashboard(snapshot)));
+    return this.client.getDashboard().pipe(
+      map(snapshot => mapDashboard(snapshot)),
+      catchError(error => throwError(() => applicationTransportError(error)))
+    );
   }
 
   resetDemo(): Observable<Dashboard> {
-    return this.client.resetPortfolioDemo().pipe(map(snapshot => mapDashboard(snapshot)));
+    return this.client.resetPortfolioDemo().pipe(
+      map(snapshot => mapDashboard(snapshot)),
+      catchError(error => throwError(() => applicationTransportError(error)))
+    );
   }
 
-  transitionAppointment(id: string, status: string): Observable<unknown> {
+  transitionAppointment(id: string, status: string): Observable<Appointment> {
     return this.client.updateAppointmentStatus(id, {
       status: parseEnum(AppointmentStatus, status, 'appointment status'),
       actor: PORTFOLIO_ACTOR
-    });
+    }).pipe(
+      map(value => mapAppointment(value, 'appointment mutation')),
+      catchError(error => throwError(() => applicationTransportError(error)))
+    );
   }
 
-  transitionNote(id: string, status: string): Observable<unknown> {
+  transitionNote(id: string, status: string): Observable<ClinicalNote> {
     return this.client.updateClinicalNoteStatus(id, {
       status: parseEnum(NoteStatus, status, 'note status'),
       actor: PORTFOLIO_ACTOR
-    });
+    }).pipe(
+      map(value => mapClinicalNote(value, 'note mutation')),
+      catchError(error => throwError(() => applicationTransportError(error)))
+    );
   }
 
-  transitionClaim(id: string, status: string): Observable<unknown> {
+  transitionClaim(id: string, status: string): Observable<Claim> {
     return this.client.updateClaimStatus(id, {
       status: parseEnum(ClaimStatus, status, 'claim status'),
       actor: PORTFOLIO_ACTOR
-    });
+    }).pipe(
+      map(value => mapClaim(value, 'claim mutation')),
+      catchError(error => throwError(() => applicationTransportError(error)))
+    );
   }
 }
 
@@ -58,40 +87,14 @@ function mapDashboard(snapshot: DashboardSnapshot): Dashboard {
       claimExposure: required(metrics.claimExposure, 'dashboard.metrics.claimExposure'),
       teamUtilization: required(metrics.teamUtilization, 'dashboard.metrics.teamUtilization')
     },
-    appointments: required(snapshot.appointments, 'dashboard.appointments').map((item, index) => ({
-      id: required(item.id, `dashboard.appointments[${index}].id`),
-      patientDisplayName: required(item.patientDisplayName, `dashboard.appointments[${index}].patientDisplayName`),
-      clinician: required(item.clinician, `dashboard.appointments[${index}].clinician`),
-      service: required(item.service, `dashboard.appointments[${index}].service`),
-      startsAt: required(item.startsAt, `dashboard.appointments[${index}].startsAt`),
-      status: required(item.status, `dashboard.appointments[${index}].status`)
-    })),
-    notes: required(snapshot.notes, 'dashboard.notes').map((item, index) => ({
-      id: required(item.id, `dashboard.notes[${index}].id`),
-      appointmentId: required(item.appointmentId, `dashboard.notes[${index}].appointmentId`),
-      clinician: required(item.clinician, `dashboard.notes[${index}].clinician`),
-      dueAt: required(item.dueAt, `dashboard.notes[${index}].dueAt`),
-      status: required(item.status, `dashboard.notes[${index}].status`),
-      signedAt: item.signedAt ?? null
-    })),
-    claims: required(snapshot.claims, 'dashboard.claims').map((item, index) => ({
-      id: required(item.id, `dashboard.claims[${index}].id`),
-      number: required(item.number, `dashboard.claims[${index}].number`),
-      payer: required(item.payer, `dashboard.claims[${index}].payer`),
-      amount: required(item.amount, `dashboard.claims[${index}].amount`),
-      riskReason: required(item.riskReason, `dashboard.claims[${index}].riskReason`),
-      status: required(item.status, `dashboard.claims[${index}].status`),
-      updatedAt: required(item.updatedAt, `dashboard.claims[${index}].updatedAt`)
-    })),
-    audit: required(snapshot.audit, 'dashboard.audit').map((item, index) => ({
-      id: required(item.id, `dashboard.audit[${index}].id`),
-      actor: required(item.actor, `dashboard.audit[${index}].actor`),
-      action: required(item.action, `dashboard.audit[${index}].action`),
-      entityType: required(item.entityType, `dashboard.audit[${index}].entityType`),
-      entityId: required(item.entityId, `dashboard.audit[${index}].entityId`),
-      summary: required(item.summary, `dashboard.audit[${index}].summary`),
-      occurredAt: required(item.occurredAt, `dashboard.audit[${index}].occurredAt`)
-    })),
+    appointments: required(snapshot.appointments, 'dashboard.appointments')
+      .map((item, index) => mapAppointment(item, `dashboard.appointments[${index}]`)),
+    notes: required(snapshot.notes, 'dashboard.notes')
+      .map((item, index) => mapClinicalNote(item, `dashboard.notes[${index}]`)),
+    claims: required(snapshot.claims, 'dashboard.claims')
+      .map((item, index) => mapClaim(item, `dashboard.claims[${index}]`)),
+    audit: required(snapshot.audit, 'dashboard.audit')
+      .map((item, index) => mapAuditEvent(item, `dashboard.audit[${index}]`)),
     scenario: {
       id: required(scenario.id, 'dashboard.scenario.id'),
       title: required(scenario.title, 'dashboard.scenario.title'),
@@ -101,14 +104,26 @@ function mapDashboard(snapshot: DashboardSnapshot): Dashboard {
       completedSteps: required(scenario.completedSteps, 'dashboard.scenario.completedSteps'),
       totalSteps: required(scenario.totalSteps, 'dashboard.scenario.totalSteps'),
       completionPercent: required(scenario.completionPercent, 'dashboard.scenario.completionPercent'),
-      currentStepId: scenario.currentStepId ?? null,
-      currentWorkspace: scenario.currentWorkspace ?? null,
+      currentStepId: required(scenario.currentStepId, 'dashboard.scenario.currentStepId'),
+      currentWorkspace: parseStringUnion(
+        VIEW_IDS,
+        required(scenario.currentWorkspace, 'dashboard.scenario.currentWorkspace'),
+        'dashboard.scenario.currentWorkspace'
+      ),
       steps: required(scenario.steps, 'dashboard.scenario.steps').map((step, index) => ({
         id: required(step.id, `dashboard.scenario.steps[${index}].id`),
         label: required(step.label, `dashboard.scenario.steps[${index}].label`),
         description: required(step.description, `dashboard.scenario.steps[${index}].description`),
-        workspace: required(step.workspace, `dashboard.scenario.steps[${index}].workspace`),
-        state: required(step.state, `dashboard.scenario.steps[${index}].state`)
+        workspace: parseStringUnion(
+          VIEW_IDS,
+          required(step.workspace, `dashboard.scenario.steps[${index}].workspace`),
+          `dashboard.scenario.steps[${index}].workspace`
+        ),
+        state: parseStringUnion(
+          SCENARIO_STEP_STATES,
+          required(step.state, `dashboard.scenario.steps[${index}].state`),
+          `dashboard.scenario.steps[${index}].state`
+        )
       }))
     },
     outbox: {
@@ -122,12 +137,83 @@ function mapDashboard(snapshot: DashboardSnapshot): Dashboard {
   };
 }
 
+const VIEW_IDS: readonly ViewId[] = ['overview', 'schedule', 'documentation', 'claims', 'audit', 'settings'];
+const SCENARIO_STEP_STATES: readonly ScenarioStepState[] = ['complete', 'current', 'pending'];
+
+function mapAppointment(value: GeneratedAppointment, path: string): Appointment {
+  return {
+    id: required(value.id, `${path}.id`),
+    patientDisplayName: required(value.patientDisplayName, `${path}.patientDisplayName`),
+    clinician: required(value.clinician, `${path}.clinician`),
+    service: required(value.service, `${path}.service`),
+    startsAt: required(value.startsAt, `${path}.startsAt`),
+    status: parseEnum(
+      AppointmentStatus,
+      required(value.status, `${path}.status`),
+      `${path}.status`
+    )
+  };
+}
+
+function mapClinicalNote(value: GeneratedClinicalNote, path: string): ClinicalNote {
+  return {
+    id: required(value.id, `${path}.id`),
+    appointmentId: required(value.appointmentId, `${path}.appointmentId`),
+    clinician: required(value.clinician, `${path}.clinician`),
+    dueAt: required(value.dueAt, `${path}.dueAt`),
+    status: parseEnum(NoteStatus, required(value.status, `${path}.status`), `${path}.status`)
+  };
+}
+
+function mapClaim(value: GeneratedClaim, path: string): Claim {
+  return {
+    id: required(value.id, `${path}.id`),
+    number: required(value.number, `${path}.number`),
+    payer: required(value.payer, `${path}.payer`),
+    amount: required(value.amount, `${path}.amount`),
+    riskReason: required(value.riskReason, `${path}.riskReason`),
+    status: parseEnum(ClaimStatus, required(value.status, `${path}.status`), `${path}.status`)
+  };
+}
+
+function mapAuditEvent(value: GeneratedAuditEntry, path: string): AuditEvent {
+  return {
+    id: required(value.id, `${path}.id`),
+    actor: required(value.actor, `${path}.actor`),
+    action: required(value.action, `${path}.action`),
+    entityType: required(value.entityType, `${path}.entityType`),
+    entityId: required(value.entityId, `${path}.entityId`),
+    summary: required(value.summary, `${path}.summary`),
+    occurredAt: required(value.occurredAt, `${path}.occurredAt`)
+  };
+}
+
 function parseEnum<T extends Record<string, string>>(values: T, value: string, label: string): T[keyof T] {
   const match = Object.values(values).find(candidate => candidate === value);
   if (!match) {
     throw new Error(`Unsupported ${label}: ${value}`);
   }
   return match as T[keyof T];
+}
+
+function parseStringUnion<T extends string>(values: readonly T[], value: string, path: string): T {
+  const match = values.find(candidate => candidate === value);
+  if (!match) {
+    throw new Error(`OpenAPI contract violation: ${path} has unsupported value ${value}.`);
+  }
+  return match;
+}
+
+function applicationTransportError(error: unknown): unknown {
+  if (!(error instanceof ApiException)) {
+    return error;
+  }
+
+  return new HttpErrorResponse({
+    error: error.result ?? error.response,
+    status: error.status,
+    statusText: error.message
+  });
 }
 
 function required<T>(value: T | null | undefined, path: string): T {
