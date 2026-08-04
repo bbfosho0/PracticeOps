@@ -1,0 +1,7 @@
+<header class="panel-header"><div><span class="panel-kicker">{{ apiMode() === 'live' ? 'Immutable activity stream' : 'Preview activity stream' }}</span><span class="live-label"><i></i>{{ apiMode() === 'live' ? 'PostgreSQL records' : 'Preview records' }}</span></div></header>
+<div class="data-table audit-table" role="table" aria-label="Audit activity" tabindex="0">
+  <div class="table-row table-head" role="row"><span role="columnheader">Time</span><span role="columnheader">Event</span><span role="columnheader">Entity</span><span role="columnheader">Source</span><span role="columnheader">Details</span><span role="columnheader">Status</span><span role="columnheader">Actor</span></div>
+  @for (event of events(); track event.id) {
+    <div class="table-row" role="row"><strong role="cell">{{ event.occurredAt | date:'shortTime' }}</strong><span role="cell">{{ event.action }}</span><span role="cell">{{ event.entityType ?? 'Domain' }}</span><span role="cell">{{ apiMode() === 'live' ? 'PracticeOps API' : 'Synthetic fixture' }}</span><span role="cell">{{ event.summary }}</span><span role="cell" class="status-text" [attr.data-tone]="apiMode() === 'live' ? 'green' : 'violet'">{{ apiMode() === 'live' ? 'Persisted' : 'Preview' }}</span><span role="cell">{{ event.actor }}</span></div>
+  }
+</div>

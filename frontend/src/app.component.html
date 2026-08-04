@@ -1,4 +1,8 @@
-<div class="observatory" [attr.data-view]="activeView()" [attr.data-api-mode]="apiMode()" [class.is-stale]="stale()">
+<div appObservatoryShell class="observatory" [attr.data-view]="activeView()" [attr.data-api-mode]="apiMode()" [class.is-stale]="stale()"
+  [items]="nav" [activeView]="activeView()" [runtimeMode]="apiMode()" [metadata]="view()" [runtimeStatus]="systemState()"
+  [updatedLabel]="updatedLabel()" [refreshing]="refreshing()" [notice]="notice()" [stale]="stale()"
+  [retryAvailable]="!refreshing()" [proofCollapsed]="!proofLayerOpen()"
+  (viewSelected)="selectView($event)" (retryRequested)="refresh()">
   <div class="atmosphere" aria-hidden="true">
     <canvas #atmosphereCanvas class="atmosphere-canvas"></canvas>
     <span class="aurora aurora-primary"></span>
@@ -8,60 +12,10 @@
     <span class="scanline"></span>
   </div>
 
-  <aside class="command-dock" aria-label="PracticeOps navigation">
-    <a class="brand-orbit" href="#" aria-label="PracticeOps home" (click)="$event.preventDefault(); selectView('overview')"><span class="brand-core"></span></a>
-    <nav>
-      @for (item of nav; track item.id) {
-        <button type="button" class="dock-item" [class.active]="activeView() === item.id" [attr.aria-current]="activeView() === item.id ? 'page' : null" [attr.aria-label]="item.label" (click)="selectView(item.id)">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path [attr.d]="item.icon"></path></svg>
-          <span>{{ item.shortLabel }}</span>
-        </button>
-      }
-    </nav>
-    <div class="dock-status" [attr.data-mode]="apiMode()" [attr.title]="systemState().label"><span></span></div>
-  </aside>
-
-  <main class="workspace" [appObservatoryViewMotion]="activeView()">
-    <header class="workspace-header">
-      <div class="brand-lockup"><span class="product-name">PracticeOps</span><span class="product-divider"></span><span class="product-context">Clinical Observatory</span></div>
-      <div class="header-copy"><span class="eyebrow">{{ view().eyebrow }}</span><h1>{{ view().title }}</h1><p>{{ view().description }}</p></div>
-      <div class="header-actions">
-        <button type="button" class="refresh-control" [disabled]="refreshing()" (click)="refresh()">{{ refreshing() ? 'Updating…' : 'Refresh' }}</button>
-        <span class="live-pill" [attr.data-tone]="systemState().tone"><span class="live-dot"></span>{{ systemState().label }}</span>
-        <span class="demo-pill">{{ updatedLabel() }}</span>
-        <span class="avatar" aria-label="Yoshi Gomez">YG</span>
-      </div>
-    </header>
-
-    @if (notice()) {
-      <section class="mode-notice" [class.is-stale]="stale()" aria-live="polite">
-        <span class="notice-pulse"></span><span>{{ notice() }}</span>
-        <button type="button" [disabled]="refreshing()" (click)="refresh()">{{ apiMode() === 'demo' ? 'Retry API' : 'Refresh now' }}</button>
-      </section>
-    }
-
-    <section class="scenario-rail glass-panel" [attr.data-state]="apiMode() === 'live' ? (scenarioComplete() ? 'complete' : 'active') : 'preview'" aria-labelledby="scenario-title">
-      <div class="scenario-summary">
-        <span class="panel-kicker">Persisted employer journey</span>
-        <h2 id="scenario-title">{{ scenario().title }}</h2>
-        <p>{{ currentScenarioStep().description }}</p>
-        <div class="scenario-progress" role="progressbar" [attr.aria-valuenow]="scenario().completionPercent" aria-valuemin="0" aria-valuemax="100">
-          <span [style.width.%]="scenario().completionPercent"></span>
-        </div>
-        <small>{{ scenario().completedSteps }} of {{ scenario().totalSteps }} persisted transitions complete · {{ scenario().completionPercent }}%</small>
-      </div>
-      <ol class="scenario-steps" aria-label="Portfolio scenario progress">
-        @for (step of scenario().steps; track step.id) {
-          <li [attr.data-state]="step.state"><span>{{ $index + 1 }}</span><button type="button" (click)="selectView(step.workspace)">{{ step.label }}</button></li>
-        }
-      </ol>
-      <div class="scenario-actions" auto-animate>
-        <button type="button" class="scenario-secondary" [disabled]="apiMode() !== 'live' || mutationPending()" (click)="startScenario()">Start / reset</button>
-        <button type="button" class="scenario-secondary" (click)="openScenarioWorkspace()">Open current workspace</button>
-        <button type="button" class="scenario-primary" [disabled]="!canMutateScenario() && !scenarioComplete()" (click)="continueScenario()">{{ scenarioActionLabel() }}</button>
-        @if (apiMode() !== 'live') { <small>Persisted actions require the live API. This preview remains read-only.</small> }
-      </div>
-    </section>
+    <section appScenarioControls class="scenario-rail glass-panel" [scenario]="scenario()" [currentStep]="currentScenarioStep()"
+      [apiMode]="apiMode()" [mutationPending]="mutationPending()" [canMutate]="canMutateScenario()"
+      [complete]="scenarioComplete()" [actionLabel]="scenarioActionLabel()" (startRequested)="startScenario()"
+      (workspaceRequested)="openScenarioWorkspace()" (continueRequested)="continueScenario()" (stepSelected)="selectView($event)"></section>
 
     <aside class="portfolio-proof" [class.is-collapsed]="!proofLayerOpen()" aria-label="Operator's proof layer">
       <header><div><span class="panel-kicker">Operator's proof layer</span><strong>{{ proofLayerOpen() ? 'How this demo was built' : 'Portfolio proof' }}</strong></div><button type="button" [attr.aria-expanded]="proofLayerOpen()" (click)="toggleProofLayer()">{{ proofLayerOpen() ? 'Collapse' : 'Explore proof' }}</button></header>
@@ -82,122 +36,55 @@
     } @else {
       @switch (activeView()) {
         @case ('overview') {
-          <p class="sr-only" role="status" aria-live="polite" aria-atomic="true">{{ kpiAnnouncement() }}</p>
-          <section class="signal-strip" aria-label="Primary operations metrics">
-            @for (metric of metrics(); track metric.label) {
-              <article class="metric-signal" [attr.data-tone]="metric.tone"><span class="signal-orb" aria-hidden="true"><span></span></span><div class="metric-copy"><span>{{ metric.label }}</span><strong [appMetricValueMotion]="metric.value" [metricSuffix]="metric.suffix ?? ''">{{ metric.value | number:'1.0-0' }}{{ metric.suffix }}</strong><small>{{ metric.detail }}</small></div></article>
-            }
-          </section>
-
-          <section class="overview-grid">
-            <article class="glass-panel schedule-preview">
-              <header class="panel-header"><div><span class="panel-kicker">Today’s schedule</span><span class="panel-subtitle">Authoritative records</span></div><button type="button" class="text-action" (click)="selectView('schedule')">View schedule <span>→</span></button></header>
-              <div class="schedule-list" auto-animate>
-                @for (appointment of appointmentsForSelectedDate().slice(0, 7); track appointment.id) {
-                  <div class="schedule-row" [class.scenario-record]="appointment.id === scenarioAppointmentId()"><time>{{ appointment.startsAt | date:'shortTime' }}</time><span class="row-signal" [attr.data-tone]="tone(appointment.status)"></span><span class="mini-avatar" [attr.data-tone]="tone(appointment.status)">{{ initials(appointment.patientDisplayName) }}</span><div class="row-primary"><strong>{{ appointment.patientDisplayName }}</strong><small>{{ appointment.service }} · {{ appointment.clinician }}</small></div><span class="status-chip" [attr.data-tone]="tone(appointment.status)">{{ statusLabel(appointment.status) }}</span></div>
-                }
-              </div>
-            </article>
-
-            <article class="glass-panel documentation-preview">
-              <header class="panel-header"><div><span class="panel-kicker">Documentation readiness</span><span class="panel-subtitle">{{ dashboard().metrics.unsignedNotes }} unsigned</span></div><button type="button" class="text-action" (click)="selectView('documentation')">View documentation <span>→</span></button></header>
-              <div class="pipeline compact-pipeline">@for (stage of pipeline(); track stage.label) { <div class="pipeline-stage" [attr.data-tone]="stage.tone"><span class="stage-label">{{ stage.label }}</span><span class="pipeline-orb">{{ stage.value }}</span></div>@if (!$last) { <span class="pipeline-link" [attr.data-tone]="stage.tone"></span> } }</div>
-              <div class="energy-track"><span></span></div><div class="readiness-footer"><span>Capture</span><span>Review</span><span>Signature</span><span>QA</span><span>Billing ready</span></div>
-            </article>
-
-            <article class="glass-panel risk-preview">
-              <header class="panel-header"><span class="panel-kicker">Claims risk topology</span><button type="button" class="text-action warning" (click)="selectView('claims')">{{ dashboard().metrics.claimsAtRisk }} at risk</button></header>
-              <app-risk-topology [slices]="riskDistribution()" [totalAtRisk]="dashboard().metrics.claimsAtRisk"></app-risk-topology>
-            </article>
-
-            <article class="glass-panel activity-preview">
-              <header class="panel-header"><span class="panel-kicker">Recent persisted activity</span><span class="live-label"><i></i>{{ apiMode() === 'live' ? 'API snapshot' : 'Preview data' }}</span></header>
-              <div class="activity-list" auto-animate>@for (event of auditEvents().slice(0, 5); track event.id) { <div class="activity-row"><span class="activity-icon" [attr.data-tone]="eventTone(event, $index)"></span><div><strong>{{ event.action }}</strong><small>{{ event.summary }}</small></div><time>{{ event.occurredAt | date:'shortTime' }}</time></div> }</div>
-            </article>
-          </section>
+          <div appOverviewWorkspace
+            [metrics]="metrics()" [pipeline]="pipeline()" [riskDistribution]="riskDistribution()"
+            [documentationTelemetry]="documentationTelemetry()" [auditTelemetry]="auditTelemetry()"
+            [appointments]="appointmentsForSelectedDate().slice(0, 7)" [auditEvents]="auditEvents().slice(0, 5)"
+            [claimsAtRisk]="dashboard().metrics.claimsAtRisk" [scenarioAppointmentId]="scenarioAppointmentId()"
+            [apiMode]="apiMode()" [kpiAnnouncement]="kpiAnnouncement()"
+            (navigationRequested)="selectView($event)"></div>
         }
 
         @case ('schedule') {
-          <section class="schedule-toolbar glass-panel">
-            <div class="date-control"><button type="button" aria-label="Previous day" (click)="shiftScheduleDate(-1)">‹</button><span>{{ scheduleDateLabel() | date:'MMMM d, y' }}</span><button type="button" aria-label="Next day" (click)="shiftScheduleDate(1)">›</button></div>
-            <div class="segmented-control" aria-label="Schedule view"><button type="button" [class.active]="selectedScheduleFilter() === 'day'" [attr.aria-pressed]="selectedScheduleFilter() === 'day'" (click)="selectScheduleFilter('day')">Day</button><button type="button" [class.active]="selectedScheduleFilter() === 'week'" [attr.aria-pressed]="selectedScheduleFilter() === 'week'" (click)="selectScheduleFilter('week')">Week</button><button type="button" [class.active]="selectedScheduleFilter() === 'list'" [attr.aria-pressed]="selectedScheduleFilter() === 'list'" (click)="selectScheduleFilter('list')">List</button></div>
-            <div class="filter-row"><label><span class="sr-only">Status</span><select aria-label="Filter by status" [value]="selectedStatus()" (change)="setStatus($any($event.target).value)"><option value="all">All statuses</option>@for (status of statusOptions(); track status) { <option [value]="status">{{ statusLabel(status) }}</option> }</select></label><label><span class="sr-only">Provider</span><select aria-label="Filter by provider" [value]="selectedProvider()" (change)="setProvider($any($event.target).value)"><option value="all">All providers</option>@for (provider of providerOptions(); track provider) { <option [value]="provider">{{ provider }}</option> }</select></label><label><span class="sr-only">Visit type</span><select aria-label="Filter by visit type" [value]="selectedService()" (change)="setService($any($event.target).value)"><option value="all">All visit types</option>@for (service of serviceOptions(); track service) { <option [value]="service">{{ service }}</option> }</select></label></div>
-          </section>
-
-          <section class="schedule-workspace" auto-animate [attr.data-mode]="selectedScheduleFilter()">
-            @if (selectedScheduleFilter() === 'day') {
-              <article class="glass-panel runway-panel">
-                <div class="runway-header"><span>Providers</span>@for (time of ['8 AM','9 AM','10 AM','11 AM','12 PM','1 PM','2 PM','3 PM','4 PM','5 PM']; track time) { <span>{{ time }}</span> }</div>
-                @if (filteredScheduleAppointments().length) {
-                  <div class="runway-body"><div class="provider-column">@for (provider of providerRows(); track provider) { <div class="provider-row"><span class="provider-orb"></span><div><strong>{{ provider }}</strong><small>{{ clinicianLoad()[$index].appointments }} appointments</small></div></div> }</div><div class="time-grid">@for (line of [1,2,3,4,5,6,7,8,9,10]; track line) { <span class="time-line" [style.left.%]="line * 10"></span> }<span class="current-time-beam"></span><span class="current-time-label">Now</span>@for (block of runwayBlocks(); track block.id) { <div class="appointment-block" [class.scenario-record]="block.id === scenarioAppointmentId()" role="group" [attr.data-tone]="block.tone" [style.gridRow]="block.row" [style.gridColumn]="block.column" [attr.aria-label]="block.patient + ', ' + block.time + ', ' + statusLabel(block.status)"><time>{{ block.time }}</time><strong>{{ block.patient }}</strong><small>{{ statusLabel(block.status) }}</small></div> }</div></div>
-                } @else { <div class="workspace-empty"><strong>No appointments match this date and filter set.</strong><small>Change the date or clear a filter to restore the runway.</small></div> }
-              </article>
-            } @else if (selectedScheduleFilter() === 'week') {
-              <article class="glass-panel runway-panel week-panel"><header class="panel-header"><span class="panel-kicker">Seven-day capacity</span><small>{{ scheduleTelemetry().appointments }} appointments on selected day</small></header><div class="week-grid">@for (day of weekSummary(); track $index) { <article><time>{{ day.date | date:'EEE, MMM d' }}</time><strong>{{ day.appointments }}</strong><small>appointments</small><div class="load-track"><i [style.width.%]="day.utilization"></i></div><b>{{ day.utilization }}% utilized</b></article> }</div></article>
-            } @else {
-              <article class="glass-panel runway-panel list-panel"><header class="panel-header"><span class="panel-kicker">Appointment list</span><small>{{ filteredScheduleAppointments().length }} results</small></header>@if (filteredScheduleAppointments().length) { <div class="schedule-list full-list" auto-animate>@for (appointment of filteredScheduleAppointments(); track appointment.id) { <div class="schedule-row" [class.scenario-record]="appointment.id === scenarioAppointmentId()"><time>{{ appointment.startsAt | date:'shortTime' }}</time><span class="row-signal" [attr.data-tone]="tone(appointment.status)"></span><span class="mini-avatar" [attr.data-tone]="tone(appointment.status)">{{ initials(appointment.patientDisplayName) }}</span><div class="row-primary"><strong>{{ appointment.patientDisplayName }}</strong><small>{{ appointment.service }} · {{ appointment.clinician }}</small></div><span class="status-chip" [attr.data-tone]="tone(appointment.status)">{{ statusLabel(appointment.status) }}</span></div> }</div> } @else { <div class="workspace-empty"><strong>No appointments match this date and filter set.</strong><small>Change the date or clear a filter to see appointments.</small></div> }</article>
-            }
-            <aside class="schedule-side">
-              <article class="glass-panel side-panel clinician-load"><header class="panel-header"><span class="panel-kicker">Clinician load</span></header>@for (clinician of clinicianLoad(); track clinician.name) { <div class="load-row"><span>{{ clinician.name }}</span><div class="load-track"><i [style.width.%]="clinician.utilization"></i></div><strong>{{ clinician.utilization }}%</strong></div> }<span class="load-orbit">{{ scheduleTelemetry().capacityPercent }}%</span></article>
-              <article class="glass-panel side-panel no-show-risk"><header class="panel-header"><span class="panel-kicker">Schedule exceptions</span></header><div class="risk-score"><strong>{{ scheduleTelemetry().noShowRisk }}%</strong></div><div class="risk-names">@for (appointment of noShowRiskAppointments(); track appointment.id) { <span><b>{{ appointment.patientDisplayName }}</b> {{ appointment.startsAt | date:'shortTime' }} · {{ statusLabel(appointment.status) }}</span> } @empty { <span>No schedule exceptions in this view.</span> }</div></article>
-              <article class="glass-panel side-panel waitlist-panel"><header class="panel-header"><span class="panel-kicker">Confirmation queue</span></header>@for (item of waitlist(); track item.patient) { <div class="waitlist-row"><span>{{ item.patient }} <small>{{ item.requested }}</small></span><strong>{{ item.opening }}</strong></div> } @empty { <div class="workspace-empty compact"><small>No scheduled confirmations.</small></div> }</article>
-              <div class="side-split"><article class="glass-panel micro-panel"><span class="panel-kicker">Reminder model</span><strong>{{ scheduleTelemetry().reminders.text }} Text&nbsp;&nbsp;{{ scheduleTelemetry().reminders.email }} Email<br>{{ scheduleTelemetry().reminders.call }} Call</strong><small>Derived preview, not a delivery service</small></article><article class="glass-panel micro-panel"><span class="panel-kicker">Capacity</span><strong>{{ scheduleTelemetry().capacityPercent }}% used<br>{{ scheduleTelemetry().availableSlots }} slots available</strong></article></div>
-            </aside>
-          </section>
+          <div appScheduleWorkspace
+            [appointments]="filteredScheduleAppointments()" [selectedDate]="scheduleDateLabel()" [mode]="selectedScheduleFilter()"
+            [providerOptions]="providerOptions()" [serviceOptions]="serviceOptions()" [statusOptions]="statusOptions()"
+            [selectedProvider]="selectedProvider()" [selectedService]="selectedService()" [selectedStatus]="selectedStatus()"
+            [telemetry]="scheduleTelemetry()" [clinicianLoad]="clinicianLoad()" [runwayBlocks]="runwayBlocks()"
+            [weekSummary]="weekSummary()" [noShowRiskAppointments]="noShowRiskAppointments()" [waitlist]="waitlist()"
+            [scenarioAppointmentId]="scenarioAppointmentId()"
+            (dateShifted)="shiftScheduleDate($event)" (modeChanged)="selectScheduleFilter($event)"
+            (providerChanged)="setProvider($event)" (serviceChanged)="setService($event)" (statusChanged)="setStatus($event)"></div>
         }
 
         @case ('documentation') {
-          <section class="glass-panel continuum-panel"><div class="continuum-energy"></div><div class="pipeline full-pipeline">@for (stage of pipeline(); track stage.label) { <div class="pipeline-stage" [attr.data-tone]="stage.tone"><span class="stage-label">{{ stage.label }}</span><small>{{ stage.description }}</small><span class="pipeline-orb">{{ stage.value }}</span><strong>{{ stage.value }}</strong></div>@if (!$last) { <span class="pipeline-link" [attr.data-tone]="stage.tone"></span> } }</div></section>
-          <section class="documentation-grid">
-            <article class="glass-panel note-queue"><header class="panel-header"><span class="panel-kicker">Note queue</span><small>{{ documentationTelemetry().unsigned }} unsigned</small></header>@for (note of noteQueue(); track note.id) { <div class="note-row" [class.scenario-record]="note.id === scenarioClinicalNoteId()"><span class="activity-icon" [attr.data-tone]="note.tone"></span><strong>{{ note.clinician }}</strong><small>{{ note.code }}</small><span class="status-text" [attr.data-tone]="note.tone">{{ note.status }}</span><time>{{ note.age }}</time></div> } @empty { <div class="workspace-empty compact"><small>All notes are signed.</small></div> }</article>
-            <article class="glass-panel backlog-panel"><header class="panel-header"><span class="panel-kicker">Clinician backlog</span><small>{{ documentationTelemetry().clinicianBacklog.length }} clinicians</small></header>@for (clinician of documentationTelemetry().clinicianBacklog; track clinician.clinician) { <div class="backlog-row"><span>{{ clinician.clinician }}</span><div class="load-track violet"><i [style.width.%]="clinician.utilization"></i></div><strong>{{ clinician.count }}</strong></div> }<small class="panel-footnote">Average unsigned age: {{ documentationTelemetry().averageAgeHours }}h</small></article>
-            <article class="glass-panel bottleneck-panel"><header class="panel-header"><span class="panel-kicker">Signature bottlenecks</span><small>Snapshot aging</small></header><div class="signature-orbit"><span class="orbit-ring orbit-a"></span><span class="orbit-ring orbit-b"></span><span class="orbit-ring orbit-c"></span><span class="signature-core"><strong>{{ documentationTelemetry().unsigned }}</strong><small>Unsigned notes</small></span><span class="orbit-caption cap-a">Over 24h&nbsp;&nbsp;{{ documentationTelemetry().ageBuckets.overTwentyFourHours }}</span><span class="orbit-caption cap-b">4-24h&nbsp;&nbsp;{{ documentationTelemetry().ageBuckets.fourToTwentyFourHours }}</span><span class="orbit-caption cap-c">Under 4h&nbsp;&nbsp;{{ documentationTelemetry().ageBuckets.underFourHours }}</span></div><small class="panel-footnote">{{ documentationTelemetry().overdue }} notes are past due</small></article>
-            <article class="glass-panel followup-panel"><header class="panel-header"><span class="panel-kicker">Priority follow-ups</span><small>Derived from note status</small></header>@for (item of priorityFollowUps(); track item.label) { <div class="followup-row"><span class="activity-icon" [attr.data-tone]="item.tone"></span><div><strong>{{ item.label }}</strong><small>{{ item.detail }}</small></div><b [attr.data-tone]="item.tone">{{ item.count }}</b></div> }</article>
-          </section>
-          <section class="glass-panel health-strip"><span class="panel-kicker">Documentation health</span>@for (item of documentationHealth(); track item.label) { <div class="health-item" [attr.data-tone]="item.tone"><span class="health-orb"></span><strong>{{ item.value }}</strong><small>{{ item.label }}</small></div> }</section>
+          <div appDocumentationWorkspace [pipeline]="pipeline()" [telemetry]="documentationTelemetry()"
+            [notes]="dashboard().notes" [scenarioClinicalNoteId]="scenarioClinicalNoteId()" [referenceTime]="runtimeReference()"></div>
         }
 
         @case ('claims') {
-          <section class="claims-hero-grid">
-            <article class="glass-panel exposure-card"><span class="signal-orb amber"><span></span></span><div><span class="panel-kicker">Claims at risk</span><strong>{{ dashboard().metrics.claimsAtRisk }}</strong><small>{{ dashboard().metrics.claimExposure | currency:'USD':'symbol':'1.0-0' }} exposure</small></div></article>
-            <article class="glass-panel constellation-panel"><div class="constellation-scan"></div><div class="constellation-core"><span class="orbit-ring orbit-a"></span><span class="orbit-ring orbit-b"></span><span class="orbit-ring orbit-c"></span><span class="orbit-ring orbit-d"></span><strong>{{ dashboard().metrics.claimsAtRisk }}</strong><small>At risk</small></div>@for (slice of riskDistribution(); track slice.label) { <div class="constellation-node constellation-{{ $index + 1 }}" [attr.data-tone]="slice.tone"><span></span><strong>{{ slice.label }}</strong><small>{{ slice.count }} claims · {{ compactCurrency(slice.exposure) }}</small></div> }<svg class="constellation-lines" viewBox="0 0 800 260" preserveAspectRatio="none" aria-hidden="true"><path d="M400 130 L130 48"></path><path d="M400 130 L145 185"></path><path d="M400 130 L320 225"></path><path d="M400 130 L680 54"></path><path d="M400 130 L695 185"></path></svg></article>
-            <article class="glass-panel trend-panel"><span class="panel-kicker">Exposure profile</span><strong>{{ dashboard().metrics.claimExposure | currency:'USD':'symbol':'1.0-0' }}</strong><small>Current at-risk exposure</small><div class="trend-bars">@for (height of claimTrendBars(); track $index) { <span [style.height.%]="height"></span> }</div></article>
-          </section>
-          <section class="claims-insight-grid">
-            <article class="glass-panel distribution-panel"><header class="panel-header"><span class="panel-kicker">Risk distribution</span><button type="button" class="text-action" (click)="clearClaimFilters()">Clear filters</button></header><div class="distribution-body"><div class="distribution-orbit"><strong>{{ dashboard().metrics.claimsAtRisk }}</strong><small>Total</small></div><div class="distribution-list">@for (slice of riskDistribution(); track slice.label) { <div><span class="legend-dot" [attr.data-tone]="slice.tone"></span><strong>{{ slice.label }}</strong><small>{{ slice.count }} · {{ compactCurrency(slice.exposure) }}</small></div> }</div></div></article>
-            <article class="glass-panel payer-panel"><header class="panel-header"><span class="panel-kicker">Payer watchlist</span><button type="button" class="text-action" (click)="clearClaimFilters()">Clear filters</button></header>@for (payer of payerWatchlist(); track payer.payer) { <div class="payer-row"><strong>{{ payer.payer }}</strong><span [attr.data-tone]="payer.tone">{{ payer.severity }}</span><small>{{ payer.exposure | currency:'USD':'symbol':'1.0-0' }}</small></div> }</article>
-            <article class="glass-panel claim-actions-panel"><header class="panel-header"><span class="panel-kicker">Recent claim states</span><span class="text-action read-only-action">Current snapshot</span></header>@for (item of recentClaimActions(); track item.claim.id) { <div class="claim-action-row"><span class="activity-icon" [attr.data-tone]="item.tone"></span><strong>{{ item.claim.number }} · {{ item.claim.riskReason }}</strong><span [attr.data-tone]="item.tone">{{ item.action }}</span><time>{{ item.time | date:'shortTime' }}</time></div> }</article>
-          </section>
-          <article class="glass-panel claims-table-panel"><header class="table-toolbar"><div><span class="panel-kicker">Claims workspace</span><small>{{ filteredClaims().length }} results</small></div><div class="claim-filters"><select aria-label="Filter claims by risk" [value]="claimRiskFilter()" (change)="setClaimRisk($any($event.target).value)"><option value="all">All risk types</option>@for (slice of riskDistribution(); track slice.label) { <option [value]="slice.label">{{ slice.label }}</option> }</select><select aria-label="Filter claims by payer" [value]="claimPayerFilter()" (change)="setClaimPayer($any($event.target).value)"><option value="all">All payers</option>@for (payer of payerOptions(); track payer) { <option [value]="payer">{{ payer }}</option> }</select><input type="search" aria-label="Search claims" placeholder="Search claims" [value]="claimSearch()" (input)="setClaimSearch($any($event.target).value)"></div></header><div class="data-table claims-table" auto-animate role="table" aria-label="Claims"><div class="table-row table-head" role="row"><span>Claim #</span><span>Patient</span><span>DOS</span><span>Payer</span><span>Risk type</span><span>Risk reason</span><span>Exposure</span><span>Age</span><span>Status</span><span>Owner</span></div>@for (row of claimTableRows(); track row.claim.id) { <div class="table-row" [class.scenario-record]="row.claim.id === scenarioClaimId()" role="row"><strong>{{ row.claim.number }}</strong><span>{{ row.patient }}</span><span>{{ row.appointmentAt ? (row.appointmentAt | date:'MM/dd/yy') : '—' }}</span><span>{{ row.claim.payer }}</span><span>{{ riskLabel(row.claim) }}</span><span>{{ row.claim.riskReason }}</span><b>{{ row.claim.amount | currency:'USD':'symbol':'1.0-0' }}</b><span>{{ 18 - $index * 3 }}d</span><span class="status-text" [attr.data-tone]="tone(row.claim.status)">{{ statusLabel(row.claim.status) }}</span><span>{{ row.clinician }}</span></div> } @empty { <div class="workspace-empty table-empty"><strong>No claims match the current filters.</strong><small>Clear the search or choose another filter.</small></div> }</div></article>
+          <div appClaimsWorkspace [claims]="dashboard().claims" [appointments]="dashboard().appointments" [auditEvents]="dashboard().audit"
+            [claimsAtRisk]="dashboard().metrics.claimsAtRisk" [claimExposure]="dashboard().metrics.claimExposure"
+            [riskDistribution]="riskDistribution()" [scenarioClaimId]="scenarioClaimId()" [scenarioAppointmentId]="scenarioAppointmentId()"
+            [riskFilter]="claimRiskFilter()" [payerFilter]="claimPayerFilter()" [search]="claimSearch()"
+            (riskChanged)="setClaimRisk($event)" (payerChanged)="setClaimPayer($event)" (searchChanged)="setClaimSearch($event)"
+            (filtersCleared)="clearClaimFilters()"></div>
         }
 
         @case ('audit') {
-          <section class="audit-metric-strip">@for (metric of auditSummary(); track metric.label) { <article class="glass-panel audit-metric" [attr.data-tone]="metric.tone"><span class="signal-orb"><span></span></span><div><small>{{ metric.label }}</small><strong>{{ metric.value }}</strong><b>{{ metric.detail }}</b></div></article> }</section>
-          <section class="audit-primary-grid">
-            <article class="glass-panel spectrum-panel"><header class="panel-header"><span class="panel-kicker">Event spectrum</span><div><span class="live-label"><i></i>{{ apiMode() === 'live' ? 'Persisted snapshot' : 'Synthetic preview' }}</span><span class="text-action read-only-action">{{ updatedLabel() }}</span></div></header><div class="spectrum-chart">@for (height of spectrumBars(); track $index) { <span class="spectrum-bar" [attr.data-tone]="$index < 16 ? 'blue' : $index < 32 ? 'violet' : $index < 45 ? 'coral' : $index < 58 ? 'amber' : 'cyan'" [style.height.%]="height"></span> }</div><div class="spectrum-axis"><span>Oldest</span><span>Audit sequence</span><span>Newest</span></div></article>
-            <article class="glass-panel event-types-panel"><header class="panel-header"><span class="panel-kicker">Event types</span><span class="text-action read-only-action">Current snapshot</span></header><div class="event-types-body"><div class="event-type-list">@for (event of eventTypeMetrics(); track event.label) { <div><span class="legend-dot" [attr.data-tone]="event.tone"></span><strong>{{ event.label }}</strong><small>{{ event.count | number }}&nbsp;&nbsp;{{ event.share }}</small></div> }</div><div class="event-total-orbit"><strong>{{ auditTelemetry().eventsToday }}</strong><small>Loaded events</small></div></div></article>
-          </section>
-          <section class="audit-card-grid">@for (card of auditCards(); track card.title) { <article class="glass-panel audit-orbit-card"><header class="panel-header"><span class="panel-kicker">{{ card.title }}</span><span class="text-action read-only-action">Authoritative</span></header><div class="audit-orbit" [attr.data-tone]="card.tone"><strong>{{ card.value }}</strong><small>{{ card.detail }}</small></div></article> }</section>
-          <article class="glass-panel activity-table-panel"><header class="panel-header"><div><span class="panel-kicker">Immutable activity stream</span><span class="live-label"><i></i>{{ apiMode() === 'live' ? 'PostgreSQL records' : 'Preview records' }}</span></div></header><div class="data-table audit-table" role="table" aria-label="Audit activity"><div class="table-row table-head" role="row"><span>Time</span><span>Event</span><span>Entity</span><span>Source</span><span>Details</span><span>Status</span><span>Actor</span></div>@for (event of auditEvents(); track event.id) { <div class="table-row" role="row"><strong>{{ event.occurredAt | date:'shortTime' }}</strong><span>{{ event.action }}</span><span>{{ event.entityType ?? 'Domain' }}</span><span>{{ apiMode() === 'live' ? 'PracticeOps API' : 'Synthetic fixture' }}</span><span>{{ event.summary }}</span><span class="status-text" [attr.data-tone]="apiMode() === 'live' ? 'green' : 'violet'">{{ apiMode() === 'live' ? 'Persisted' : 'Preview' }}</span><span>{{ event.actor }}</span></div> }</div></article>
+          <div appAuditWorkspace [auditEvents]="auditEvents()" [telemetry]="auditTelemetry()"
+            [documentationTelemetry]="documentationTelemetry()" [outbox]="dashboard().outbox" [outboxState]="outboxState()"
+            [apiMode]="apiMode()" [updatedLabel]="updatedLabel()"></div>
         }
 
         @case ('settings') {
-          <section class="glass-panel demo-boundary"><span class="signal-orb cyan"><span></span></span><div><strong>Fictional-data portfolio environment</strong><small>PracticeOps demonstrates engineering patterns. It is not HIPAA-certified and is not connected to real clinical systems.</small></div><div><b>{{ systemState().label }}</b><small>{{ apiMode() === 'live' ? 'Persisted demo actions enabled' : 'Read-only preview' }}</small></div></section>
-          <section class="settings-grid">
-            <article class="glass-panel workspace-profile"><header class="panel-header"><div><span class="panel-kicker">Runtime profile</span><small>Authoritative status</small></div></header><div class="profile-body"><span class="large-avatar">PO</span><div class="profile-fields"><div><span>Data mode</span><strong>{{ systemState().label }}</strong></div><div><span>Last successful refresh</span><strong>{{ updatedLabel() }}</strong></div><div><span>Background refresh</span><strong>{{ apiMode() === 'live' ? '45 seconds while visible' : 'Paused in preview' }}</strong></div><div><span>Snapshot state</span><strong [class.healthy]="!stale()">{{ stale() ? 'Stale — last valid data retained' : 'Current' }}</strong></div></div></div><footer><small>All records are fictional</small><button type="button" class="text-action" [disabled]="refreshing()" (click)="refresh()">Refresh status</button></footer></article>
-
-            <article class="glass-panel preference-panel"><header class="panel-header"><span class="panel-kicker">Local notification preferences</span><small>Stored only in this browser session</small></header>@for (preference of notificationPreferences(); track preference.label) { <button type="button" class="preference-row preference-toggle" role="switch" [attr.aria-checked]="preference.state" (click)="toggleNotification($index)"><span>{{ preference.label }}</span><small>{{ preference.cadence }}</small><i [class.off]="!preference.state"></i></button> }</article>
-
-            <article class="glass-panel role-panel"><header class="panel-header"><div><span class="panel-kicker">Architecture boundary</span><small>Portfolio explanation</small></div></header><div class="role-body"><span class="role-orb">△</span><div><div class="role-title"><small>Application shape</small><strong>Modular monolith + transactional outbox</strong></div><b>Verified layers</b>@for (scope of ['Angular operational UI','ASP.NET Core workflow API','PostgreSQL persistence','RabbitMQ outbox publication','RFC 9457 error responses']; track scope) { <div class="scope-row"><span>{{ scope }}</span><strong>Implemented</strong></div> }</div></div><span class="text-action read-only-action align-right">No production compliance claim</span></article>
-
-            <article class="glass-panel integrations-panel"><header class="panel-header"><div><span class="panel-kicker">Runtime and publication state</span><small>No inferred success</small></div></header><div class="integration-layout"><div>@for (integration of integrationHealth(); track integration.name) { <div class="integration-row"><span class="activity-icon" [attr.data-tone]="integration.tone"></span><div><strong>{{ integration.name }}</strong><small>{{ integration.detail }}</small></div><b [attr.data-tone]="integration.tone">{{ integration.state }} <i></i></b></div> }</div><div class="integration-orbit" [attr.data-tone]="outboxState().tone"><span class="orbit-ring orbit-a"></span><span class="orbit-ring orbit-b"></span><span class="orbit-ring orbit-c"></span><span class="integration-core">{{ dashboard().outbox.pendingMessages > 0 ? '…' : '✓' }}</span><span class="satellite satellite-a"></span><span class="satellite satellite-b"></span></div></div></article>
-
-            <article class="glass-panel system-panel"><header class="panel-header"><div><span class="panel-kicker">Scenario and outbox proof</span><small>Derived from live records</small></div></header><div class="system-layout"><div class="system-fields"><div><span>Scenario progress</span><strong>{{ scenario().completedSteps }}/{{ scenario().totalSteps }} steps</strong></div><div><span>Current workspace</span><strong>{{ scenario().currentWorkspace }}</strong></div><div><span>Outbox total</span><strong>{{ dashboard().outbox.totalMessages }}</strong></div><div><span>Published</span><strong class="healthy">{{ dashboard().outbox.publishedMessages }}</strong></div></div><div class="system-fields"><div><span>Pending</span><strong>{{ dashboard().outbox.pendingMessages }}</strong></div><div><span>Latest event</span><strong>{{ dashboard().outbox.latestEventType ?? 'No scenario event yet' }}</strong></div><div><span>Latest occurrence</span><strong>{{ dashboard().outbox.latestOccurredAt ? (dashboard().outbox.latestOccurredAt | date:'short') : '—' }}</strong></div><div><span>Publication result</span><strong>{{ outboxState().label }}</strong></div></div><div class="system-globe" aria-hidden="true">@for (dot of [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]; track dot) { <span [style.left.%]="15 + ((dot * 17) % 70)" [style.top.%]="18 + ((dot * 29) % 64)"></span> }</div></div><div class="system-actions"><button type="button" class="scenario-secondary" [disabled]="apiMode() !== 'live' || mutationPending()" (click)="resetScenario()">Reset fictional scenario</button><button type="button" class="scenario-primary" (click)="selectView('audit')">Inspect audit proof</button></div></article>
-          </section>
+          <div appSystemWorkspace [dashboard]="dashboard()" [apiMode]="apiMode()" [systemState]="systemState()"
+            [updatedLabel]="updatedLabel()" [stale]="stale()" [refreshing]="refreshing()" [mutationPending]="mutationPending()"
+            [outboxState]="outboxState()" [preferences]="notificationPreferences()" (refreshRequested)="refresh()"
+            (preferenceToggled)="toggleNotification($event)" (resetRequested)="resetScenario()" (auditRequested)="selectView('audit')"></div>
         }
       }
 
       <footer class="system-footer"><div><span class="system-dot" [attr.data-tone]="systemState().tone"></span><strong>{{ systemState().label }}</strong></div><div><span>Data freshness</span><strong>{{ updatedLabel() }}</strong></div><div><span>Demo boundary</span><strong>Fictional records only</strong></div><div><span>Outbox</span><strong>{{ outboxState().label }}</strong></div></footer>
     }
-  </main>
 </div>

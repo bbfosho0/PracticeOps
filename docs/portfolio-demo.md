@@ -124,7 +124,21 @@ The endpoint is intentionally portfolio-only. It clears and recreates the fictio
 ## Architecture proof points
 
 ```text
-Angular 20 operational interface
+ASP.NET Core OpenAPI
+        |
+        | pinned NSwag generation
+        v
+Machine-owned TypeScript transport client
+        |
+        | handwritten validation and mapping
+        v
+PracticeOps API adapter
+        |
+        v
+Shared refresh store / scenario controller
+        |
+        v
+Angular shell and six standalone workspaces
         |
         | typed REST requests
         v
@@ -143,6 +157,8 @@ ASP.NET Core Minimal API
 
 The frontend uses one refresh store rather than per-page requests. It deduplicates overlapping refreshes, pauses polling while hidden, retains the last valid snapshot during transient failures, and applies new data across every workspace.
 
+The generated client under `frontend/src/generated` is committed for reproducible review but is owned only by NSwag. The handwritten adapter under `frontend/src/app/api` validates required generated fields and maps transport DTOs into the application model. Generated code does not own retry, stale-data retention, polling, fallback, notices, or scenario policy.
+
 ## Verification
 
 ```bash
@@ -151,8 +167,27 @@ dotnet build PracticeOps.sln --configuration Release --no-restore
 dotnet test PracticeOps.sln --configuration Release --no-build
 dotnet format PracticeOps.sln --verify-no-changes --no-restore
 npm --prefix frontend ci
+npm --prefix frontend run api:check
 npm --prefix frontend run test -- --watch=false
 npm --prefix frontend run build
+npm --prefix frontend run build-storybook
+# Serve frontend/storybook-static on 127.0.0.1:6006 before this command.
+npm --prefix frontend run test-storybook
+npm --prefix frontend run test:e2e
 ```
 
-GitHub Actions also runs responsive functional UI checks and captures desktop/mobile visual evidence for all six workspaces.
+`api:check` requires Docker and starts an isolated real API stack before comparing a temporary generated candidate to the committed client. The default Playwright command intentionally verifies synthetic-preview mode without Docker.
+
+For the live browser journey, start the real services and opt in explicitly:
+
+```powershell
+docker compose up --build --detach postgres rabbitmq api
+$env:PRACTICEOPS_E2E_LIVE = '1'
+Push-Location frontend
+npx --no-install playwright test --project=desktop --grep="persists all five transitions"
+Pop-Location
+Remove-Item Env:PRACTICEOPS_E2E_LIVE
+docker compose down --volumes --remove-orphans
+```
+
+GitHub Actions runs read-only backend, frontend, Storybook, contract-drift, synthetic Playwright, live Playwright, and API/RabbitMQ journey gates. Failed browser jobs retain Playwright traces, screenshots, videos, and the HTML report; successful jobs do not upload those artifacts. The responsive visual-audit workflow remains as an additional rendered check across all six workspaces.

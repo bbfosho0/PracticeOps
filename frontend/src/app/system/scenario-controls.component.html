@@ -1,0 +1,18 @@
+<div class="scenario-summary">
+  <span class="panel-kicker">Persisted employer journey</span>
+  <h2 id="scenario-title">{{ scenario().title }}</h2>
+  <p>{{ currentStep().description }}</p>
+  <div class="scenario-progress" role="progressbar" aria-label="Scenario progress" [attr.aria-valuenow]="scenario().completionPercent" aria-valuemin="0" aria-valuemax="100"><span [style.width.%]="scenario().completionPercent"></span></div>
+  <small>{{ scenario().completedSteps }} of {{ scenario().totalSteps }} persisted transitions complete · {{ scenario().completionPercent }}%</small>
+</div>
+<ol class="scenario-steps" aria-label="Portfolio scenario progress">
+  @for (step of scenario().steps; track step.id) {
+    <li [attr.data-state]="step.state"><span>{{ $index + 1 }}</span><button type="button" (click)="stepSelected.emit(step.workspace)">{{ step.label }}</button></li>
+  }
+</ol>
+<div class="scenario-actions" auto-animate>
+  <button type="button" class="scenario-secondary" [disabled]="apiMode() !== 'live' || mutationPending()" (click)="startRequested.emit()">Start / reset</button>
+  <button type="button" class="scenario-secondary" (click)="workspaceRequested.emit()">Open current workspace</button>
+  <button type="button" class="scenario-primary" [disabled]="!canMutate() && !complete()" (click)="continueRequested.emit()">{{ actionLabel() }}</button>
+  @if (apiMode() !== 'live') { <small>Persisted actions require the live API. This preview remains read-only.</small> }
+</div>

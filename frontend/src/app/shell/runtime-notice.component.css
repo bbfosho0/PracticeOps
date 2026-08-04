@@ -1,0 +1,8 @@
+@reference "../../styles.css";
+
+:host { min-height: 42px; display: flex; align-items: center; gap: 10px; margin: -4px 0 16px; padding: 9px 13px; border: 1px solid rgba(122, 77, 255, 0.35); border-radius: 12px; background: rgba(13, 16, 35, 0.65); color: #aeb9cf; font-size: 11px; }
+:host { @apply rounded-control border border-warning/20 bg-warning/[0.06] shadow-panel; }
+:host.is-stale { border-color: rgba(255, 184, 76, 0.34); }
+button { margin-left: auto; padding: 6px 10px; border: 1px solid rgba(25, 217, 255, 0.35); border-radius: 8px; background: rgba(12, 32, 47, 0.6); color: var(--cyan); font: inherit; }
+button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
+.notice-pulse { width: 7px; height: 7px; border-radius: 50%; background: var(--green); box-shadow: 0 0 10px var(--green); }

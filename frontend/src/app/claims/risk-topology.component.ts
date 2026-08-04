@@ -1,9 +1,9 @@
 import { CurrencyPipe, DecimalPipe } from '@angular/common';
 import { AfterViewInit, ChangeDetectionStrategy, Component, ElementRef, OnChanges, OnDestroy, ViewChild, computed, input } from '@angular/core';
 import { gsap } from 'gsap';
-import { RiskSlice } from './dashboard-model';
-import { resolveMotionProfile } from './motion-policy';
-import { buildRiskTopologyNodes } from './risk-topology';
+import { RiskSlice } from '../../dashboard-model';
+import { resolveMotionProfile } from '../../motion-policy';
+import { buildRiskTopologyNodes } from '../../risk-topology';
 
 @Component({
   selector: 'app-risk-topology',

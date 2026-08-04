@@ -3,45 +3,165 @@ name: CI
 on:
   pull_request:
   push:
-    branches: [main, feature/practiceops-mvp]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: practiceops-ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   backend:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
-        with: { dotnet-version: 8.0.x }
-      - run: dotnet restore PracticeOps.sln
-      - run: dotnet build PracticeOps.sln --configuration Release --no-restore
-      - run: dotnet test PracticeOps.sln --configuration Release --no-build
-      - run: dotnet format PracticeOps.sln --verify-no-changes
-
-  frontend:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: frontend
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: 22, cache: npm, cache-dependency-path: frontend/package-lock.json }
-      - run: npm ci
-      - run: npm run test -- --watch=false
-      - run: npm run build
-
-  portfolio-journey:
+    name: Backend restore, build, test, and format
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/Directory.Packages.props', 'global.json') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+      - run: dotnet restore PracticeOps.sln
+      - run: dotnet build PracticeOps.sln --configuration Release --no-restore
+      - run: dotnet test PracticeOps.sln --configuration Release --no-build
+      - run: dotnet format PracticeOps.sln --verify-no-changes --no-restore
 
+  frontend:
+    name: Frontend install, unit tests, and build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm --prefix frontend ci
+      - run: npm --prefix frontend run test -- --watch=false
+      - run: npm --prefix frontend run build
+
+  storybook:
+    name: Storybook build, interactions, and accessibility
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm --prefix frontend ci
+      - run: npm --prefix frontend run build-storybook
+      - name: Install Storybook test browser
+        run: npx --prefix frontend --no-install playwright install --with-deps chromium
+      - name: Serve static Storybook
+        working-directory: frontend
+        run: |
+          python3 -m http.server 6006 --bind 127.0.0.1 --directory storybook-static > /tmp/practiceops-storybook.log 2>&1 &
+          for _attempt in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:6006/ > /dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/practiceops-storybook.log
+          exit 1
+      - run: npm --prefix frontend run test-storybook
+      - name: Upload Storybook diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: storybook-failure-${{ github.run_attempt }}
+          path: /tmp/practiceops-storybook.log
+          if-no-files-found: ignore
+          retention-days: 7
+
+  api-contract-drift:
+    name: Read-only generated API contract drift
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-tools-${{ hashFiles('.config/dotnet-tools.json', '**/*.csproj') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-tools-
+      - run: dotnet tool restore
+      - run: npm --prefix frontend ci
+      - name: Regenerate against an isolated real stack and fail on drift
+        run: npm --prefix frontend run api:check
+
+  playwright-synthetic:
+    name: Playwright synthetic (${{ matrix.project }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [desktop, tablet, mobile, reduced-motion]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm --prefix frontend ci
+      - run: npm --prefix frontend run e2e:install
+      - name: Run ${{ matrix.project }} synthetic browser project
+        working-directory: frontend
+        run: npx --no-install playwright test --project=${{ matrix.project }}
+      - name: Upload Playwright failure evidence
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-synthetic-${{ matrix.project }}-${{ github.run_attempt }}
+          path: |
+            frontend/playwright-report
+            frontend/test-results
+          if-no-files-found: ignore
+          retention-days: 7
+
+  playwright-live:
+    name: Playwright live persisted workflow
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      PRACTICEOPS_E2E_LIVE: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm --prefix frontend ci
+      - run: npm --prefix frontend run e2e:install
       - name: Start PostgreSQL, RabbitMQ, and API
-        run: docker compose up --build --detach
-
+        run: docker compose up --build --detach postgres rabbitmq api
       - name: Wait for API readiness
         run: |
-          for attempt in {1..60}; do
+          for _attempt in {1..60}; do
             if curl --fail --silent http://127.0.0.1:8081/health/ready > /dev/null; then
               exit 0
             fi
@@ -50,7 +170,48 @@ jobs:
           docker compose ps
           docker compose logs api
           exit 1
+      - name: Exercise complete persisted browser journey
+        working-directory: frontend
+        run: npx --no-install playwright test --project=desktop --grep="persists all five transitions"
+      - name: Exercise persisted reduced-motion action
+        working-directory: frontend
+        run: npx --no-install playwright test --project=reduced-motion --grep="persists one scenario action"
+      - name: Print service logs on failure
+        if: failure()
+        run: docker compose logs
+      - name: Upload Playwright failure evidence
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-live-${{ github.run_attempt }}
+          path: |
+            frontend/playwright-report
+            frontend/test-results
+          if-no-files-found: ignore
+          retention-days: 7
+      - name: Stop live browser stack
+        if: always()
+        run: docker compose down --volumes --remove-orphans
 
+  portfolio-journey:
+    name: Persisted API and RabbitMQ portfolio journey
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Start PostgreSQL, RabbitMQ, and API
+        run: docker compose up --build --detach postgres rabbitmq api
+      - name: Wait for API readiness
+        run: |
+          for _attempt in {1..60}; do
+            if curl --fail --silent http://127.0.0.1:8081/health/ready > /dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          docker compose ps
+          docker compose logs api
+          exit 1
       - name: Exercise persisted employer journey
         run: |
           python3 <<'PY'
@@ -117,16 +278,13 @@ jobs:
               'auditCount': len(dashboard['audit'])
           }, indent=2))
           PY
-
       - name: Verify RabbitMQ routing proof
         run: |
           docker compose exec -T rabbitmq rabbitmqctl list_queues name messages --quiet |
             grep -E '^practiceops\.portfolio\.audit[[:space:]]+5$'
-
       - name: Print service logs on failure
         if: failure()
         run: docker compose logs
-
       - name: Stop acceptance stack
         if: always()
         run: docker compose down --volumes --remove-orphans

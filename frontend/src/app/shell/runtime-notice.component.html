@@ -1,0 +1,2 @@
+<span class="notice-pulse"></span><span>{{ notice() }}</span>
+<button type="button" [disabled]="!retryAvailable()" (click)="retryRequested.emit()">{{ mode() === 'demo' ? 'Retry API' : 'Refresh now' }}</button>

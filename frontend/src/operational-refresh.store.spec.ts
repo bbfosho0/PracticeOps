@@ -1,8 +1,7 @@
-import { provideHttpClient } from '@angular/common/http';
-import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { of } from 'rxjs';
+import { Subject, of } from 'rxjs';
+import { PracticeOpsApiAdapter } from './app/api/practiceops-api.adapter';
 import { Dashboard, createDemoDashboard } from './dashboard-model';
 import { OperationalRefreshStore, relativeRefreshLabel, shouldPollOperationalData } from './operational-refresh.store';
 
@@ -41,23 +40,39 @@ describe('Operational refresh policy', () => {
 
 describe('OperationalRefreshStore', () => {
   let store: OperationalRefreshStore;
-  let http: HttpTestingController;
+  let api: jasmine.SpyObj<PracticeOpsApiAdapter>;
+  let dashboardRequests: Subject<Dashboard>[];
 
   beforeEach(() => {
+    dashboardRequests = [];
+    api = jasmine.createSpyObj<PracticeOpsApiAdapter>('PracticeOpsApiAdapter', [
+      'loadDashboard',
+      'resetDemo',
+      'transitionAppointment',
+      'transitionNote',
+      'transitionClaim'
+    ]);
+    api.loadDashboard.and.callFake(() => {
+      const request = new Subject<Dashboard>();
+      dashboardRequests.push(request);
+      return request;
+    });
     TestBed.configureTestingModule({
-      providers: [provideZonelessChangeDetection(), provideHttpClient(), provideHttpClientTesting()]
+      providers: [
+        provideZonelessChangeDetection(),
+        { provide: PracticeOpsApiAdapter, useValue: api }
+      ]
     });
     store = TestBed.inject(OperationalRefreshStore);
-    http = TestBed.inject(HttpTestingController);
   });
 
   afterEach(() => {
     store.ngOnDestroy();
-    http.verify();
   });
 
   it('enters live mode after the authoritative dashboard loads', () => {
-    http.expectOne('/api/dashboard').flush(liveDashboard());
+    dashboardRequests[0].next(liveDashboard());
+    dashboardRequests[0].complete();
 
     expect(store.apiMode()).toBe('live');
     expect(store.loading()).toBeFalse();
@@ -65,7 +80,7 @@ describe('OperationalRefreshStore', () => {
   });
 
   it('uses a read-only synthetic preview when the initial request fails', () => {
-    http.expectOne('/api/dashboard').flush({}, { status: 503, statusText: 'Unavailable' });
+    dashboardRequests[0].error(new Error('Unavailable'));
 
     expect(store.apiMode()).toBe('demo');
     expect(store.notice()).toContain('Synthetic preview');
@@ -74,37 +89,42 @@ describe('OperationalRefreshStore', () => {
 
   it('retains the last valid dashboard and clears stale copy after recovery', () => {
     const initial = liveDashboard();
-    http.expectOne('/api/dashboard').flush(initial);
+    dashboardRequests[0].next(initial);
+    dashboardRequests[0].complete();
 
     store.refresh();
-    http.expectOne('/api/dashboard').flush({}, { status: 503, statusText: 'Unavailable' });
+    dashboardRequests[1].error(new Error('Unavailable'));
     expect(store.dashboard().metrics.appointmentsToday).toBe(initial.metrics.appointmentsToday);
     expect(store.stale()).toBeTrue();
     expect(store.notice()).toContain('last valid operational snapshot');
 
     store.refresh();
-    http.expectOne('/api/dashboard').flush(initial);
+    dashboardRequests[2].next(initial);
+    dashboardRequests[2].complete();
     expect(store.stale()).toBeFalse();
     expect(store.notice()).toBe('Live data recovered.');
   });
 
   it('applies the reset response as the new authoritative snapshot', () => {
-    http.expectOne('/api/dashboard').flush(liveDashboard());
+    dashboardRequests[0].next(liveDashboard());
+    dashboardRequests[0].complete();
     const reset = liveDashboard();
     reset.metrics.unsignedNotes = 7;
+    api.resetDemo.and.returnValue(of(reset));
 
     store.resetDemo();
-    http.expectOne('/api/demo/reset').flush(reset);
 
     expect(store.dashboard().metrics.unsignedNotes).toBe(7);
     expect(store.notice()).toContain('Portfolio scenario reset');
   });
 
   it('refreshes the dashboard after a successful mutation', () => {
-    http.expectOne('/api/dashboard').flush(liveDashboard());
+    dashboardRequests[0].next(liveDashboard());
+    dashboardRequests[0].complete();
 
     store.runMutation(of({}), 'Saved.');
-    http.expectOne('/api/dashboard').flush(liveDashboard());
+    dashboardRequests[1].next(liveDashboard());
+    dashboardRequests[1].complete();
 
     expect(store.mutationPending()).toBeFalse();
     expect(store.apiMode()).toBe('live');

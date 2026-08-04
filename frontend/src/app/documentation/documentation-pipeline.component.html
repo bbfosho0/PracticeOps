@@ -1,0 +1,12 @@
+<div class="continuum-energy"></div>
+<div class="pipeline full-pipeline">
+  @for (stage of stages(); track stage.label) {
+    <div class="pipeline-stage" [attr.data-tone]="stage.tone">
+      <span class="stage-label">{{ stage.label }}</span>
+      <small>{{ stage.description }}</small>
+      <span class="pipeline-orb">{{ stage.value }}</span>
+      <strong>{{ stage.value }}</strong>
+    </div>
+    @if (!$last) { <span class="pipeline-link" [attr.data-tone]="stage.tone"></span> }
+  }
+</div>

@@ -1,0 +1,21 @@
+<div class="runway-header"><span>Providers</span>@for (time of ['8 AM','9 AM','10 AM','11 AM','12 PM','1 PM','2 PM','3 PM','4 PM','5 PM']; track time) { <span>{{ time }}</span> }</div>
+@if (appointments().length) {
+  <div class="runway-body" tabindex="0" aria-label="Schedule timeline">
+    <div class="provider-column">
+      @for (clinician of clinicianLoad(); track clinician.name) {
+        <div class="provider-row"><span class="provider-orb"></span><div><strong>{{ clinician.name }}</strong><small>{{ clinician.appointments }} appointments</small></div></div>
+      }
+    </div>
+    <div class="time-grid">
+      @for (line of [1,2,3,4,5,6,7,8,9,10]; track line) { <span class="time-line" [style.left.%]="line * 10"></span> }
+      <span class="current-time-beam"></span><span class="current-time-label">Now</span>
+      @for (block of runwayBlocks(); track block.id) {
+        <div class="appointment-block" [class.scenario-record]="block.id === scenarioAppointmentId()" role="group" [attr.data-tone]="block.tone" [style.gridRow]="block.row" [style.gridColumn]="block.column" [attr.aria-label]="block.patient + ', ' + block.time + ', ' + statusLabel(block.status)">
+          <time>{{ block.time }}</time><strong>{{ block.patient }}</strong><small>{{ statusLabel(block.status) }}</small>
+        </div>
+      }
+    </div>
+  </div>
+} @else {
+  <div class="workspace-empty"><strong>No appointments match this date and filter set.</strong><small>Change the date or clear a filter to restore the runway.</small></div>
+}

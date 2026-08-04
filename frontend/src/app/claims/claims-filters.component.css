@@ -1,0 +1,9 @@
+:host { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 7px; }
+select, input { height: 29px; border: 1px solid rgba(69, 102, 151, .45); border-radius: 8px; outline: none; color: #b7c4d9; background: rgba(6, 13, 25, .82); font-size: 7px; transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease; }
+select { min-width: 118px; padding: 0 26px 0 9px; }
+input { width: 150px; padding: 0 10px; }
+select:focus-visible, input:focus-visible { border-color: rgba(25, 217, 255, .72); box-shadow: 0 0 0 2px rgba(25, 217, 255, .11), 0 0 18px rgba(25, 217, 255, .08); }
+option { color: #e8eefb; background: #08101d; }
+@media (max-width: 840px) { :host { display: grid; grid-template-columns: repeat(3, 1fr); width: 100%; } select, input { width: 100%; min-width: 0; } }
+@media (max-width: 560px) { :host { grid-template-columns: 1fr; justify-items: stretch; } }
+@media (prefers-reduced-motion: reduce) { select, input { transition-duration: .01ms; } }
