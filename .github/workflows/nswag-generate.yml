@@ -6,6 +6,7 @@ on:
     paths:
       - '.config/dotnet-tools.json'
       - 'backend/PracticeOps.Api/**'
+      - 'docker-compose.yml'
       - '.github/workflows/nswag-generate.yml'
 
 permissions:
@@ -15,6 +16,7 @@ jobs:
   generate:
     if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
         with:
@@ -25,18 +27,24 @@ jobs:
         with:
           dotnet-version: 8.0.x
 
-      - name: Restore tools and build API
-        run: |
-          dotnet tool restore
-          dotnet restore PracticeOps.sln
-          dotnet build backend/PracticeOps.Api/PracticeOps.Api.csproj --configuration Release --no-restore
+      - name: Restore pinned tools
+        run: dotnet tool restore
+
+      - name: Start API contract stack
+        run: docker compose up --build --detach postgres rabbitmq api
 
       - name: Export OpenAPI document
         run: |
-          dotnet swagger tofile \
-            --output backend/PracticeOps.Api/openapi.json \
-            backend/PracticeOps.Api/bin/Release/net8.0/PracticeOps.Api.dll \
-            v1
+          for attempt in {1..60}; do
+            if curl --fail --silent http://127.0.0.1:8081/swagger/v1/swagger.json \
+              --output backend/PracticeOps.Api/openapi.json; then
+              exit 0
+            fi
+            sleep 2
+          done
+          docker compose ps
+          docker compose logs api
+          exit 1
 
       - name: Generate Angular client
         working-directory: backend/PracticeOps.Api
@@ -59,3 +67,11 @@ jobs:
           fi
           git commit -m 'build: generate PracticeOps OpenAPI client'
           git push origin HEAD:feat/engineering-quality-modernization
+
+      - name: Print service logs on failure
+        if: failure()
+        run: docker compose logs
+
+      - name: Stop contract stack
+        if: always()
+        run: docker compose down --volumes --remove-orphans
