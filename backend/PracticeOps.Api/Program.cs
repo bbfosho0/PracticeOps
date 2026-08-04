@@ -3,7 +3,10 @@ using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.OpenApi.Any;
+using Microsoft.OpenApi.Models;
 using PracticeOps.Api;
+using Swashbuckle.AspNetCore.SwaggerGen;
 
 var builder = WebApplication.CreateBuilder(args);
 var connectionString = builder.Configuration.GetConnectionString("PracticeOps")
@@ -14,7 +17,7 @@ builder.Services.AddProblemDetails();
 builder.Services.Configure<Microsoft.AspNetCore.Http.Json.JsonOptions>(options =>
     options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(options => options.SchemaFilter<StringEnumSchemaFilter>());
 builder.Services.AddHealthChecks().AddDbContextCheck<PracticeOpsDbContext>(tags: ["ready"]);
 builder.Services.AddHostedService<OutboxDispatcher>();
 builder.Services.AddCors(options => options.AddDefaultPolicy(policy => policy.AllowAnyHeader().AllowAnyMethod().AllowAnyOrigin()));
@@ -114,4 +117,24 @@ static void AddAuditAndEvent(PracticeOpsDbContext db, string actor, string event
 }
 
 public sealed record StatusRequest<TStatus>(TStatus Status, string Actor);
+
+public sealed class StringEnumSchemaFilter : ISchemaFilter
+{
+    public void Apply(OpenApiSchema schema, SchemaFilterContext context)
+    {
+        if (!context.Type.IsEnum)
+        {
+            return;
+        }
+
+        schema.Type = "string";
+        schema.Format = null;
+        schema.Enum.Clear();
+        foreach (var name in Enum.GetNames(context.Type))
+        {
+            schema.Enum.Add(new OpenApiString(name));
+        }
+    }
+}
+
 public partial class Program;
