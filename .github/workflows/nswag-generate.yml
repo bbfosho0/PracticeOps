@@ -2,9 +2,7 @@ name: NSwag Generate
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - feat/engineering-quality-modernization
+  pull_request:
     paths:
       - '.config/dotnet-tools.json'
       - 'backend/PracticeOps.Api/**'
