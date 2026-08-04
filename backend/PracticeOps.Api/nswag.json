@@ -64,7 +64,7 @@
       "templateDirectory": null,
       "serviceHost": null,
       "serviceSchemes": null,
-      "output": "../../../frontend/src/generated/practiceops-api-client.ts",
+      "output": "../../frontend/src/generated/practiceops-api-client.ts",
       "newLineBehavior": "Lf"
     }
   }
