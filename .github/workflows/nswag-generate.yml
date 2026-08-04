@@ -1,0 +1,63 @@
+name: NSwag Generate
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feat/engineering-quality-modernization
+    paths:
+      - '.config/dotnet-tools.json'
+      - 'backend/PracticeOps.Api/**'
+      - '.github/workflows/nswag-generate.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  generate:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/engineering-quality-modernization
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore tools and build API
+        run: |
+          dotnet tool restore
+          dotnet restore PracticeOps.sln
+          dotnet build backend/PracticeOps.Api/PracticeOps.Api.csproj --configuration Release --no-restore
+
+      - name: Export OpenAPI document
+        run: |
+          dotnet swagger tofile \
+            --output backend/PracticeOps.Api/openapi.json \
+            backend/PracticeOps.Api/bin/Release/net8.0/PracticeOps.Api.dll \
+            v1
+
+      - name: Generate Angular client
+        working-directory: backend/PracticeOps.Api
+        run: dotnet nswag run nswag.json
+
+      - name: Verify generated client exists
+        run: |
+          test -s frontend/src/generated/practiceops-api-client.ts
+          grep -q 'class PracticeOpsClient' frontend/src/generated/practiceops-api-client.ts
+
+      - name: Commit generated contract
+        run: |
+          rm -f backend/PracticeOps.Api/openapi.json
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add frontend/src/generated/practiceops-api-client.ts
+          if git diff --cached --quiet; then
+            echo 'Generated client is already current.'
+            exit 0
+          fi
+          git commit -m 'build: generate PracticeOps OpenAPI client'
+          git push origin HEAD:feat/engineering-quality-modernization
