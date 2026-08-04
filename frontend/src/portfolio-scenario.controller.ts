@@ -1,7 +1,7 @@
 import { Injectable, computed, inject } from '@angular/core';
+import { PracticeOpsApiAdapter } from './app/api/practiceops-api.adapter';
 import { PortfolioScenario, PortfolioScenarioStep, ViewId } from './dashboard-model';
 import { OperationalRefreshStore } from './operational-refresh.store';
-import { PracticeOpsApiService } from './practiceops-api.service';
 
 export type ScenarioAction =
   | { kind: 'appointment'; id: string; status: 'Confirmed'; workspace: 'schedule' }
@@ -37,7 +37,7 @@ export function resolveScenarioAction(scenario: PortfolioScenario): ScenarioActi
 @Injectable({ providedIn: 'root' })
 export class PortfolioScenarioController {
   private readonly store = inject(OperationalRefreshStore);
-  private readonly api = inject(PracticeOpsApiService);
+  private readonly api = inject(PracticeOpsApiAdapter);
 
   readonly scenario = computed(() => this.store.dashboard().scenario);
   readonly currentStep = computed(() => {
