@@ -2,7 +2,7 @@
   <span class="panel-kicker">Persisted employer journey</span>
   <h2 id="scenario-title">{{ scenario().title }}</h2>
   <p>{{ currentStep().description }}</p>
-  <div class="scenario-progress" role="progressbar" [attr.aria-valuenow]="scenario().completionPercent" aria-valuemin="0" aria-valuemax="100"><span [style.width.%]="scenario().completionPercent"></span></div>
+  <div class="scenario-progress" role="progressbar" aria-label="Scenario progress" [attr.aria-valuenow]="scenario().completionPercent" aria-valuemin="0" aria-valuemax="100"><span [style.width.%]="scenario().completionPercent"></span></div>
   <small>{{ scenario().completedSteps }} of {{ scenario().totalSteps }} persisted transitions complete · {{ scenario().completionPercent }}%</small>
 </div>
 <ol class="scenario-steps" aria-label="Portfolio scenario progress">

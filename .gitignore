@@ -4,6 +4,7 @@ node_modules/
 node_modules.*/
 frontend/dist/
 frontend/.angular/
+frontend/storybook-static/
 .env
 .env.*
 !.env.example

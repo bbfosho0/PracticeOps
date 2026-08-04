@@ -89,8 +89,11 @@ describe('ScheduleWorkspaceComponent', () => {
   it('renders populated and empty list states in list mode', () => {
     const populated = render('list');
     const empty = render('list', []);
+    const populatedList = (populated.nativeElement as HTMLElement).querySelector('.schedule-list') as HTMLElement;
 
     expect((populated.nativeElement as HTMLElement).querySelectorAll('.full-list .schedule-row').length).toBe(3);
+    expect(populatedList.tabIndex).toBe(0);
+    expect(populatedList.getAttribute('aria-label')).toBe('Appointment list results');
     expect((empty.nativeElement as HTMLElement).querySelector('.list-panel .workspace-empty')?.textContent).toContain('No appointments match this date and filter set.');
   });
 

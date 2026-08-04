@@ -31,6 +31,24 @@
             "styles": ["src/styles.css", "src/visual-polish.css", "src/visual-layout-fixes.css", "src/visual-mobile-nav-fix.css", "src/functional-telemetry.css", "src/functional-layout-fixes.css", "src/responsive-telemetry.css"],
             "browsers": "ChromeHeadless"
           }
+        },
+        "storybook": {
+          "builder": "@storybook/angular:start-storybook",
+          "options": {
+            "configDir": ".storybook",
+            "browserTarget": "practiceops:build",
+            "compodoc": false,
+            "port": 6006
+          }
+        },
+        "build-storybook": {
+          "builder": "@storybook/angular:build-storybook",
+          "options": {
+            "configDir": ".storybook",
+            "browserTarget": "practiceops:build",
+            "compodoc": false,
+            "outputDir": "storybook-static"
+          }
         }
       }
     }

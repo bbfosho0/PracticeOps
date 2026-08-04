@@ -42,10 +42,13 @@ describe('TemporalRunwayComponent', () => {
     const fixture = render(appointments, runwayBlocks);
     const host = fixture.nativeElement as HTMLElement;
     const block = host.querySelector('.appointment-block') as HTMLElement;
+    const runway = host.querySelector('.runway-body') as HTMLElement;
 
     expect(host.querySelectorAll('.provider-row').length).toBe(1);
     expect(block.getAttribute('aria-label')).toBe('Fictional Patient, 9:00 AM, Confirmed');
     expect(block.classList).toContain('scenario-record');
+    expect(runway.tabIndex).toBe(0);
+    expect(runway.getAttribute('aria-label')).toBe('Schedule timeline');
   });
 
   it('renders the truthful empty runway state when no appointments match', () => {

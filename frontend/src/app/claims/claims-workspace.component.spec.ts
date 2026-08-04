@@ -32,11 +32,15 @@ describe('ClaimsWorkspaceComponent', () => {
 
   it('renders populated claims through focused filters and table children', () => {
     const host = createFixture().nativeElement as HTMLElement;
+    const header = host.querySelector('[role="row"].table-head') as HTMLElement;
+    const dataRow = host.querySelector('[role="row"]:not(.table-head)') as HTMLElement;
 
     expect(host.querySelector('article[appClaimsTable]')).not.toBeNull();
     expect(host.querySelector('div[appClaimsFilters]')).not.toBeNull();
     expect(host.querySelectorAll('.claims-table .table-row:not(.table-head)').length).toBeGreaterThan(0);
     expect(host.querySelector('.claims-table .scenario-record')).not.toBeNull();
+    expect(header.querySelectorAll(':scope > [role="columnheader"]').length).toBe(10);
+    expect(dataRow.querySelectorAll(':scope > [role="cell"]').length).toBe(10);
   });
 
   it('renders the no-matches state for an unmatched immutable filter input', () => {

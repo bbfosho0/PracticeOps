@@ -63,6 +63,7 @@ describe('ScenarioControlsComponent', () => {
 
     expect(host.closest('[data-state="complete"]') ?? host.querySelector('[data-state="complete"]')).not.toBeNull();
     expect(host.querySelector('[role="progressbar"]')?.getAttribute('aria-valuenow')).toBe('100');
+    expect(host.querySelector('[role="progressbar"]')?.getAttribute('aria-label')).toBe('Scenario progress');
     expect((host.querySelector('.scenario-primary') as HTMLButtonElement).disabled).toBeFalse();
     expect(host.querySelector('.scenario-primary')?.textContent).toContain('Inspect proof');
   });

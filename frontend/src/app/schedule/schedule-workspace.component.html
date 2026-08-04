@@ -18,7 +18,7 @@
     <article class="glass-panel runway-panel list-panel">
       <header class="panel-header"><span class="panel-kicker">Appointment list</span><small>{{ appointments().length }} results</small></header>
       @if (appointments().length) {
-        <div class="schedule-list full-list" auto-animate>
+        <div class="schedule-list full-list" auto-animate tabindex="0" aria-label="Appointment list results">
           @for (appointment of appointments(); track appointment.id) {
             <div class="schedule-row" [class.scenario-record]="appointment.id === scenarioAppointmentId()"><time>{{ appointment.startsAt | date:'shortTime' }}</time><span class="row-signal" [attr.data-tone]="tone(appointment.status)"></span><span class="mini-avatar" [attr.data-tone]="tone(appointment.status)">{{ initials(appointment.patientDisplayName) }}</span><div class="row-primary"><strong>{{ appointment.patientDisplayName }}</strong><small>{{ appointment.service }} · {{ appointment.clinician }}</small></div><span class="status-chip" [attr.data-tone]="tone(appointment.status)">{{ statusLabel(appointment.status) }}</span></div>
           }
