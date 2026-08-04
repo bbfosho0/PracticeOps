@@ -54,9 +54,7 @@ jobs:
           dotnet "$NSWAG_DLL" run nswag.json
 
       - name: Verify generated client exists
-        run: |
-          test -s frontend/src/generated/practiceops-api-client.ts
-          grep -E 'export (class|interface)' frontend/src/generated/practiceops-api-client.ts | head -20
+        run: test -s frontend/src/generated/practiceops-api-client.ts
 
       - name: Commit generated contract
         run: |
