@@ -19,23 +19,23 @@ export interface IPracticeOpsClient {
     /**
      * @return OK
      */
-    getDashboard(): Observable<void>;
+    getDashboard(): Observable<DashboardSnapshot>;
     /**
      * @return OK
      */
-    resetPortfolioDemo(): Observable<void>;
+    resetPortfolioDemo(): Observable<DashboardSnapshot>;
     /**
      * @return OK
      */
-    updateAppointmentStatus(id: string, body: AppointmentStatusStatusRequest): Observable<void>;
+    updateAppointmentStatus(id: string, body: AppointmentStatusStatusRequest): Observable<Appointment>;
     /**
      * @return OK
      */
-    updateClinicalNoteStatus(id: string, body: NoteStatusStatusRequest): Observable<void>;
+    updateClinicalNoteStatus(id: string, body: NoteStatusStatusRequest): Observable<ClinicalNote>;
     /**
      * @return OK
      */
-    updateClaimStatus(id: string, body: ClaimStatusStatusRequest): Observable<void>;
+    updateClaimStatus(id: string, body: ClaimStatusStatusRequest): Observable<Claim>;
 }
 
 @Injectable({
@@ -54,7 +54,7 @@ export class PracticeOpsClient implements IPracticeOpsClient {
     /**
      * @return OK
      */
-    getDashboard(): Observable<void> {
+    getDashboard(): Observable<DashboardSnapshot> {
         let url_ = this.baseUrl + "/api/dashboard";
         url_ = url_.replace(/[?&]$/, "");
 
@@ -62,6 +62,7 @@ export class PracticeOpsClient implements IPracticeOpsClient {
             observe: "response",
             responseType: "blob",
             headers: new HttpHeaders({
+                "Accept": "application/json"
             })
         };
 
@@ -72,14 +73,14 @@ export class PracticeOpsClient implements IPracticeOpsClient {
                 try {
                     return this.processGetDashboard(response_ as any);
                 } catch (e) {
-                    return _observableThrow(e) as any as Observable<void>;
+                    return _observableThrow(e) as any as Observable<DashboardSnapshot>;
                 }
             } else
-                return _observableThrow(response_) as any as Observable<void>;
+                return _observableThrow(response_) as any as Observable<DashboardSnapshot>;
         }));
     }
 
-    protected processGetDashboard(response: HttpResponseBase): Observable<void> {
+    protected processGetDashboard(response: HttpResponseBase): Observable<DashboardSnapshot> {
         const status = response.status;
         const responseBlob =
             response instanceof HttpResponse ? response.body :
@@ -88,7 +89,15 @@ export class PracticeOpsClient implements IPracticeOpsClient {
         let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
         if (status === 200) {
             return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
-            return _observableOf(null as any);
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as DashboardSnapshot;
+            return _observableOf(result200);
+            }));
+        } else if (status === 500) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result500: any = null;
+            result500 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as ProblemDetails;
+            return throwException("Internal Server Error", status, _responseText, _headers, result500);
             }));
         } else if (status !== 200 && status !== 204) {
             return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
@@ -101,7 +110,7 @@ export class PracticeOpsClient implements IPracticeOpsClient {
     /**
      * @return OK
      */
-    resetPortfolioDemo(): Observable<void> {
+    resetPortfolioDemo(): Observable<DashboardSnapshot> {
         let url_ = this.baseUrl + "/api/demo/reset";
         url_ = url_.replace(/[?&]$/, "");
 
@@ -109,6 +118,7 @@ export class PracticeOpsClient implements IPracticeOpsClient {
             observe: "response",
             responseType: "blob",
             headers: new HttpHeaders({
+                "Accept": "application/json"
             })
         };
 
@@ -119,14 +129,14 @@ export class PracticeOpsClient implements IPracticeOpsClient {
                 try {
                     return this.processResetPortfolioDemo(response_ as any);
                 } catch (e) {
-                    return _observableThrow(e) as any as Observable<void>;
+                    return _observableThrow(e) as any as Observable<DashboardSnapshot>;
                 }
             } else
-                return _observableThrow(response_) as any as Observable<void>;
+                return _observableThrow(response_) as any as Observable<DashboardSnapshot>;
         }));
     }
 
-    protected processResetPortfolioDemo(response: HttpResponseBase): Observable<void> {
+    protected processResetPortfolioDemo(response: HttpResponseBase): Observable<DashboardSnapshot> {
         const status = response.status;
         const responseBlob =
             response instanceof HttpResponse ? response.body :
@@ -135,7 +145,15 @@ export class PracticeOpsClient implements IPracticeOpsClient {
         let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
         if (status === 200) {
             return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
-            return _observableOf(null as any);
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as DashboardSnapshot;
+            return _observableOf(result200);
+            }));
+        } else if (status === 500) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result500: any = null;
+            result500 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as ProblemDetails;
+            return throwException("Internal Server Error", status, _responseText, _headers, result500);
             }));
         } else if (status !== 200 && status !== 204) {
             return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
@@ -148,7 +166,7 @@ export class PracticeOpsClient implements IPracticeOpsClient {
     /**
      * @return OK
      */
-    updateAppointmentStatus(id: string, body: AppointmentStatusStatusRequest): Observable<void> {
+    updateAppointmentStatus(id: string, body: AppointmentStatusStatusRequest): Observable<Appointment> {
         let url_ = this.baseUrl + "/api/appointments/{id}/status";
         if (id === undefined || id === null)
             throw new Error("The parameter 'id' must be defined.");
@@ -163,6 +181,7 @@ export class PracticeOpsClient implements IPracticeOpsClient {
             responseType: "blob",
             headers: new HttpHeaders({
                 "Content-Type": "application/json",
+                "Accept": "application/json"
             })
         };
 
@@ -173,14 +192,14 @@ export class PracticeOpsClient implements IPracticeOpsClient {
                 try {
                     return this.processUpdateAppointmentStatus(response_ as any);
                 } catch (e) {
-                    return _observableThrow(e) as any as Observable<void>;
+                    return _observableThrow(e) as any as Observable<Appointment>;
                 }
             } else
-                return _observableThrow(response_) as any as Observable<void>;
+                return _observableThrow(response_) as any as Observable<Appointment>;
         }));
     }
 
-    protected processUpdateAppointmentStatus(response: HttpResponseBase): Observable<void> {
+    protected processUpdateAppointmentStatus(response: HttpResponseBase): Observable<Appointment> {
         const status = response.status;
         const responseBlob =
             response instanceof HttpResponse ? response.body :
@@ -189,7 +208,27 @@ export class PracticeOpsClient implements IPracticeOpsClient {
         let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
         if (status === 200) {
             return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
-            return _observableOf(null as any);
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as Appointment;
+            return _observableOf(result200);
+            }));
+        } else if (status === 404) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result404: any = null;
+            result404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as ProblemDetails;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+            }));
+        } else if (status === 409) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result409: any = null;
+            result409 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as ProblemDetails;
+            return throwException("Conflict", status, _responseText, _headers, result409);
+            }));
+        } else if (status === 500) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result500: any = null;
+            result500 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as ProblemDetails;
+            return throwException("Internal Server Error", status, _responseText, _headers, result500);
             }));
         } else if (status !== 200 && status !== 204) {
             return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
@@ -202,7 +241,7 @@ export class PracticeOpsClient implements IPracticeOpsClient {
     /**
      * @return OK
      */
-    updateClinicalNoteStatus(id: string, body: NoteStatusStatusRequest): Observable<void> {
+    updateClinicalNoteStatus(id: string, body: NoteStatusStatusRequest): Observable<ClinicalNote> {
         let url_ = this.baseUrl + "/api/notes/{id}/status";
         if (id === undefined || id === null)
             throw new Error("The parameter 'id' must be defined.");
@@ -217,6 +256,7 @@ export class PracticeOpsClient implements IPracticeOpsClient {
             responseType: "blob",
             headers: new HttpHeaders({
                 "Content-Type": "application/json",
+                "Accept": "application/json"
             })
         };
 
@@ -227,14 +267,14 @@ export class PracticeOpsClient implements IPracticeOpsClient {
                 try {
                     return this.processUpdateClinicalNoteStatus(response_ as any);
                 } catch (e) {
-                    return _observableThrow(e) as any as Observable<void>;
+                    return _observableThrow(e) as any as Observable<ClinicalNote>;
                 }
             } else
-                return _observableThrow(response_) as any as Observable<void>;
+                return _observableThrow(response_) as any as Observable<ClinicalNote>;
         }));
     }
 
-    protected processUpdateClinicalNoteStatus(response: HttpResponseBase): Observable<void> {
+    protected processUpdateClinicalNoteStatus(response: HttpResponseBase): Observable<ClinicalNote> {
         const status = response.status;
         const responseBlob =
             response instanceof HttpResponse ? response.body :
@@ -243,7 +283,27 @@ export class PracticeOpsClient implements IPracticeOpsClient {
         let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
         if (status === 200) {
             return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
-            return _observableOf(null as any);
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as ClinicalNote;
+            return _observableOf(result200);
+            }));
+        } else if (status === 404) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result404: any = null;
+            result404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as ProblemDetails;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+            }));
+        } else if (status === 409) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result409: any = null;
+            result409 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as ProblemDetails;
+            return throwException("Conflict", status, _responseText, _headers, result409);
+            }));
+        } else if (status === 500) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result500: any = null;
+            result500 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as ProblemDetails;
+            return throwException("Internal Server Error", status, _responseText, _headers, result500);
             }));
         } else if (status !== 200 && status !== 204) {
             return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
@@ -256,7 +316,7 @@ export class PracticeOpsClient implements IPracticeOpsClient {
     /**
      * @return OK
      */
-    updateClaimStatus(id: string, body: ClaimStatusStatusRequest): Observable<void> {
+    updateClaimStatus(id: string, body: ClaimStatusStatusRequest): Observable<Claim> {
         let url_ = this.baseUrl + "/api/claims/{id}/status";
         if (id === undefined || id === null)
             throw new Error("The parameter 'id' must be defined.");
@@ -271,6 +331,7 @@ export class PracticeOpsClient implements IPracticeOpsClient {
             responseType: "blob",
             headers: new HttpHeaders({
                 "Content-Type": "application/json",
+                "Accept": "application/json"
             })
         };
 
@@ -281,14 +342,14 @@ export class PracticeOpsClient implements IPracticeOpsClient {
                 try {
                     return this.processUpdateClaimStatus(response_ as any);
                 } catch (e) {
-                    return _observableThrow(e) as any as Observable<void>;
+                    return _observableThrow(e) as any as Observable<Claim>;
                 }
             } else
-                return _observableThrow(response_) as any as Observable<void>;
+                return _observableThrow(response_) as any as Observable<Claim>;
         }));
     }
 
-    protected processUpdateClaimStatus(response: HttpResponseBase): Observable<void> {
+    protected processUpdateClaimStatus(response: HttpResponseBase): Observable<Claim> {
         const status = response.status;
         const responseBlob =
             response instanceof HttpResponse ? response.body :
@@ -297,7 +358,27 @@ export class PracticeOpsClient implements IPracticeOpsClient {
         let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
         if (status === 200) {
             return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
-            return _observableOf(null as any);
+            let result200: any = null;
+            result200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as Claim;
+            return _observableOf(result200);
+            }));
+        } else if (status === 404) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result404: any = null;
+            result404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as ProblemDetails;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+            }));
+        } else if (status === 409) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result409: any = null;
+            result409 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as ProblemDetails;
+            return throwException("Conflict", status, _responseText, _headers, result409);
+            }));
+        } else if (status === 500) {
+            return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
+            let result500: any = null;
+            result500 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver) as ProblemDetails;
+            return throwException("Internal Server Error", status, _responseText, _headers, result500);
             }));
         } else if (status !== 200 && status !== 204) {
             return blobToText(responseBlob).pipe(_observableMergeMap((_responseText: string) => {
@@ -306,6 +387,15 @@ export class PracticeOpsClient implements IPracticeOpsClient {
         }
         return _observableOf(null as any);
     }
+}
+
+export interface Appointment {
+    id?: string;
+    patientDisplayName: string | undefined;
+    clinician: string | undefined;
+    service: string | undefined;
+    startsAt?: string;
+    status?: AppointmentStatus;
 }
 
 export enum AppointmentStatus {
@@ -322,6 +412,26 @@ export interface AppointmentStatusStatusRequest {
     actor?: string | undefined;
 }
 
+export interface AuditEntry {
+    id?: string;
+    actor: string | undefined;
+    action: string | undefined;
+    entityType: string | undefined;
+    entityId: string | undefined;
+    summary: string | undefined;
+    occurredAt?: string;
+}
+
+export interface Claim {
+    id?: string;
+    number: string | undefined;
+    payer: string | undefined;
+    amount?: number;
+    riskReason: string | undefined;
+    status?: ClaimStatus;
+    readonly updatedAt?: string;
+}
+
 export enum ClaimStatus {
     _0 = 0,
     _1 = 1,
@@ -336,6 +446,33 @@ export interface ClaimStatusStatusRequest {
     actor?: string | undefined;
 }
 
+export interface ClinicalNote {
+    id?: string;
+    appointmentId?: string;
+    clinician: string | undefined;
+    dueAt?: string;
+    status?: NoteStatus;
+    readonly signedAt?: string | undefined;
+}
+
+export interface DashboardMetrics {
+    appointmentsToday?: number;
+    unsignedNotes?: number;
+    claimsAtRisk?: number;
+    claimExposure?: number;
+    teamUtilization?: number;
+}
+
+export interface DashboardSnapshot {
+    metrics?: DashboardMetrics;
+    appointments?: Appointment[] | undefined;
+    notes?: ClinicalNote[] | undefined;
+    claims?: Claim[] | undefined;
+    audit?: AuditEntry[] | undefined;
+    scenario?: PortfolioScenario;
+    outbox?: OutboxSummary;
+}
+
 export enum NoteStatus {
     _0 = 0,
     _1 = 1,
@@ -345,6 +482,47 @@ export enum NoteStatus {
 export interface NoteStatusStatusRequest {
     status?: NoteStatus;
     actor?: string | undefined;
+}
+
+export interface OutboxSummary {
+    totalMessages?: number;
+    pendingMessages?: number;
+    publishedMessages?: number;
+    latestEventType?: string | undefined;
+    latestOccurredAt?: string | undefined;
+    latestPublishedAt?: string | undefined;
+}
+
+export interface PortfolioScenario {
+    id?: string | undefined;
+    title?: string | undefined;
+    appointmentId?: string;
+    clinicalNoteId?: string;
+    claimId?: string;
+    completedSteps?: number;
+    totalSteps?: number;
+    completionPercent?: number;
+    currentStepId?: string | undefined;
+    currentWorkspace?: string | undefined;
+    steps?: PortfolioScenarioStep[] | undefined;
+}
+
+export interface PortfolioScenarioStep {
+    id?: string | undefined;
+    label?: string | undefined;
+    description?: string | undefined;
+    workspace?: string | undefined;
+    state?: string | undefined;
+}
+
+export interface ProblemDetails {
+    type?: string | undefined;
+    title?: string | undefined;
+    status?: number | undefined;
+    detail?: string | undefined;
+    instance?: string | undefined;
+
+    [key: string]: any;
 }
 
 export class ApiException extends Error {
