@@ -1,4 +1,3 @@
-import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import {
   Appointment,
@@ -17,11 +16,12 @@ import { ApiMode } from '../../runtime-model';
 import { AuditTelemetry, DocumentationTelemetry } from '../../operational-telemetry';
 import { RiskTopologyComponent } from '../claims/risk-topology.component';
 import { MetricSignalStripComponent } from './metric-signal-strip.component';
+import { formatRunwayTime } from '../../runway-blocks';
 
 @Component({
   selector: 'div[appOverviewWorkspace]',
   standalone: true,
-  imports: [AutoAnimateDirective, DatePipe, MetricSignalStripComponent, RiskTopologyComponent],
+  imports: [AutoAnimateDirective, MetricSignalStripComponent, RiskTopologyComponent],
   templateUrl: './overview-workspace.component.html',
   styleUrl: './overview-workspace.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -54,6 +54,14 @@ export class OverviewWorkspaceComponent {
 
   initials(value: string): string {
     return initials(value);
+  }
+
+  scheduleTime(value: string): string {
+    return formatRunwayTime(value);
+  }
+
+  activityTime(value: string): string {
+    return formatRunwayTime(value);
   }
 
   eventTone(event: AuditEvent, index: number): SignalTone {

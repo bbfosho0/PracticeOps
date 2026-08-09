@@ -10,7 +10,7 @@
     <div class="schedule-list" auto-animate>
       @for (appointment of appointments(); track appointment.id) {
         <div class="schedule-row" [class.scenario-record]="appointment.id === scenarioAppointmentId()">
-          <time>{{ appointment.startsAt | date:'shortTime' }}</time>
+          <time>{{ scheduleTime(appointment.startsAt) }}</time>
           <span class="row-signal" [attr.data-tone]="tone(appointment.status)"></span>
           <span class="mini-avatar" [attr.data-tone]="tone(appointment.status)">{{ initials(appointment.patientDisplayName) }}</span>
           <div class="row-primary"><strong>{{ appointment.patientDisplayName }}</strong><small>{{ appointment.service }} · {{ appointment.clinician }}</small></div>
@@ -43,7 +43,7 @@
     <header class="panel-header"><span class="panel-kicker">Recent persisted activity</span><span class="live-label"><i></i>{{ apiMode() === 'live' ? 'API snapshot' : 'Preview data' }}</span></header>
     <div class="activity-list" auto-animate>
       @for (event of auditEvents(); track event.id) {
-        <div class="activity-row"><span class="activity-icon" [attr.data-tone]="eventTone(event, $index)"></span><div><strong>{{ event.action }}</strong><small>{{ event.summary }}</small></div><time>{{ event.occurredAt | date:'shortTime' }}</time></div>
+        <div class="activity-row"><span class="activity-icon" [attr.data-tone]="eventTone(event, $index)"></span><div><strong>{{ event.action }}</strong><small>{{ event.summary }}</small></div><time>{{ activityTime(event.occurredAt) }}</time></div>
       }
     </div>
   </article>
