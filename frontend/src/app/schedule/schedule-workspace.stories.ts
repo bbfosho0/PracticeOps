@@ -29,7 +29,9 @@ function scheduleArgs(mode: ScheduleMode = 'day', appointments: readonly Appoint
       time: start.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }),
       row: Math.min(7, (index % Math.max(1, providerRows.length)) + 1),
       column: `${hourOffset + 1} / span ${appointment.service.toLowerCase().includes('assessment') ? 2 : 1}`,
-      tone: toneForStatus(appointment.status)
+      tone: toneForStatus(appointment.status),
+      lane: 0,
+      laneCount: 1
     };
   });
   const weekSummary: WeekSummaryDay[] = Array.from({ length: 7 }, (_, index) => {

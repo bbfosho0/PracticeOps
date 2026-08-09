@@ -108,7 +108,7 @@ export class OperationalRefreshStore implements OnDestroy {
 
   runMutation(operation: Observable<unknown>, successMessage: string): void {
     if (this.apiMode() !== 'live') {
-      this.notice.set('This synthetic preview is read-only. Persisted workflow actions require the live API.');
+      this.notice.set('This preview remains read-only. Persisted workflow actions require the live API.');
       return;
     }
     if (this.mutationPending()) return;
@@ -160,7 +160,7 @@ export class OperationalRefreshStore implements OnDestroy {
     this.dashboard.set(reconcileDashboard(createDemoDashboard()));
     this.apiMode.set('demo');
     this.stale.set(false);
-    this.notice.set('Synthetic preview — API unavailable. Persisted workflow actions are disabled.');
+    this.notice.set('Synthetic preview — API unavailable. This preview remains read-only; persisted workflow actions are disabled.');
   }
 
   private problemDetail(error: unknown, fallback: string): string {

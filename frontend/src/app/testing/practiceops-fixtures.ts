@@ -66,7 +66,7 @@ export function createSyntheticRuntimeFixture(): SyntheticRuntimeFixture {
     mutationPending: false,
     stale: false,
     readOnly: true,
-    notice: 'Synthetic preview — API unavailable. Persisted workflow actions are disabled.',
+    notice: 'Synthetic preview — API unavailable. This preview remains read-only; persisted workflow actions are disabled.',
     updatedLabel: 'Not connected yet'
   });
 }

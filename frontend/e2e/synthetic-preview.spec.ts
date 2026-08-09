@@ -17,7 +17,7 @@ test.describe('synthetic preview', () => {
 
     await openSyntheticPreview(page);
     await expect(page.getByText(/Synthetic preview — API unavailable/i).first()).toBeVisible();
-    await expect(page.getByText(/This preview remains read-only/i)).toBeVisible();
+    await expect(page.locator('.scenario-actions').getByText(/This preview remains read-only/i)).toBeVisible();
     await expect(page.getByText('Synthetic preview records', { exact: true })).toBeVisible();
     await expect(page.getByText('Authoritative records', { exact: true })).toHaveCount(0);
     await expectScenarioProgress(page, 0);

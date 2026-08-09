@@ -11,9 +11,9 @@
     "test-storybook": "test-storybook --url http://127.0.0.1:6006 --maxWorkers=2",
     "api:generate": "node ../scripts/generate-api-client.mjs",
     "api:check": "node ../scripts/generate-api-client.mjs --check",
-    "test:e2e": "playwright test",
-    "e2e": "playwright test",
-    "e2e:ui": "playwright test --ui",
+    "test:e2e": "playwright test --config=playwright.config.ts",
+    "e2e": "playwright test --config=playwright.config.ts",
+    "e2e:ui": "playwright test --config=playwright.config.ts --ui",
     "e2e:install": "playwright install --with-deps chromium"
   },
   "dependencies": {

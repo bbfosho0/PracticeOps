@@ -31,6 +31,7 @@ export async function openSyntheticPreview(page: Page): Promise<void> {
   }));
   await page.goto('/');
   await expect(page.locator('.observatory')).toHaveAttribute('data-api-mode', 'demo');
+  await page.getByRole('button', { name: /Persisted employer journey Step 1 of 5/i }).click();
 }
 
 export async function expectNoDocumentOverflow(page: Page): Promise<void> {
