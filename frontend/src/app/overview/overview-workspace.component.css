@@ -24,7 +24,7 @@
 .overview-grid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(260px, .66fr) minmax(280px, .8fr); grid-template-areas: "schedule schedule documentation" "schedule risk activity"; gap: 16px; }
 .schedule-preview { grid-area: schedule; min-height: 410px; padding: 16px 18px; border-radius: 18px; }
 .documentation-preview { grid-area: documentation; min-height: 194px; padding: 15px 16px; border-radius: 18px; }
-.risk-preview { grid-area: risk; min-height: 200px; padding: 15px 16px; border-radius: 18px; }
+.risk-preview { grid-area: risk; min-height: 340px; padding: 15px 16px; border-radius: 18px; }
 .activity-preview { grid-area: activity; min-height: 200px; padding: 15px 16px; border-radius: 18px; }
 .schedule-list { display: grid; gap: 6px; }
 .schedule-row { min-height: 43px; display: grid; grid-template-columns: 58px 10px 26px minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 5px 10px; border: 1px solid transparent; border-radius: 9px; background: rgba(18, 29, 47, .64); transition: .16s ease; @apply rounded-xl transition duration-150 ease-out; }

@@ -1,11 +1,11 @@
 @reference "../../styles.css";
 
 :host {
-  @apply block min-h-72;
+  @apply block min-h-80;
 }
 
 .topology-shell {
-  @apply relative flex min-h-72 flex-col overflow-hidden rounded-panel border border-white/5 bg-obsidian/35;
+  @apply relative flex min-h-80 flex-col overflow-hidden rounded-panel border border-white/5 bg-obsidian/35;
 }
 
 .topology-shell::before {
@@ -19,7 +19,7 @@
 }
 
 .topology-svg {
-  @apply relative z-10 h-auto min-h-64 w-full flex-1;
+  @apply relative z-10 h-auto min-h-72 w-full flex-1;
 }
 
 .topology-grid circle,

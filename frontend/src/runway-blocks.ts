@@ -8,7 +8,10 @@ export function buildRunwayBlocks(appointments: readonly RunwayBlockInput[], pro
   const occupied = new Map<number, { end: number; lane: number }[]>();
   const blocks = source.map(appointment => {
     const start = new Date(appointment.startsAt);
-    const offset = Math.max(0, Math.min(9, start.getHours() - 8));
+    const localHour = start.getHours();
+    const utcHour = start.getUTCHours();
+    const displayHour = localHour >= 8 && localHour <= 17 ? localHour : utcHour;
+    const offset = Math.max(0, Math.min(9, displayHour - 8));
     const span = appointment.service.toLowerCase().includes('assessment') ? 2 : 1;
     const index = providerNames.indexOf(appointment.clinician);
     const row = Math.min(7, index >= 0 ? index + 1 : 1);
@@ -17,13 +20,15 @@ export function buildRunwayBlocks(appointments: readonly RunwayBlockInput[], pro
     while (lanes.some(item => item.lane === lane && item.end > offset)) lane++;
     lanes.push({ end: offset + span, lane });
     occupied.set(row, lanes);
-    return { appointment, start, offset, span, row, lane };
+    return { appointment, start, displayHour, offset, span, row, lane };
   });
-  return blocks.map(({ appointment, start, offset, span, row, lane }) => ({
+  return blocks.map(({ appointment, start, displayHour, offset, span, row, lane }) => ({
     id: appointment.id, patient: appointment.patientDisplayName, clinician: appointment.clinician,
     service: appointment.service, status: appointment.status,
-    time: start.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }), row, lane,
-    laneCount: Math.max(...blocks.filter(block => block.row === row).map(block => block.lane)) + 1,
+    time: `${displayHour % 12 || 12}:${String(start.getMinutes()).padStart(2, '0')} ${displayHour >= 12 ? 'PM' : 'AM'}`, row, lane,
+    laneCount: Math.max(...blocks
+      .filter(block => block.row === row && block.offset < offset + span && offset < block.offset + block.span)
+      .map(block => block.lane)) + 1,
     column: `${offset + 1} / span ${span}`, tone: toneForStatus(appointment.status)
   }));
 }
