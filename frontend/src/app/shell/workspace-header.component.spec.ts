@@ -23,13 +23,13 @@ describe('WorkspaceHeaderComponent', () => {
     return fixture;
   }
 
-  it('renders workspace metadata and the truthful runtime status', () => {
+  it('renders workspace metadata and a single merged status pill', () => {
     const host = render().nativeElement as HTMLElement;
 
     expect(host.querySelector('h1')?.textContent).toContain('Risk constellation');
-    expect(host.querySelector('.live-pill')?.textContent).toContain('Live API');
-    expect(host.querySelector('.live-pill')?.getAttribute('data-tone')).toBe('green');
-    expect(host.querySelector('.demo-pill')?.textContent).toContain('Updated just now');
+    expect(host.querySelector('.status-pill')?.textContent).toContain('Live API');
+    expect(host.querySelector('.status-pill')?.getAttribute('data-tone')).toBe('green');
+    expect(host.querySelector('.live-pill')).toBeNull();
   });
 
   it('provides accessible names and emits refresh requests when available', () => {
@@ -37,24 +37,24 @@ describe('WorkspaceHeaderComponent', () => {
     let refreshes = 0;
     fixture.componentInstance.refreshRequested.subscribe(() => refreshes++);
     const host = fixture.nativeElement as HTMLElement;
-    const refresh = host.querySelector('button') as HTMLButtonElement;
+    const refresh = host.querySelector('.refresh-control') as HTMLButtonElement;
 
     expect(host.querySelector('.avatar')?.getAttribute('aria-label')).toBe('Yoshi Gomez');
-    expect(refresh.textContent?.trim()).toBe('Refresh');
+    expect(refresh.getAttribute('aria-label')).toBe('Refresh');
     refresh.click();
     expect(refreshes).toBe(1);
   });
 
   it('labels and disables the refresh control while a refresh is running', () => {
-    const refresh = render(true).nativeElement.querySelector('button') as HTMLButtonElement;
+    const refresh = render(true).nativeElement.querySelector('.refresh-control') as HTMLButtonElement;
 
     expect(refresh.disabled).toBeTrue();
-    expect(refresh.textContent?.trim()).toBe('Updating…');
+    expect(refresh.getAttribute('aria-busy')).toBe('true');
   });
 
   it('stops the live status animation under reduced motion', () => {
     render();
-    const reducedMotionRule = componentReducedMotionRule('.live-dot[');
+    const reducedMotionRule = componentReducedMotionRule('.status-dot[');
 
     expect(reducedMotionRule?.animationName).toBe('none');
   });

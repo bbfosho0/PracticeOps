@@ -1,18 +1,8 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
-import { Appointment, SignalTone, humanizeStatus } from '../../dashboard-model';
+import { Appointment, humanizeStatus } from '../../dashboard-model';
 import { ClinicianLoadMetric } from '../../operational-telemetry';
-
-export interface RunwayBlock {
-  readonly id: string;
-  readonly patient: string;
-  readonly clinician: string;
-  readonly service: string;
-  readonly status: string;
-  readonly time: string;
-  readonly row: number;
-  readonly column: string;
-  readonly tone: SignalTone;
-}
+import { RunwayBlock } from '../../runway-blocks';
+export type { RunwayBlock } from '../../runway-blocks';
 
 @Component({
   selector: 'article[appTemporalRunway]',

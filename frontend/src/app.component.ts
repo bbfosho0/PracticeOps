@@ -35,7 +35,7 @@ import { WorkspaceNavItem } from './app/shell/command-dock.component';
 import { WorkspaceViewMetadata } from './app/shell/workspace-header.component';
 import { OverviewWorkspaceComponent } from './app/overview/overview-workspace.component';
 import { ScheduleWorkspaceComponent, filterScheduleAppointments } from './app/schedule/schedule-workspace.component';
-import { RunwayBlock } from './app/schedule/temporal-runway.component';
+import { RunwayBlock, buildRunwayBlocks } from './runway-blocks';
 import { DocumentationWorkspaceComponent } from './app/documentation/documentation-workspace.component';
 import { ClaimsWorkspaceComponent } from './app/claims/claims-workspace.component';
 import { AuditWorkspaceComponent } from './app/audit/audit-workspace.component';
@@ -242,25 +242,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     };
   }));
 
-  readonly runwayBlocks = computed<RunwayBlock[]>(() => {
-    const source = this.filteredScheduleAppointments().slice(0, 18);
-    return source.map((appointment, index) => {
-      const start = new Date(appointment.startsAt);
-      const hourOffset = Math.max(0, Math.min(9, start.getHours() - 8));
-      const span = appointment.service.toLowerCase().includes('assessment') ? 2 : 1;
-      return {
-        id: appointment.id,
-        patient: appointment.patientDisplayName,
-        clinician: appointment.clinician,
-        service: appointment.service,
-        status: appointment.status,
-        time: start.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }),
-        row: Math.min(7, (index % Math.max(1, this.providerRows().length)) + 1),
-        column: `${hourOffset + 1} / span ${span}`,
-        tone: toneForStatus(appointment.status)
-      };
-    });
-  });
+  readonly runwayBlocks = computed<RunwayBlock[]>(() => buildRunwayBlocks(this.filteredScheduleAppointments(), this.providerRows()));
 
   readonly waitlist = computed(() => this.dashboard().appointments
     .filter(item => item.status === 'Scheduled')

@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
 import { AutoAnimateDirective } from '../../auto-animate.directive';
 import { PortfolioScenario, PortfolioScenarioStep, ViewId } from '../../dashboard-model';
 import { ApiMode } from '../../runtime-model';
@@ -12,6 +12,7 @@ import { ApiMode } from '../../runtime-model';
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     '[attr.data-state]': `apiMode() === 'live' ? (complete() ? 'complete' : 'active') : 'preview'`,
+    '[attr.data-expanded]': 'expanded()',
     '[attr.aria-labelledby]': `'scenario-title'`
   }
 })
@@ -23,8 +24,12 @@ export class ScenarioControlsComponent {
   readonly canMutate = input.required<boolean>();
   readonly complete = input.required<boolean>();
   readonly actionLabel = input.required<string>();
+  readonly expanded = signal(false);
+  readonly currentStepIndex = computed(() => this.scenario().steps.findIndex(step => step.id === this.currentStep().id));
   readonly startRequested = output<void>();
   readonly workspaceRequested = output<void>();
   readonly continueRequested = output<void>();
   readonly stepSelected = output<ViewId>();
+
+  toggleExpanded(): void { this.expanded.update(value => !value); }
 }

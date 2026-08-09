@@ -17,9 +17,13 @@ h1 { @apply font-display text-3xl leading-none tracking-[-0.025em] text-white sm
 .refresh-control { @apply rounded-control border border-white/10 transition duration-150 ease-out; }
 .refresh-control:focus-visible { @apply outline-none ring-2 ring-cyan/70 ring-offset-2 ring-offset-obsidian; }
 .refresh-control:hover:not(:disabled) { @apply border-cyan/25 bg-white/5; }
-.live-pill, .demo-pill { min-height: 34px; display: inline-flex; align-items: center; gap: 8px; padding: 0 14px; border: 1px solid rgba(51, 87, 134, 0.5); border-radius: 999px; background: rgba(7, 14, 26, 0.75); backdrop-filter: blur(15px); color: #c4ccdc; font-size: 9px; text-transform: uppercase; }
-.live-pill, .demo-pill { @apply rounded-full border border-white/10 bg-white/[0.035] px-2.5 py-1 text-xs font-medium; }
-.live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--cyan); box-shadow: 0 0 11px var(--cyan); animation: pulse 2s infinite; }
+.status-pill { min-height: 34px; display: inline-flex; align-items: center; gap: 8px; padding: 0 14px; border: 1px solid rgba(51, 87, 134, .5); border-radius: 999px; background: rgba(7, 14, 26, .75); color: #c4ccdc; font-size: 9px; text-transform: uppercase; }
+.status-pill em { font-style: normal; color: #7d899f; text-transform: none; }
+.status-pill em::before { content: '·'; margin-right: 8px; color: #4a5772; }
+.status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--cyan); box-shadow: 0 0 11px var(--cyan); animation: pulse 2s infinite; }
+.refresh-control { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 999px; }
+.refresh-control svg { width: 15px; height: 15px; }
+.refresh-control[aria-busy='true'] svg { animation: spin 900ms linear infinite; }
 .avatar { width: 38px; height: 38px; display: grid; place-items: center; border: 1px solid var(--cyan); border-radius: 50%; color: var(--cyan); font-size: 11px; background: rgba(7, 20, 33, 0.9); box-shadow: 0 0 23px rgba(25, 217, 255, 0.3); }
 button { font: inherit; color: inherit; }
 button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
@@ -37,7 +41,7 @@ button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
 }
 
 @media (max-width: 560px) {
-  .demo-pill { display: none; }
+  .status-pill em { display: none; }
 }
 
 @media (min-width: 1380px) {
@@ -52,5 +56,8 @@ button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
 
 @media (prefers-reduced-motion: reduce) {
   .refresh-control { transition-duration: 1ms; }
-  .live-dot { animation: none !important; }
+  .status-dot { animation: none !important; }
+  .refresh-control[aria-busy='true'] svg { animation: none; }
 }
+
+@keyframes spin { to { transform: rotate(360deg); } }

@@ -1,3 +1,6 @@
+@if (!expanded()) {
+<button type="button" class="scenario-strip" (click)="toggleExpanded()"><span class="panel-kicker">Persisted employer journey</span><span class="scenario-strip-title">Step {{ currentStepIndex() + 1 }} of {{ scenario().totalSteps }} · {{ scenario().title }}</span><span class="scenario-strip-toggle">Expand <i>▾</i></span></button>
+} @else {
 <div class="scenario-summary">
   <span class="panel-kicker">Persisted employer journey</span>
   <h2 id="scenario-title">{{ scenario().title }}</h2>
@@ -15,4 +18,6 @@
   <button type="button" class="scenario-secondary" (click)="workspaceRequested.emit()">Open current workspace</button>
   <button type="button" class="scenario-primary" [disabled]="!canMutate() && !complete()" (click)="continueRequested.emit()">{{ actionLabel() }}</button>
   @if (apiMode() !== 'live') { <small>Persisted actions require the live API. This preview remains read-only.</small> }
+  <button type="button" class="scenario-collapse" (click)="toggleExpanded()">Collapse <i>▴</i></button>
 </div>
+}

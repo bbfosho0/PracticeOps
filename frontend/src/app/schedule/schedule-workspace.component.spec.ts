@@ -34,7 +34,7 @@ describe('ScheduleWorkspaceComponent', () => {
     time: `${9 + index}:00 AM`,
     row: 1,
     column: `${index + 2} / span 1`,
-    tone: 'cyan'
+    tone: 'cyan', lane: 0, laneCount: 1
   }));
   const weekSummary: WeekSummaryDay[] = Array.from({ length: 7 }, (_, index) => ({
     date: new Date(2026, 7, 3 + index),

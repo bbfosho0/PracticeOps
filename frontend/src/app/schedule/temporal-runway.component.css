@@ -1,6 +1,7 @@
 @reference "../../styles.css";
 
 .appointment-block { cursor: default !important; }
+.appointment-block { --lane: 0; --lane-count: 1; position: relative; width: calc((100% - (var(--lane-count) - 1) * 4px) / var(--lane-count)); margin-left: calc(var(--lane) * ((100% - (var(--lane-count) - 1) * 4px) / var(--lane-count) + 4px)); }
 
 :host { position: relative; min-height: 640px; display: block; overflow: hidden; padding: 12px 13px; border: 1px solid var(--line); border-radius: 18px; background: linear-gradient(135deg, rgba(13, 23, 40, .92), rgba(6, 12, 23, .82)); backdrop-filter: blur(22px) saturate(125%); box-shadow: 0 18px 48px rgba(0, 0, 0, .28), inset 0 1px rgba(255, 255, 255, .05); @apply rounded-panel border border-white/10 bg-ink/75 shadow-observatory backdrop-blur-xl; }
 :host::before { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(105deg, rgba(25, 217, 255, .04), transparent 24%, transparent 78%, rgba(122, 77, 255, .045)); }

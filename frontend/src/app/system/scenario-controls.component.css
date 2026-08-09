@@ -1,5 +1,11 @@
 @reference "../../styles.css";
 
+:host([data-expanded='false']) { grid-template-columns: 1fr; padding: 0; margin: 14px 0 18px; overflow: visible; }
+.scenario-strip { width: 100%; min-height: 46px; display: flex; align-items: center; gap: 14px; padding: 0 18px; border: 1px solid rgba(142,168,219,.18); border-radius: 999px; background: rgba(8,14,31,.74); color: rgba(223,232,255,.86); cursor: pointer; }
+.scenario-strip-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.scenario-strip-toggle { color: var(--cyan); font-size: .68rem; text-transform: uppercase; }
+.scenario-collapse { padding: 6px 12px; border: 1px solid rgba(142,168,219,.22); border-radius: 999px; background: transparent; color: rgba(229,237,255,.7); cursor: pointer; }
+
 :host { position: relative; display: grid; grid-template-columns: minmax(280px,1.1fr) minmax(320px,1.4fr) minmax(220px,.8fr); gap: 24px; align-items: center; margin: 18px 0 24px; padding: 22px 24px; overflow: hidden; @apply rounded-panel border border-white/10 bg-ink/75 shadow-observatory backdrop-blur-xl; }
 :host::before { content: ''; position: absolute; inset: 0 auto 0 0; width: 3px; background: linear-gradient(180deg,rgba(25,217,255,.2),rgba(25,217,255,.95),rgba(126,87,255,.35)); box-shadow: 0 0 24px rgba(25,217,255,.45); }:host([data-state='preview'])::before { opacity: .48; }:host([data-state='complete'])::before { background: linear-gradient(180deg,rgba(49,218,143,.25),rgba(49,218,143,1)); }
 .panel-kicker { @apply text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-cyan/75; }.scenario-summary h2 { max-width: 610px; margin: 5px 0 8px; font-size: clamp(1.1rem,1.5vw,1.45rem); letter-spacing: -.025em; }.scenario-summary p,.scenario-summary small,.scenario-actions small { color: rgba(223,232,255,.68); }.scenario-summary p { margin: 0 0 14px; line-height: 1.5; }.scenario-progress { height: 5px; overflow: hidden; border: 1px solid rgba(142,168,219,.18); border-radius: 999px; background: rgba(4,8,20,.66); }.scenario-progress span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg,rgba(25,217,255,.85),rgba(126,87,255,.95)); box-shadow: 0 0 18px rgba(25,217,255,.4); transition: width 260ms cubic-bezier(.2,.8,.2,1); }.scenario-summary > small { display: block; margin-top: 8px; }

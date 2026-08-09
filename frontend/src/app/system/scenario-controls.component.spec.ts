@@ -15,6 +15,7 @@ describe('ScenarioControlsComponent', () => {
     apiMode?: 'live' | 'demo';
     mutationPending?: boolean;
     complete?: boolean;
+    expand?: boolean;
   } = {}) {
     const complete = options.complete ?? false;
     const scenario = complete ? {
@@ -39,8 +40,18 @@ describe('ScenarioControlsComponent', () => {
     fixture.componentRef.setInput('complete', complete);
     fixture.componentRef.setInput('actionLabel', mutationPending ? 'Saving…' : complete ? 'Inspect proof' : apiMode === 'live' ? 'Complete current step' : 'Live API required');
     fixture.detectChanges();
+    if (options.expand !== false) {
+      (fixture.nativeElement.querySelector('.scenario-strip') as HTMLButtonElement)?.click();
+      fixture.detectChanges();
+    }
     return fixture;
   }
+
+  it('renders collapsed by default with a one-line summary', () => {
+    const host = render({ expand: false }).nativeElement as HTMLElement;
+    expect(host.querySelector('.scenario-strip')).not.toBeNull();
+    expect(host.querySelector('.scenario-summary')).toBeNull();
+  });
 
   it('disables persisted controls while a mutation is pending', () => {
     const host = render({ mutationPending: true }).nativeElement as HTMLElement;

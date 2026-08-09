@@ -23,7 +23,7 @@ describe('TemporalRunwayComponent', () => {
     time: '9:00 AM',
     row: 1,
     column: '2 / span 2',
-    tone: 'cyan'
+    tone: 'cyan', lane: 0, laneCount: 1
   }];
 
   beforeEach(() => TestBed.configureTestingModule({ providers: [provideZonelessChangeDetection()] }));
