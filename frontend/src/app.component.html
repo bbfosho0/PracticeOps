@@ -1,7 +1,7 @@
 <div appObservatoryShell class="observatory" [attr.data-view]="activeView()" [attr.data-api-mode]="apiMode()" [class.is-stale]="stale()"
   [items]="nav" [activeView]="activeView()" [runtimeMode]="apiMode()" [metadata]="view()" [runtimeStatus]="systemState()"
   [updatedLabel]="updatedLabel()" [refreshing]="refreshing()" [notice]="notice()" [stale]="stale()"
-  [retryAvailable]="!refreshing()" [proofCollapsed]="!proofLayerOpen()"
+  [retryAvailable]="!refreshing()"
   (viewSelected)="selectView($event)" (retryRequested)="refresh()">
   <div class="atmosphere" aria-hidden="true">
     <canvas #atmosphereCanvas class="atmosphere-canvas"></canvas>
@@ -16,20 +16,6 @@
       [apiMode]="apiMode()" [mutationPending]="mutationPending()" [canMutate]="canMutateScenario()"
       [complete]="scenarioComplete()" [actionLabel]="scenarioActionLabel()" (startRequested)="startScenario()"
       (workspaceRequested)="openScenarioWorkspace()" (continueRequested)="continueScenario()" (stepSelected)="selectView($event)"></section>
-
-    <aside class="portfolio-proof" [class.is-collapsed]="!proofLayerOpen()" aria-label="Operator's proof layer">
-      <header><div><span class="panel-kicker">Operator's proof layer</span><strong>{{ proofLayerOpen() ? 'How this demo was built' : 'Portfolio proof' }}</strong></div><button type="button" [attr.aria-expanded]="proofLayerOpen()" (click)="toggleProofLayer()">{{ proofLayerOpen() ? 'Collapse' : 'Explore proof' }}</button></header>
-      @if (proofLayerOpen()) {
-        <p>The same fictional operating day links domain workflows, persisted state, audit records, and transactional delivery.</p>
-        <button type="button" class="walk-system" (click)="openScenarioWorkspace()">Walk the system <span>→</span></button>
-        <div class="proof-list">
-          <button type="button" (click)="showProofInWorkspace('schedule')"><span>01</span><div><strong>Domain workflows</strong><small>Appointments, notes, and claims use separate validated state machines.</small></div></button>
-          <button type="button" (click)="showProofInWorkspace('claims')"><span>02</span><div><strong>Data integrity</strong><small>Metrics and exposure reconcile with the displayed backend records.</small></div></button>
-          <button type="button" (click)="showProofInWorkspace('audit')"><span>03</span><div><strong>Event delivery</strong><small>Transitions write audit and outbox records before asynchronous publishing.</small></div></button>
-          <button type="button" (click)="showProofInWorkspace('settings')"><span>04</span><div><strong>Runtime truth</strong><small>System status distinguishes live, stale, and synthetic-preview behavior.</small></div></button>
-        </div>
-      }
-    </aside>
 
     @if (loading()) {
       <section class="loading-grid" aria-label="Loading operational signals"><div class="skeleton skeleton-wide"></div><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton skeleton-wide"></div></section>

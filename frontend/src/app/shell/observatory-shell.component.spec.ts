@@ -18,8 +18,7 @@ import { ObservatoryShellComponent } from './observatory-shell.component';
       [refreshing]="false"
       notice="Live API data refreshed."
       [stale]="stale"
-      [retryAvailable]="true"
-      [proofCollapsed]="true">
+      [retryAvailable]="true">
       <div class="atmosphere" aria-hidden="true"></div>
       <section class="projected-workspace">Workspace content</section>
     </div>
@@ -43,7 +42,6 @@ describe('ObservatoryShellComponent', () => {
     const main = observatory.querySelector(':scope > main.workspace') as HTMLElement;
 
     expect(observatory.querySelector(':scope > .atmosphere')).not.toBeNull();
-    expect(observatory.classList).toContain('has-collapsed-proof');
     expect(observatory.querySelector(':scope > aside.command-dock')).not.toBeNull();
     expect(main.querySelector(':scope > header.workspace-header')).not.toBeNull();
     expect(main.querySelector(':scope > section.mode-notice')).not.toBeNull();

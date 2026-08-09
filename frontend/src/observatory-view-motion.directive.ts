@@ -7,7 +7,6 @@ const PERSISTENT_SURFACES = new Set([
   'workspace-header',
   'mode-notice',
   'scenario-rail',
-  'portfolio-proof',
   'sr-only'
 ]);
 

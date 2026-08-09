@@ -47,7 +47,6 @@ export async function expectVisibleSurfacesContained(page: Page): Promise<void> 
     '.workspace .glass-panel',
     '.workspace .mode-notice',
     '.scenario-rail',
-    '.portfolio-proof',
     '.workspace .filter-row'
   ].join(',')).evaluateAll(elements => elements.flatMap(element => {
     const rect = element.getBoundingClientRect();

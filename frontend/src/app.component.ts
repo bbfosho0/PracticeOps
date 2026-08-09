@@ -140,16 +140,12 @@ function sameLocalDay(value: string, reference: Date): boolean {
     && date.getDate() === reference.getDate();
 }
 
-function defaultProofLayerOpen(): boolean {
-  return false;
-}
-
 @Component({
   selector: 'app-root',
   standalone: true,
   imports: [ObservatoryShellComponent, OverviewWorkspaceComponent, ScheduleWorkspaceComponent, DocumentationWorkspaceComponent, ClaimsWorkspaceComponent, AuditWorkspaceComponent, ScenarioControlsComponent, SystemWorkspaceComponent],
   templateUrl: './app.component.html',
-  styleUrls: ['./app.component.css', './portfolio-showcase.css', './tailwind-structure.css'],
+  styleUrls: ['./app.component.css', './tailwind-structure.css'],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class AppComponent implements AfterViewInit, OnDestroy {
@@ -180,7 +176,6 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   readonly claimPayerFilter = signal('all');
   readonly claimSearch = signal('');
   readonly notificationPreferences = signal<NotificationPreference[]>(INITIAL_PREFERENCES.map(item => ({ ...item })));
-  readonly proofLayerOpen = signal(defaultProofLayerOpen());
 
   readonly view = computed(() => WORKSPACE_VIEW_METADATA[this.activeView()]);
   readonly scenario = this.scenarioController.scenario;
@@ -288,14 +283,6 @@ export class AppComponent implements AfterViewInit, OnDestroy {
 
   openScenarioWorkspace(): void {
     this.selectView(this.scenarioController.openCurrentWorkspace());
-  }
-
-  toggleProofLayer(): void {
-    this.proofLayerOpen.update(value => !value);
-  }
-
-  showProofInWorkspace(view: ViewId): void {
-    this.selectView(view);
   }
 
   selectScheduleFilter(filter: 'day' | 'week' | 'list'): void {

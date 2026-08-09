@@ -13,7 +13,7 @@ import { RuntimeStatus, WorkspaceHeaderComponent, WorkspaceViewMetadata } from '
   templateUrl: './observatory-shell.component.html',
   styleUrl: './observatory-shell.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  host: { '[class.has-collapsed-proof]': 'proofCollapsed()' }
+  host: {}
 })
 export class ObservatoryShellComponent {
   readonly items = input.required<readonly WorkspaceNavItem[]>();
@@ -26,7 +26,6 @@ export class ObservatoryShellComponent {
   readonly notice = input.required<string>();
   readonly stale = input.required<boolean>();
   readonly retryAvailable = input.required<boolean>();
-  readonly proofCollapsed = input(false);
   readonly viewSelected = output<ViewId>();
   readonly retryRequested = output<void>();
 }

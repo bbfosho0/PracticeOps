@@ -15,11 +15,6 @@
   .workspace { padding-inline: 10px; }
 }
 
-@media (min-width: 1380px) {
-  .workspace { padding-right: calc(var(--proof-width) + 54px); transition: padding-right 180ms ease; }
-  :host(.has-collapsed-proof) .workspace { padding-right: 180px; }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .workspace { transition: none !important; }
 }
