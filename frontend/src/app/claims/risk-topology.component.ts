@@ -92,14 +92,13 @@ export class RiskTopologyComponent implements AfterViewInit, OnChanges, OnDestro
     );
     this.entranceTimeline.fromTo(
       nodes,
-      { autoAlpha: 0, scale: 0.72, transformOrigin: 'center center' },
+      { autoAlpha: 0 },
       {
         autoAlpha: 1,
-        scale: 1,
         duration: profile.topologyDuration * 0.82,
         stagger: profile.stagger,
-        ease: 'back.out(1.7)',
-        clearProps: 'opacity,visibility,transform'
+        ease: 'power2.out',
+        clearProps: 'opacity,visibility'
       },
       0.08
     );

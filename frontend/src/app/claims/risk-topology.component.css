@@ -84,13 +84,7 @@
 
 .topology-node {
   --tone: var(--color-cyan);
-  transform-box: fill-box;
-  transform-origin: center;
-  animation: topology-node-float 4.8s ease-in-out infinite;
 }
-
-.topology-node:nth-child(2n) { animation-delay: -1.7s; }
-.topology-node:nth-child(3n) { animation-delay: -3.1s; }
 
 .node-halo {
   fill: color-mix(in srgb, var(--tone) 8%, transparent);

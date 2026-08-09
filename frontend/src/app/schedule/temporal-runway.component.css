@@ -23,6 +23,8 @@
 [data-tone=green] { --tone: var(--green); }
 [data-tone=coral] { --tone: var(--coral); }
 .appointment-block { z-index: 3; align-self: center; min-height: 47px; display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto; gap: 2px 6px; padding: 6px 8px; border: 1px solid var(--tone); border-radius: 7px; background: color-mix(in srgb, var(--tone) 8%, rgba(9, 17, 31, .94)); box-shadow: 0 8px 16px rgba(0, 0, 0, .26), 0 0 14px color-mix(in srgb, var(--tone) 10%, transparent), inset 0 1px rgba(255, 255, 255, .045) !important; text-align: left; }
+.appointment-block.is-multilane strong,
+.appointment-block.is-multilane small { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .appointment-block time { grid-row: 1 / span 2; color: #9facbf; font-size: 6px; }
 .appointment-block strong { font-size: 7px; }
 .appointment-block small { color: var(--tone); font-size: 6px; }
