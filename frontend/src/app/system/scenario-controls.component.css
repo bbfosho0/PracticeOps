@@ -2,6 +2,7 @@
 
 :host([data-expanded='false']) { grid-template-columns: minmax(0, 1fr) !important; padding: 0; margin: 14px 0 18px; overflow: visible; }
 .scenario-strip { box-sizing: border-box; width: 100%; min-width: 0; min-height: 46px; display: flex; align-items: center; gap: 14px; padding: 0 18px; border: 1px solid rgba(142,168,219,.18); border-radius: 999px; background: rgba(8,14,31,.74); color: rgba(223,232,255,.86); cursor: pointer; overflow: hidden; }
+.scenario-strip .panel-kicker { flex: 0 1 auto; min-width: 0; }
 .scenario-strip-title { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
 .scenario-strip-toggle { color: var(--cyan); font-size: .68rem; text-transform: uppercase; }
 .scenario-collapse { padding: 6px 12px; border: 1px solid rgba(142,168,219,.22); border-radius: 999px; background: transparent; color: rgba(229,237,255,.7); cursor: pointer; }
