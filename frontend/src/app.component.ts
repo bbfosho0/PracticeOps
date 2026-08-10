@@ -39,7 +39,6 @@ import { RunwayBlock, buildRunwayBlocks } from './runway-blocks';
 import { DocumentationWorkspaceComponent } from './app/documentation/documentation-workspace.component';
 import { ClaimsWorkspaceComponent } from './app/claims/claims-workspace.component';
 import { AuditWorkspaceComponent } from './app/audit/audit-workspace.component';
-import { ScenarioControlsComponent } from './app/system/scenario-controls.component';
 import { NotificationPreference, SystemWorkspaceComponent } from './app/system/system-workspace.component';
 
 export type { WorkspaceNavItem } from './app/shell/command-dock.component';
@@ -143,7 +142,7 @@ function sameLocalDay(value: string, reference: Date): boolean {
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [ObservatoryShellComponent, OverviewWorkspaceComponent, ScheduleWorkspaceComponent, DocumentationWorkspaceComponent, ClaimsWorkspaceComponent, AuditWorkspaceComponent, ScenarioControlsComponent, SystemWorkspaceComponent],
+  imports: [ObservatoryShellComponent, OverviewWorkspaceComponent, ScheduleWorkspaceComponent, DocumentationWorkspaceComponent, ClaimsWorkspaceComponent, AuditWorkspaceComponent, SystemWorkspaceComponent],
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.css', './tailwind-structure.css'],
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -179,10 +178,6 @@ export class AppComponent implements AfterViewInit, OnDestroy {
 
   readonly view = computed(() => WORKSPACE_VIEW_METADATA[this.activeView()]);
   readonly scenario = this.scenarioController.scenario;
-  readonly currentScenarioStep = this.scenarioController.currentStep;
-  readonly scenarioActionLabel = this.scenarioController.actionLabel;
-  readonly canMutateScenario = this.scenarioController.canMutate;
-  readonly scenarioComplete = computed(() => this.scenario().completedSteps === this.scenario().totalSteps);
   readonly scenarioAppointmentId = computed(() => this.scenario().appointmentId);
   readonly scenarioClinicalNoteId = computed(() => this.scenario().clinicalNoteId);
   readonly scenarioClaimId = computed(() => this.scenario().claimId);
@@ -267,22 +262,9 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     this.refreshStore.refresh();
   }
 
-  startScenario(): void {
-    this.selectedScheduleDate.set(null);
-    this.selectView(this.scenarioController.start());
-  }
-
   resetScenario(): void {
     this.selectedScheduleDate.set(null);
     this.selectView(this.scenarioController.reset());
-  }
-
-  continueScenario(): void {
-    this.selectView(this.scenarioController.performCurrentAction());
-  }
-
-  openScenarioWorkspace(): void {
-    this.selectView(this.scenarioController.openCurrentWorkspace());
   }
 
   selectScheduleFilter(filter: 'day' | 'week' | 'list'): void {

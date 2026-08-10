@@ -126,13 +126,13 @@ describe('AppComponent workspace extraction', () => {
     expect(host.querySelector('article[appAuditTimeline]')).not.toBeNull();
   });
 
-  it('composes system and shared scenario controls through focused components', () => {
+  it('keeps system proof available without rendering the removed journey rail', () => {
     const fixture = TestBed.createComponent(AppComponent);
     fixture.componentInstance.selectView('settings');
     fixture.detectChanges();
 
     const host = fixture.nativeElement as HTMLElement;
-    expect(host.querySelector('section[appScenarioControls]')).not.toBeNull();
+    expect(host.querySelector('section[appScenarioControls]')).toBeNull();
     expect(host.querySelector('div[appSystemWorkspace]')).not.toBeNull();
   });
 

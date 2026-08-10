@@ -12,11 +12,6 @@
     <span class="scanline"></span>
   </div>
 
-    <section appScenarioControls class="scenario-rail glass-panel" [scenario]="scenario()" [currentStep]="currentScenarioStep()"
-      [apiMode]="apiMode()" [mutationPending]="mutationPending()" [canMutate]="canMutateScenario()"
-      [complete]="scenarioComplete()" [actionLabel]="scenarioActionLabel()" (startRequested)="startScenario()"
-      (workspaceRequested)="openScenarioWorkspace()" (continueRequested)="continueScenario()" (stepSelected)="selectView($event)"></section>
-
     @if (loading()) {
       <section class="loading-grid" aria-label="Loading operational signals"><div class="skeleton skeleton-wide"></div><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton skeleton-wide"></div></section>
     } @else {
